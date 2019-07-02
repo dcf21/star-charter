@@ -1,0 +1,55 @@
+*.pyc
+
+# Distribution / packaging
+develop-eggs/
+dist/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+
+# /
+/bin
+/obj
+/.idea
+/cmake-build-debug
+/examples/output
+
+# Input data files
+/data/constellations/downloads/ReadMe
+/data/constellations/downloads/boundaries.dat
+/data/constellations/downloads/hip_main.dat.gz
+/data/constellations/downloads/ybsc.gz
+/data/constellations/process_stick_figures/output/
+/data/milkyWay/mwpan2_Merc_2000x1200.jpg
+/data/stars/bayerAndFlamsteed/ReadMe
+/data/stars/bayerAndFlamsteed/catalog.dat
+/data/stars/brightStars/ReadMe
+/data/stars/brightStars/catalog.gz
+/data/stars/hipparcosNewReduction/ReadMe
+/data/stars/hipparcosNewReduction/hip2.dat.gz
+/data/stars/gaiaDR1/ReadMe
+/data/stars/gaiaDR1/*.dat.gz
+/data/stars/tycho1/ReadMe
+/data/stars/tycho1/tyc_main.dat
+/data/stars/tycho1/hip_main.dat.gz
+/data/stars/tycho2/tyc2.dat.??.gz
+/data/stars/tycho2/ReadMe
+
+# /data/milkyWay/process/
+/data/milkyWay/process/bin
+/data/milkyWay/process/obj
+/data/milkyWay/process/.idea
+/data/milkyWay/process/cmake-build-debug
+/data/milkyWay/process/galaxymap.log
+/data/milkyWay/process/output
+
+# /data/stars/starCataloguesMerge/
+/data/stars/starCataloguesMerge/output
+
+# /data/deepSky/ngcDistances/
+/data/deepSky/ngcDistances/output
+
+# /data/constellations/process/
+/data/constellations/process/output
+
