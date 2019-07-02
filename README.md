@@ -1,6 +1,6 @@
 # StarCharter
 
-<img align="right" src="example_output/orion_mini.png">
+<img align="right" width="500" src="example_output/orion_mini.png">
 
 `StarCharter` is a command-line tool for producing vector-graphics charts of
 the night sky in SVG, PDF and PNG formats. It can also overlay the paths of

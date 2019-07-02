@@ -1,0 +1,233 @@
+# This list was taken from the IAU working group on star names
+# http://www.pas.rochester.edu/~emamajek/WGSN/
+
+# Catalogue Number Parallax Name
+HR 897         0.0  Acamar            
+HR 472         0.0  Achernar          
+HR 5984        0.0  Acrab             
+HR 4730        0.0  Acrux             
+HR 3572        0.0  Acubens           
+HR 4031        0.0  Adhafera          
+HR 2618        0.0  Adhara            
+HR 390         0.0  Adhil             
+HR 1409        0.0  Ain               
+HR 7950        0.0  Albali            
+HR 7417        0.0  Albireo           
+HR 4623        0.0  Alchiba           
+HR 5062        0.0  Alcor             
+HR 1165        0.0  Alcyone           
+HR 1457        0.0  Aldebaran         
+HR 8162        0.0  Alderamin         
+HR 8238        0.0  Alfirk            
+HR 7754        0.0  Algedi            
+HR 39          0.0  Algenib           
+HR 4057        0.0  Algieba           
+HR 936         0.0  Algol             
+HR 4757        0.0  Algorab           
+HR 2421        0.0  Alhena            
+HR 4905        0.0  Alioth            
+HR 5191        0.0  Alkaid            
+HR 5733        0.0  Alkalurops        
+HR 4287        0.0  Alkes             
+HR 603         0.0  Almach            
+HR 8425        0.0  Alnair            
+HR 6746        0.0  Alnasl            
+HR 1903        0.0  Alnilam           
+HR 1948        0.0  Alnitak           
+HR 3748        0.0  Alphard           
+HR 5793        0.0  Alphecca          
+HR 15          0.0  Alpheratz         
+HR 596         0.0  Alrescha          
+HR 7602        0.0  Alshain           
+HR 7557        0.0  Altair            
+HR 7310        0.0  Altais            
+HR 2827        0.0  Aludra            
+HR 4375        0.0  Alula Australis   
+HR 4377        0.0  Alula Borealis    
+HR 7141        0.0  Alya              
+HR 8499        0.0  Ancha             
+HR 99          0.0  Ankaa             
+HR 6134        0.0  Antares           
+HR 5340        0.0  Arcturus          
+HR 7343        0.0  Arkab Posterior   
+HR 7337        0.0  Arkab Prior       
+HR 1865        0.0  Arneb             
+HR 7194        0.0  Ascella           
+HR 3461        0.0  Asellus Australis 
+HR 3449        0.0  Asellus Borealis  
+HR 3699        0.0  Aspidiske         
+HR 1151        0.0  Asterope          
+HR 1131        0.0  Atik              
+HR 1178        0.0  Atlas             
+HR 6217        0.0  Atria             
+HR 3307        0.0  Avior             
+HR 8301        0.0  Azelfafage        
+HR 874         0.0  Azha              
+HR 539         0.0  Baten Kaitos      
+HR 1298        0.0  Beid              
+HR 1790        0.0  Bellatrix         
+HR 2061        0.0  Betelgeuse        
+HR 8450        0.0  Biham             
+HR 951         0.0  Botein            
+HR 2326        0.0  Canopus           
+HR 1708        0.0  Capella           
+HR 21          0.0  Caph              
+HR 2891        0.0  Castor            
+HR 6603        0.0  Cebalrai          
+HR 1140        0.0  Celaeno           
+HR 6585        0.0  Cervantes         
+HR 4277        0.0  Chalawan          
+HR 4785        0.0  Chara             
+HR 4359        0.0  Chertan           
+HR 3522        0.0  Copernicus        
+HR 4915        0.0  Cor Caroli        
+HR 1666        0.0  Cursa             
+HR 7776        0.0  Dabih             
+HR 7924        0.0  Deneb             
+HR 4534        0.0  Denebola          
+HR 188         0.0  Diphda            
+HR 5953        0.0  Dschubba          
+HR 4301        0.0  Dubhe             
+HR 5744        0.0  Edasich           
+HR 1142        0.0  Electra           
+HR 1791        0.0  Elnath            
+HR 6705        0.0  Eltanin           
+HR 8308        0.0  Enif              
+HR 8974        0.0  Errai             
+HR 6945        0.0  Fafnir            
+HR 8728        0.0  Fomalhaut         
+HR 2282        0.0  Furud             
+HR 4763        0.0  Gacrux            
+HR 4662        0.0  Gienah            
+HR 2845        0.0  Gomeisa           
+HR 6688        0.0  Grumium           
+HR 5267        0.0  Hadar             
+HR 617         0.0  Hamal             
+HR 8729        0.0  Helvetios         
+HR 8634        0.0  Homam             
+HR 3743        0.0  Intercrus         
+HR 5506        0.0  Izar              
+HR 6879        0.0  Kaus Australis    
+HR 6913        0.0  Kaus Borealis     
+HR 6859        0.0  Kaus Media        
+HR 1325        0.0  Keid              
+HR 8131        0.0  Kitalpha          
+HR 5563        0.0  Kochab            
+HR 6148        0.0  Kornephoros       
+HR 8417        0.0  Kurhah            
+HR 6508        0.0  Lesath            
+HR 7595        0.0  Libertas          
+HR 6526        0.0  Maasym            
+HR 1149        0.0  Maia              
+HR 6149        0.0  Marfik            
+HR 8781        0.0  Markab            
+HR 8650        0.0  Matar             
+HR 2473        0.0  Mebsuta           
+HR 4660        0.0  Megrez            
+HR 1879        0.0  Meissa            
+HR 2650        0.0  Mekbuda           
+HR 2088        0.0  Menkalinan        
+HR 911         0.0  Menkar            
+HR 5288        0.0  Menkent           
+HR 1228        0.0  Menkib            
+HR 4295        0.0  Merak             
+HR 5533        0.0  Merga             
+HR 1156        0.0  Merope            
+HR 546         0.0  Mesarthim         
+HR 3685        0.0  Miaplacidus       
+HR 4853        0.0  Mimosa            
+HR 1852        0.0  Mintaka           
+HR 681         0.0  Mira              
+HR 337         0.0  Mirach            
+HR 1017        0.0  Mirfak            
+HR 2294        0.0  Mirzam            
+HR 5054        0.0  Mizar             
+HR 544         0.0  Mothallah         
+HR 2657        0.0  Muliphein         
+HR 5235        0.0  Muphrid           
+HR 3323        0.0  Muscida           
+HR 8030        0.0  Musica            
+HR 3165        0.0  Naos              
+HR 8278        0.0  Nashira           
+HR 5602        0.0  Nekkar            
+HR 1829        0.0  Nihal             
+HR 7121        0.0  Nunki             
+HR 5747        0.0  Nusakan           
+HD 149026      0.0  Ogma              
+HR 7790        0.0  Peacock           
+HR 1956        0.0  Phact             
+HR 4554        0.0  Phecda            
+HR 5735        0.0  Pherkad           
+HR 1180        0.0  Pleione           
+HR 424         0.0  Polaris           
+HR 2990        0.0  Pollux            
+HR 4825        0.0  Porrima           
+HR 2943        0.0  Procyon           
+HR 2216        0.0  Propus            
+HR 1084        0.0  Ran               
+HR 3905        0.0  Rasalas           
+HR 6406        0.0  Rasalgethi        
+HR 6556        0.0  Rasalhague        
+HR 6536        0.0  Rastaban          
+HR 3982        0.0  Regulus           
+HR 1713        0.0  Rigel             
+HR 5459        0.0  Rigil Kentaurus   
+HR 7882        0.0  Rotanev           
+HR 403         0.0  Ruchbah           
+HR 7348        0.0  Rukbat            
+HR 6378        0.0  Sabik             
+HR 8518        0.0  Sadachbia         
+HR 8684        0.0  Sadalbari         
+HR 8414        0.0  Sadalmelik        
+HR 8232        0.0  Sadalsuud         
+HR 7796        0.0  Sadr              
+HR 2004        0.0  Saiph             
+HR 6553        0.0  Sargas            
+HR 6410        0.0  Sarin             
+HR 8775        0.0  Scheat            
+HR 168         0.0  Schedar           
+HR 5435        0.0  Seginus           
+HR 7479        0.0  Sham              
+HR 6527        0.0  Shaula            
+HR 7106        0.0  Sheliak           
+HR 553         0.0  Sheratan          
+HR 2491        0.0  Sirius            
+HR 8610        0.0  Situla            
+HR 8709        0.0  Skat              
+HR 5056        0.0  Spica             
+HR 7906        0.0  Sualocin          
+HR 3852        0.0  Subra             
+HR 3634        0.0  Suhail            
+HR 7178        0.0  Sulafat           
+HR 5338        0.0  Syrma             
+HR 3569        0.0  Talitha           
+HR 4069        0.0  Tania Australis   
+HR 4033        0.0  Tania Borealis    
+HR 7525        0.0  Tarazed           
+HR 1145        0.0  Taygeta           
+HR 3208        0.0  Tegmine           
+HR 5291        0.0  Thuban            
+HR 458         0.0  Titawin           
+HR 4609        0.0  Tonatiuh          
+HR 3185        0.0  Tureis            
+HR 5854        0.0  Unukalhai         
+HR 7001        0.0  Vega              
+HR 8930        0.0  Veritate          
+HR 4932        0.0  Vindemiatrix      
+HR 2777        0.0  Wasat             
+HR 2040        0.0  Wazn              
+HR 2693        0.0  Wezen             
+HR 6075        0.0  Yed Posterior     
+HR 6056        0.0  Yed Prior         
+HR 6789        0.0  Yildun            
+HR 4689        0.0  Zaniah            
+HR 1231        0.0  Zaurak            
+HR 4540        0.0  Zavijava          
+HR 984         0.0  Zibal             
+HR 4357        0.0  Zosma             
+HR 5531        0.0  Zubenelgenubi     
+HR 5685        0.0  Zubeneschamali    
+
+# Extra manual entries
+HIP  70890  768.13  Proxima Centauri 
+HIP  87937  545.62  Barnard's Star
