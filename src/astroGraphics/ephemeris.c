@@ -142,7 +142,7 @@ void ephemerides_fetch(chart_config *s) {
 
             // Decide whether to show this label. Do so if we've just entered a new month.
             // If we've not yet put any labels on the ephemeris, wait until the first day of a month to start/
-            if ((strcmp(label, previous_label) != 0) && ((previous_label[0] != '\0') || (day == 1))) {
+            if ((strncmp(label, previous_label, 3) != 0) && ((previous_label[0] != '\0') || (day == 1))) {
                 previous_label = s->ephemeris_data[i].data[line_counter].text_label = string_make_permanent(label);
             }
 

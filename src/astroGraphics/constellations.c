@@ -86,7 +86,7 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
 
         // The boundary of Ursa Minor is a bit dodgy, and skirt around the pole star in the wrong direction.
         // If we don't draw it, then the boundary of Cepheus is in the right place
-        if ((dec > 87.5) && (line[23] == 'U')) {
+        if ((dec > 87) && (line[23] == 'U')) {
             ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
             continue;
         }

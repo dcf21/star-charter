@@ -1,6 +1,6 @@
 # Constellation stick figures
 
-<img align="right" src="example_charts/dipper_2.png">
+<img align="right" width="500" src="example_charts/dipper_2.png">
 
 The files in this repository define stick figures which can be used to depict
 the 88 astronomical constellations.
@@ -34,7 +34,7 @@ of fourth magnitude or brighter, except in the faintest constellations.
 
 ### Data format
 
-<img align="right" src="example_charts/dipper_1.png">
+<img align="right" width="500" src="example_charts/dipper_1.png">
 
 Each line of the files `constellation_lines_simplified.dat` and
 `constellation_lines_simplified.dat` list a series of stars, referenced by
