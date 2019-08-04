@@ -143,6 +143,8 @@ catalogue_stub_entry = {
     "m": 0,  # Messier number (0 is null)
     "ngc": 0,  # NGC number
     "ic": 0,  # IC number
+    "source": None,  # Source for position
+    "source_dist": None,  # Source for distance
     "ra": None,  # RA
     "dec": None,  # Declination
     "mag": {},  # Magnitudes in various bands
@@ -256,27 +258,29 @@ for line in open("../messier/messier.dat"):
     # Fetch distance, expressed as value and unit
     dist = line[48:61].split()
     try:
-        DistVal = float(dist[0])
+        dist_val = float(dist[0])
 
         # Objects have distances various in ly, kly or Mly
         if dist[1] == 'kly':
-            DistVal *= 3.06595098e-04
+            dist_val *= 3.06595098e-04
         elif dist[1] == 'Mly':
-            DistVal *= 0.306595098
+            dist_val *= 0.306595098
         elif dist[1] == 'ly':
-            DistVal *= 3.06595098e-07
+            dist_val *= 3.06595098e-07
         else:
             print(("Unknown distance unit <%s>" % dist[1]))
             raise ValueError
 
         # Insert distance into object catalogue
-        catalogue[i]['dist'] = DistVal  # in Mpc
+        catalogue[i]['dist'] = dist_val  # in Mpc
+        catalogue[i]['source_dist'] = 'messier'
     except (ValueError, IndexError):
         pass
 
     # Insert object's position into object catalogue
     catalogue[i]['ra'] = RA
     catalogue[i]['dec'] = Dec
+    catalogue[i]['source'] = 'messier'
 
     # Insert object's magnitude into object catalogue
     for band, mag in list(mag_list.items()):
@@ -298,7 +302,7 @@ for line in open("output/NED_distances.dat"):
         continue
 
     # Flag indicating whether this is an IC object (true), or an NGC object (false)
-    ic = (line[1] == 'I')
+    ic = (line[0] == 'I')
 
     # The catalogue number of this source (in either NGC or IC catalogue)
     number = int(line[4:8])
@@ -322,6 +326,7 @@ for line in open("output/NED_distances.dat"):
     try:
         x = float(line[30:37])
         catalogue[i]['dist'] = x
+        catalogue[i]['source_dist'] = 'ned'
     except ValueError:
         pass
 
@@ -367,6 +372,7 @@ for line in open("../ngc/ngc2000.dat"):
     # Insert data into this objects record in the list <catalogue>
     catalogue[i]['ra'] = ra
     catalogue[i]['dec'] = dec
+    catalogue[i]['source'] = 'ngc2000'
     if mag and (line[44] != 'p'):
         catalogue[i]['mag']['V'] = {'value': mag, 'source': 'ngc2000'}
     catalogue[i]['type'] = obj_type
@@ -410,6 +416,7 @@ for line in open("../ngc/open_ngc.csv"):
     if words[2] and words[3]:
         catalogue[i]['ra'] = int(words[2][0:2]) + int(words[2][3:5]) / 60. + float(words[2][6:]) / 3600.
         catalogue[i]['dec'] = int(words[3][1:3]) + int(words[3][4:6]) / 60. + float(words[3][7:]) / 3600.
+        catalogue[i]['source'] = 'open_ngc'
         if words[3][0] == '-':
             catalogue[i]['dec'] *= -1
 
@@ -486,6 +493,7 @@ for line in open("../openClusters/clusters.txt"):
         logfile.write(
             "%s matched to M%s NGC%s IC%s (distance %s arcmin)\n" % (name, i['m'], i['ngc'], i['ic'], AngDist))
         i['dist'] = dist
+        i['source_dist'] = 'open_clusters'
         match = True
         break
     if not match:
@@ -539,6 +547,7 @@ for line in open("../globularClusters/catalogue.dat"):
         logfile.write(
             "%s matched to M%s NGC%s IC%s (distance %s arcmin)\n" % (name, i['m'], i['ngc'], i['ic'], AngDist))
         i['dist'] = dist
+        i['source_dist'] = 'globular_clusters'
         match = True
         break
     if not match:
@@ -586,8 +595,10 @@ sgr_a.update({
     "names": json.dumps(["SgrA"]),
     "ra": 17.761124,
     "dec": -29.00775,
+    "source": "manual",
     "type": "SgrA",
     "dist": 7.94e-3,
+    "source_dist": "manual",
     "z": "0 0"
 })
 catalogue.append(sgr_a)
