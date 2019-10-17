@@ -75,8 +75,8 @@ def fetch_required_files():
     required_files = [
         # Definitions of constellation boundaries
         {
-            'url': 'http://cdsarc.u-strasbg.fr/ftp/VI/49/bound_20.dat',
-            'destination': 'data/constellations/downloads/boundaries.dat',
+            'url': 'http://cdsarc.u-strasbg.fr/ftp/VI/49/bound_20.dat.gz',
+            'destination': 'data/constellations/downloads/boundaries.dat.gz',
             'force_refresh': False
         },
         {
@@ -194,6 +194,10 @@ def fetch_required_files():
                    destination=required_file['destination'],
                    force_refresh=required_file['force_refresh']
                    )
+
+    # Unzip the constellation boundaries
+    os.system("gunzip -f data/constellations/downloads/boundaries.dat.gz")
+
 
 
 if __name__ == "__main__":
