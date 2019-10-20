@@ -85,9 +85,9 @@ void ephemerides_fetch(chart_config *s) {
         char ephemeris_compute_command[FNAME_LENGTH];
 
         snprintf(ephemeris_compute_command, FNAME_LENGTH, "%.2048s "
-                                                          "--jd_min %.3f "
-                                                          "--jd_max %.3f "
-                                                          "--jd_step %.5f "
+                                                          "--jd_min %.15f "
+                                                          "--jd_max %.15f "
+                                                          "--jd_step %.15f "
                                                           "--output_format 1 "
                                                           "--output_constellations 0 "
                                                           "--output_binary 0 "
@@ -301,8 +301,15 @@ void ephemerides_fetch(chart_config *s) {
             s->ngc_names = 0;
 
             s->projection = SW_PROJECTION_FLAT;
+
             // Normally use an aspect ratio of 0.5, but if RA span is large and Dec span small, go wide and thin
             s->aspect = MIN(0.5, fabs(dec_max - dec_min) / (fabs(ra_max - ra_min) * 180 / 12) * 1.8);
+
+            // Deal with tall narrow finder charts
+            if (fabs(dec_max - dec_min) / (fabs(ra_max - ra_min) * 180 / 12) > 0.5) {
+                s->aspect = 1;
+                s->width *= 0.7;
+            }
 
             // Make sure that plot does not go outside the declination range -90 to 90
             double ang_height = angular_width * s->aspect;
