@@ -219,8 +219,8 @@ void file_readline(FILE *file, char *output) {
 
 void get_word(char *out, const char *in, int max) {
     int count = 0;
-    while ((*in <= ' ') && (*in != '\0')) in++; /* Fast-forward over preceding whitespace */
-    while ((*in > ' ') && (count < (max - 1))) {
+    while ((*in <= ' ') && (*in > '\0')) in++; /* Fast-forward over preceding whitespace */
+    while (((*in > ' ') || (*in < '\0')) && (count < (max - 1))) {
         *(out++) = *(in++);
         count++;
     }
