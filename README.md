@@ -20,7 +20,7 @@ Unix-like operating systems.  The installation scripts require python3.
 ### License
 
 This code is distributed under the Gnu General Public License. It is (C)
-Dominic Ford 2015 - 2019.
+Dominic Ford 2015 - 2020.
 
 ### Set up
 
