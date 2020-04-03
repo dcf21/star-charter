@@ -271,16 +271,16 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
             const colour black = (colour) {0, 0, 0};
             chart_label(p, s, black, "N",
                         &(label_position) {-dh * sin(a), -dv * cos(a), 0, 0, -1}, 1,
-                        0, 0, 2.5, 1, 0, -1);
+                        0, 0, 2.5, 1, 0, 0, -1);
             chart_label(p, s, black, "E",
                         &(label_position) {-dh * sin(a + DEG90), -dv * cos(a + DEG90), 0, 0, -1}, 1,
-                        0, 0, 2.5, 1, 0, -1);
+                        0, 0, 2.5, 1, 0, 0, -1);
             chart_label(p, s, black, "S",
                         &(label_position) {-dh * sin(a + DEG180), -dv * cos(a + DEG180), 0, 0, 1}, 1,
-                        0, 0, 2.5, 1, 0, -1);
+                        0, 0, 2.5, 1, 0, 0, -1);
             chart_label(p, s, black, "W",
                         &(label_position) {-dh * sin(a + DEG270), -dv * cos(a + DEG270), 0, 0, 1}, 1,
-                        0, 0, 2.5, 1, 0, -1);
+                        0, 0, 2.5, 1, 0, 0, -1);
         }
 
     } else {
@@ -363,12 +363,13 @@ void fetch_graph_coordinates(double x_in, double y_in, double *x_out, double *y_
 //! \param font_size - Font size of label
 //! \param font_bold - Boolean indicating whether to render label in bold
 //! \param font_italic - Boolean indicating whether to render label in italic
+//! \param extra_margin - Expand the margin around this label by the given numerical factor
 //! \param priority - The priority of this label
 
 void chart_label_buffer(cairo_page *p, chart_config *s, colour colour, const char *label,
-                        const label_position *possible_positions, int possible_position_count,
-                        int multiple_labels, int make_background, double font_size,
-                        int font_bold, int font_italic, double priority) {
+                        const label_position *possible_positions, int possible_position_count, int multiple_labels,
+                        int make_background, double font_size, int font_bold, int font_italic, double extra_margin,
+                        double priority) {
     p->labels_buffer[p->labels_buffer_counter].s = s;
     p->labels_buffer[p->labels_buffer_counter].colour = colour;
     p->labels_buffer[p->labels_buffer_counter].label = string_make_permanent(label);
@@ -389,6 +390,7 @@ void chart_label_buffer(cairo_page *p, chart_config *s, colour colour, const cha
     p->labels_buffer[p->labels_buffer_counter].font_size = font_size;
     p->labels_buffer[p->labels_buffer_counter].font_bold = font_bold;
     p->labels_buffer[p->labels_buffer_counter].font_italic = font_italic;
+    p->labels_buffer[p->labels_buffer_counter].extra_margin = extra_margin;
     p->labels_buffer[p->labels_buffer_counter].priority = priority;
     p->labels_buffer_counter++;
 }
@@ -418,7 +420,8 @@ void chart_label_unbuffer(cairo_page *p) {
     for (int i = 0; i < p->labels_buffer_counter; i++) {
         const label_buffer_item *x = &p->labels_buffer[i];
         chart_label(p, x->s, x->colour, x->label, x->possible_positions, x->possible_position_count,
-                    x->multiple_labels, x->make_background, x->font_size, x->font_bold, x->font_italic, x->priority);
+                    x->multiple_labels, x->make_background, x->font_size, x->font_bold, x->font_italic,
+                    x->extra_margin, x->priority);
     }
 
     // Clear out label buffer
@@ -439,13 +442,14 @@ void chart_label_unbuffer(cairo_page *p) {
 //! \param font_size - Font size of label
 //! \param font_bold - Boolean indicating whether to render label in bold
 //! \param font_italic - Boolean indicating whether to render label in italic
+//! \param extra_margin - Expand the margin around this label by the given numerical factor
 //! \param priority - The priority of this label
 //! \return - Zero on success. One if label clashed with an existing label.
 
 int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label,
-                const label_position *possible_positions, int possible_position_count,
-                int multiple_labels, int make_background, double font_size,
-                int font_bold, int font_italic, double priority) {
+                const label_position *possible_positions, int possible_position_count, int multiple_labels,
+                int make_background, double font_size, int font_bold, int font_italic,
+                double extra_margin, double priority) {
 
     // Loop over all the possible positions for this label, trying each in turn
     int position_count = 0;
@@ -519,8 +523,8 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
         }
 
         // Work out how much space to allow around this label
-        double x_margin = margin * (x_max - x_min);
-        double y_margin = margin * (y_max - y_min) * 2.3;
+        double x_margin = margin * (x_max - x_min) * (extra_margin + 1.);
+        double y_margin = margin * (y_max - y_min) * 2.3 * (extra_margin + 1.);
 
         // Enlarge bounding box by margin
         x_min -= x_margin;

@@ -63,6 +63,7 @@ typedef struct {
     int font_bold;
     int font_italic;
     int make_background;
+    double extra_margin;
     double priority;
 } label_buffer_item;
 
@@ -92,16 +93,16 @@ void fetch_canvas_coordinates(double *x_out, double *y_out, double x_in, double 
 void fetch_graph_coordinates(double x_in, double y_in, double *x_out, double *y_out, chart_config *s);
 
 void chart_label_buffer(cairo_page *p, chart_config *s, colour colour, const char *label,
-                        const label_position *possible_positions, int possible_position_count,
-                        int multiple_labels, int make_background, double font_size,
-                        int font_bold, int font_italic, double priority);
+                        const label_position *possible_positions, int possible_position_count, int multiple_labels,
+                        int make_background, double font_size, int font_bold, int font_italic, double extra_margin,
+                        double priority);
 
 void chart_label_unbuffer(cairo_page *p);
 
 int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label,
-                const label_position *possible_positions, int possible_position_count,
-                int multiple_labels, int make_background, double font_size,
-                int font_bold, int font_italic, double priority);
+                const label_position *possible_positions, int possible_position_count, int multiple_labels,
+                int make_background, double font_size, int font_bold, int font_italic,
+                double extra_margin, double priority);
 
 int chart_finish(cairo_page *p, chart_config *s);
 

@@ -71,6 +71,7 @@ typedef struct colour {
 typedef struct ephemeris_point {
     double ra, dec; // radians, J2000
     char *text_label;
+    int day, month, year, sub_month_label;
 } ephemeris_point;
 
 //! A structure defining an ephemeris of a solar system object
@@ -273,6 +274,9 @@ typedef struct chart_config {
 
     //! Colour to use when drawing stars
     colour star_col;
+
+    //! Colour to use when labelling stars
+    colour star_label_col;
 
     //! Colour to use when drawing a line along the ecliptic
     colour ecliptic_col;

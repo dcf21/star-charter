@@ -68,7 +68,7 @@ void ephemerides_fetch(chart_config *s) {
         s->ephemeris_data[i].jd_start = get_float(buffer, NULL);
         str_comma_separated_list_scan(&in_scan, buffer);
         s->ephemeris_data[i].jd_end = get_float(buffer, NULL);
-        s->ephemeris_data[i].jd_step = 1.;
+        s->ephemeris_data[i].jd_step = 0.5;
 
         // Generous estimate of how many lines we expect ephemerisCompute to return
         s->ephemeris_data[i].point_count = (int) (2 +
@@ -125,6 +125,10 @@ void ephemerides_fetch(chart_config *s) {
             s->ephemeris_data[i].data[line_counter].ra = ra;
             s->ephemeris_data[i].data[line_counter].dec = dec;
             s->ephemeris_data[i].data[line_counter].text_label = NULL;
+            s->ephemeris_data[i].data[line_counter].day = 0;
+            s->ephemeris_data[i].data[line_counter].month = 0;
+            s->ephemeris_data[i].data[line_counter].year = 0;
+            s->ephemeris_data[i].data[line_counter].sub_month_label = 0;
 
             // Extract calendar date for this point
             int year, month, day, hour, minute, status;
@@ -132,7 +136,12 @@ void ephemerides_fetch(chart_config *s) {
             inv_julian_day(jd, &year, &month, &day, &hour, &minute, &second, &status, temp_err_string);
 
             // Create a text label for this point on the ephemeris track
-            if ((month == 1) || (previous_label[0] == '\0')) {
+            int sub_month_label = 0;
+            if (day > 6) {
+                // Within each month, place labels at weekly intervals
+                snprintf(label, FNAME_LENGTH, "%.0f", floor(day / 7.) * 7);
+                sub_month_label = 1;
+            } else if ((month == 1) || (previous_label[0] == '\0')) {
                 // In January, and in the first label on an ephemeris, include the year
                 snprintf(label, FNAME_LENGTH, "%.3s %d", get_month_name(month), year);
             } else {
@@ -143,7 +152,12 @@ void ephemerides_fetch(chart_config *s) {
             // Decide whether to show this label. Do so if we've just entered a new month.
             // If we've not yet put any labels on the ephemeris, wait until the first day of a month to start/
             if ((strncmp(label, previous_label, 3) != 0) && ((previous_label[0] != '\0') || (day == 1))) {
-                previous_label = s->ephemeris_data[i].data[line_counter].text_label = string_make_permanent(label);
+                s->ephemeris_data[i].data[line_counter].text_label = string_make_permanent(label);
+                s->ephemeris_data[i].data[line_counter].day = day;
+                s->ephemeris_data[i].data[line_counter].month = month;
+                s->ephemeris_data[i].data[line_counter].year = year;
+                s->ephemeris_data[i].data[line_counter].sub_month_label = sub_month_label;
+                previous_label = s->ephemeris_data[i].data[line_counter].text_label;
             }
 
             // Increment data point counter
@@ -259,8 +273,8 @@ void ephemerides_fetch(chart_config *s) {
     // printf("RA %.4f %.4f; Dec %.4f %.4f\n", ra_min, ra_max, dec_min, dec_max);
 
     // Work out angular width we need
-    double angular_width = MAX((ra_max - ra_min) * 180 / 12, dec_max - dec_min) * 1.1;
-    if (angular_width > 350) angular_width = 360;
+    double angular_width_base = MAX((ra_max - ra_min) * 180 / 12, dec_max - dec_min) * 1.1;
+    if (angular_width_base > 350) angular_width_base = 360;
 
     // Report sky coverage
     if (DEBUG) {
@@ -269,7 +283,7 @@ void ephemerides_fetch(chart_config *s) {
         stch_log(message);
         snprintf(message, FNAME_LENGTH, "  Dec range: %.1fd to %.1fd", dec_min, dec_max);
         stch_log(message);
-        snprintf(message, FNAME_LENGTH, "  Ang width: %.1f deg", angular_width);
+        snprintf(message, FNAME_LENGTH, "  Ang width: %.1f deg", angular_width_base);
         stch_log(message);
     }
 
@@ -277,21 +291,22 @@ void ephemerides_fetch(chart_config *s) {
     if (s->ephemeris_autoscale) {
         s->ra0 = (ra_min + ra_max) / 2;
         s->dec0 = (dec_min + dec_max) / 2;
-        s->angular_width = angular_width;
 
         // Make sure that RA is within range
         while (s->ra0 < 0) s->ra0 += 24;
         while (s->ra0 >= 24) s->ra0 -= 24;
 
         // Avoid having ridiculously many lines
-        if (angular_width > 20) s->ra_line_count = MIN(s->ra_line_count, 48);
-        if (angular_width > 26) s->ra_line_count = MIN(s->ra_line_count, 24);
-        if (angular_width > 24) s->dec_line_count = MIN(s->dec_line_count, 36);
+        if (angular_width_base > 20) s->ra_line_count = MIN(s->ra_line_count, 48);
+        if (angular_width_base > 26) s->ra_line_count = MIN(s->ra_line_count, 24);
+        if (angular_width_base > 24) s->dec_line_count = MIN(s->dec_line_count, 36);
 
-        if (angular_width > 22) s->star_flamsteed_labels = 0;
+        if (angular_width_base > 22) s->star_flamsteed_labels = 0;
 
         // Set an appropriate projection
-        if (angular_width > 110) {
+        if (angular_width_base > 110) {
+            s->angular_width = angular_width_base;
+
             // Plots which cover the whole sky need to be really big...
             s->width *= 1.6;
             s->font_size *= 0.95;
@@ -312,12 +327,20 @@ void ephemerides_fetch(chart_config *s) {
             }
 
             // Make sure that plot does not go outside the declination range -90 to 90
-            double ang_height = angular_width * s->aspect;
+            double ang_height = angular_width_base * s->aspect;
             s->dec0 = MAX(s->dec0, -89 + ang_height / 2);
             s->dec0 = MIN(s->dec0, 89 - ang_height / 2);
 
         } else {
             s->projection = SW_PROJECTION_GNOM;
+
+            s->aspect = ceil(fabs(dec_max - dec_min) / (fabs(ra_max - ra_min) * 180 / 12) * 10.) / 10.;
+            if (s->aspect < 0.5) s->aspect = 0.5;
+            if (s->aspect > 1.5) s->aspect = 1.5;
+
+            double angular_width = MAX((ra_max - ra_min) * 180 / 12, (dec_max - dec_min) / s->aspect) * 1.1;
+            if (angular_width > 350) angular_width = 360;
+            s->angular_width = angular_width;
         }
     }
 
@@ -376,8 +399,11 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
     for (i = 0; i < e->point_count; i++) {
         double x, y, theta;
 
-        const double physical_tick_len = 0.2; // cm
+        const double physical_tick_len = e->data[i].sub_month_label ? 0.12 : 0.2; // cm
+        const double line_width = e->data[i].sub_month_label ? 0.8 : 2;
         const double graph_coords_tick_len = physical_tick_len * s->wlin / s->width;
+
+        cairo_set_line_width(s->cairo_draw, line_width * s->line_width_base);
 
         plane_project(&x, &y, s, e->data[i].ra, e->data[i].dec, 0);
 
@@ -392,10 +418,10 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
         last_y = y;
 
         // Add point to label exclusion region so that labels don't collide with it
-        page->exclusion_regions[page->exclusion_region_counter].x_min = x - graph_coords_tick_len * 0.2;
-        page->exclusion_regions[page->exclusion_region_counter].x_max = x + graph_coords_tick_len * 0.2;
-        page->exclusion_regions[page->exclusion_region_counter].y_min = y - graph_coords_tick_len * 0.2;
-        page->exclusion_regions[page->exclusion_region_counter].y_max = y + graph_coords_tick_len * 0.2;
+        page->exclusion_regions[page->exclusion_region_counter].x_min = x - graph_coords_tick_len * 0.1;
+        page->exclusion_regions[page->exclusion_region_counter].x_max = x + graph_coords_tick_len * 0.1;
+        page->exclusion_regions[page->exclusion_region_counter].y_min = y - graph_coords_tick_len * 0.1;
+        page->exclusion_regions[page->exclusion_region_counter].y_max = y + graph_coords_tick_len * 0.1;
         page->exclusion_region_counter++;
 
         // Make tick mark
@@ -407,10 +433,10 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
             if ((x < s->x_min) || (x > s->x_max) || (y < s->y_min) || (y > s->y_max)) continue;
 
             // Add tick mark to label exclusion region so that labels don't collide with it
-            page->exclusion_regions[page->exclusion_region_counter].x_min = x - graph_coords_tick_len * 0.8;
-            page->exclusion_regions[page->exclusion_region_counter].x_max = x + graph_coords_tick_len * 0.8;
-            page->exclusion_regions[page->exclusion_region_counter].y_min = y - graph_coords_tick_len * 0.8;
-            page->exclusion_regions[page->exclusion_region_counter].y_max = y + graph_coords_tick_len * 0.8;
+            page->exclusion_regions[page->exclusion_region_counter].x_min = x - graph_coords_tick_len * 0.4;
+            page->exclusion_regions[page->exclusion_region_counter].x_max = x + graph_coords_tick_len * 0.4;
+            page->exclusion_regions[page->exclusion_region_counter].y_min = y - graph_coords_tick_len * 0.4;
+            page->exclusion_regions[page->exclusion_region_counter].y_max = y + graph_coords_tick_len * 0.4;
             page->exclusion_region_counter++;
 
             // Draw tick mark
@@ -451,18 +477,42 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
                 v_align = -1;
             }
 
-            const double xp_a = x + 1.5 * graph_coords_tick_len * sin(theta);
-            const double yp_a = y - 1.5 * graph_coords_tick_len * cos(theta);
-            const double xp_b = x - 1.5 * graph_coords_tick_len * sin(theta);
-            const double yp_b = y + 1.5 * graph_coords_tick_len * cos(theta);
+            const double label_gap_1 = 1.5;
 
-            const double priority = 0.0123 + 1e-9 * i;
+            const double xp_a = x + label_gap_1 * graph_coords_tick_len * sin(theta);
+            const double yp_a = y - label_gap_1 * graph_coords_tick_len * cos(theta);
+            const double xp_b = x - label_gap_1 * graph_coords_tick_len * sin(theta);
+            const double yp_b = y + label_gap_1 * graph_coords_tick_len * cos(theta);
+
+            const double label_gap_2 = 1.85;
+
+            const double xp_c = x + label_gap_2 * graph_coords_tick_len * sin(theta);
+            const double yp_c = y - label_gap_2 * graph_coords_tick_len * cos(theta);
+            const double xp_d = x - label_gap_2 * graph_coords_tick_len * sin(theta);
+            const double yp_d = y + label_gap_2 * graph_coords_tick_len * cos(theta);
+
+            // Prioritise labels at start of years and quarters
+            const double priority = (0.0123 +
+                                     1e-12 * i -
+                                     4e-6 * (!e->data[i].sub_month_label) -
+                                     1e-7 * (e->data[i].day == 14) -
+                                     3e-7 * (e->data[i].month == 1) -
+                                     2e-7 * (e->data[i].month == 7) -
+                                     1e-7 * ((e->data[i].month == 4) || (e->data[i].month == 11))
+            );
 
             // Write text label
+            const double font_size = e->data[i].sub_month_label ? 1.3 : 1.7;
+            const double extra_margin = e->data[i].sub_month_label ? 2 : 0;
             chart_label_buffer(page, s, s->ephemeris_col, e->data[i].text_label,
-                               (label_position[2]) {{xp_a, yp_a, 0, h_align,  v_align},
-                                                    {xp_b, yp_b, 0, -h_align, -v_align}}, 2,
-                               0, 1, 1.7, 1, 0, priority);
+                               (label_position[4]) {
+                                       {xp_a, yp_a, 0, h_align,  v_align},
+                                       {xp_b, yp_b, 0, -h_align, -v_align},
+                                       {xp_c, yp_c, 0, h_align,  v_align},
+                                       {xp_d, yp_d, 0, -h_align, -v_align}
+                               }, 4,
+                               0, 1, font_size, 1, 0,
+                               extra_margin, priority);
         }
     }
 }

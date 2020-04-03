@@ -333,28 +333,28 @@ void plot_stars(chart_config *s, cairo_page *page) {
                 for (int k = 0; temp_err_string[k] > '\0'; k++)
                     if (temp_err_string[k] == '_') temp_err_string[k] = ' ';
 
-                chart_label_buffer(page, s, s->star_col, temp_err_string,
-                                   (label_position[2]){{x, y, horizontal_offset, -1, 0},
-                                                       {x, y, -horizontal_offset, 1, 0}}, 2,
-                                   multiple_labels, 0, 1.2, 0, 0, sd.mag);
+                chart_label_buffer(page, s, s->star_label_col, temp_err_string,
+                                   (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
+                                                        {x, y, -horizontal_offset, 1,  0}}, 2,
+                                   multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
                 label_counter++;
             }
 
             // Write a Bayer designation next to this star
             if (show_name1) {
-                chart_label_buffer(page, s, s->star_col, sd.name1,
-                                   (label_position[2]){{x, y, horizontal_offset, -1, 0},
-                                                       {x, y, -horizontal_offset, 1, 0}}, 2,
-                                   multiple_labels, 0, 1.2, 0, 0, sd.mag);
+                chart_label_buffer(page, s, s->star_label_col, sd.name1,
+                                   (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
+                                                        {x, y, -horizontal_offset, 1,  0}}, 2,
+                                   multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
                 label_counter++;
             }
 
             // Write a Flamsteed number next to this star
             if (show_name4) {
-                chart_label_buffer(page, s, s->star_col, sd.name4,
-                                   (label_position[2]){{x, y, horizontal_offset, -1, 0},
-                                                       {x, y, -horizontal_offset, 1, 0}}, 2,
-                                   multiple_labels, 0, 1.2, 0, 0, sd.mag);
+                chart_label_buffer(page, s, s->star_label_col, sd.name4,
+                                   (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
+                                                        {x, y, -horizontal_offset, 1,  0}}, 2,
+                                   multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
                 label_counter++;
             }
 
@@ -363,26 +363,26 @@ void plot_stars(chart_config *s, cairo_page *page) {
                 if (s->star_catalogue == SW_CAT_HIP) {
                     // Write a Hipparcos number
                     snprintf(temp_err_string, FNAME_LENGTH, "HIP%d", sd.hip_num);
-                    chart_label_buffer(page, s, s->star_col, temp_err_string,
-                                       (label_position[2]){{x, y, horizontal_offset, -1, 0},
-                                                           {x, y, -horizontal_offset, 1, 0}}, 2,
-                                       multiple_labels, 0, 1.2, 0, 0, sd.mag);
+                    chart_label_buffer(page, s, s->star_label_col, temp_err_string,
+                                       (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
+                                                            {x, y, -horizontal_offset, 1,  0}}, 2,
+                                       multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
                     label_counter++;
                 } else if (s->star_catalogue == SW_CAT_YBSC) {
                     // Write an HR number (i.e. Yale Bright Star Catalog number)
                     snprintf(temp_err_string, FNAME_LENGTH, "HR%d", sd.ybsn_num);
-                    chart_label_buffer(page, s, s->star_col, temp_err_string,
-                                       (label_position[2]){{x, y, horizontal_offset, -1, 0},
-                                                           {x, y, -horizontal_offset, 1, 0}}, 2,
-                                       multiple_labels, 0, 1.2, 0, 0, sd.mag);
+                    chart_label_buffer(page, s, s->star_label_col, temp_err_string,
+                                       (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
+                                                            {x, y, -horizontal_offset, 1,  0}}, 2,
+                                       multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
                     label_counter++;
                 } else if (s->star_catalogue == SW_CAT_HD) {
                     // Write a Henry Draper number
                     snprintf(temp_err_string, FNAME_LENGTH, "HD%d", sd.hd_num);
-                    chart_label_buffer(page, s, s->star_col, temp_err_string,
-                                       (label_position[2]){{x, y, horizontal_offset, -1, 0},
-                                                           {x, y, -horizontal_offset, 1, 0}}, 2,
-                                       multiple_labels, 0, 1.2, 0, 0, sd.mag);
+                    chart_label_buffer(page, s, s->star_label_col, temp_err_string,
+                                       (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
+                                                            {x, y, -horizontal_offset, 1,  0}}, 2,
+                                       multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
                     label_counter++;
                 }
             }
@@ -390,10 +390,10 @@ void plot_stars(chart_config *s, cairo_page *page) {
             // Write the magnitude of this star next to it
             if (s->star_mag_labels) {
                 snprintf(temp_err_string, FNAME_LENGTH, "mag %.1f", sd.mag);
-                chart_label_buffer(page, s, s->star_col, temp_err_string,
-                                   (label_position[2]){{x, y, horizontal_offset, -1, 0},
-                                                       {x, y, -horizontal_offset, 1, 0}}, 2,
-                                   multiple_labels, 0, 1.2, 0, 0, sd.mag - 0.000001);
+                chart_label_buffer(page, s, s->star_label_col, temp_err_string,
+                                   (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
+                                                        {x, y, -horizontal_offset, 1,  0}}, 2,
+                                   multiple_labels, 0, 1.2, 0, 0, 0, sd.mag - 0.000001);
                 label_counter++;
             }
         }

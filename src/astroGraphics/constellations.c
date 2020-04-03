@@ -225,7 +225,7 @@ void plot_constellation_names(chart_config *s, cairo_page *page) {
 
             chart_label_buffer(page, s, s->constellation_label_col, label,
                                &(label_position) {x, y, 0, 0, 0}, 1,
-                               0, 1, 1.4, 0, 1, -1);
+                               0, 1, 1.4, 0, 1, 0, -1);
             break;
         }
     }

@@ -96,16 +96,16 @@ void plot_messier_objects(chart_config *s, cairo_page *page) {
         if (s->messier_names) {
             snprintf(temp_err_string, FNAME_LENGTH, "M%d", messier_num);
             chart_label_buffer(page, s, s->messier_col, temp_err_string,
-                               (label_position[2]){{x, y, horizontal_offset, -1, 0},
-                                                   {x, y, -horizontal_offset, 1, 0}}, 2,
-                               multiple_labels, 0, 1.4, 0, 0, mag);
+                               (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
+                                                    {x, y, -horizontal_offset, 1,  0}}, 2,
+                               multiple_labels, 0, 1.4, 0, 0, 0, mag);
         }
         if (s->messier_mag_labels) {
             snprintf(temp_err_string, FNAME_LENGTH, "mag %.1f", mag);
             chart_label_buffer(page, s, s->messier_col, temp_err_string,
-                               (label_position[2]){{x, y, horizontal_offset, -1, 0},
-                                                   {x, y, -horizontal_offset, 1, 0}}, 2,
-                               multiple_labels, 0, 1.4, 0, 0, mag);
+                               (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
+                                                    {x, y, -horizontal_offset, 1,  0}}, 2,
+                               multiple_labels, 0, 1.4, 0, 0, 0, mag);
         }
     }
 

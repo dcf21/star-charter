@@ -101,16 +101,16 @@ void plot_ngc_objects(chart_config *s, cairo_page *page) {
         if (s->ngc_names) {
             snprintf(temp_err_string, FNAME_LENGTH, "%s%d", is_ic ? "IC" : "NGC", ngc_num);
             chart_label_buffer(page, s, s->ngc_col, temp_err_string,
-                               (label_position[2]){{x, y, horizontal_offset, -1, 0},
-                                                   {x, y, -horizontal_offset, 1, 0}}, 2,
-                               multiple_labels, 0, 1.4, 0, 0, mag);
+                               (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
+                                                    {x, y, -horizontal_offset, 1,  0}}, 2,
+                               multiple_labels, 0, 1.4, 0, 0, 0, mag);
         }
         if ((s->ngc_mags) && (mag != 0.0)) {
             snprintf(temp_err_string, FNAME_LENGTH, "mag %.1f", mag);
             chart_label_buffer(page, s, s->ngc_col, temp_err_string,
-                               (label_position[2]){{x, y, horizontal_offset, -1, 0},
-                                                   {x, y, -horizontal_offset, 1, 0}}, 2,
-                               multiple_labels, 0, 1.4, 0, 0, mag);
+                               (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
+                                                    {x, y, -horizontal_offset, 1,  0}}, 2,
+                               multiple_labels, 0, 1.4, 0, 0, 0, mag);
         }
     }
 

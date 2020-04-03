@@ -701,6 +701,10 @@ int main(int argc, char **argv) {
             //! star_col - Colour to use when drawing stars
             settings_destination->star_col = colour_from_string(key_val);
             continue;
+        } else if (strcmp(key, "star_label_col") == 0) {
+            //! star_label_col - Colour to use when labelling stars
+            settings_destination->star_label_col = colour_from_string(key_val);
+            continue;
         } else if (strcmp(key, "magnitude_key") == 0) {
             //! magnitude_key - Boolean (0 or 1) indicating whether to draw a key to the magnitudes of stars under
             //! the star chart

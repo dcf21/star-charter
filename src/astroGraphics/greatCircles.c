@@ -93,7 +93,7 @@ static void plot_great_circle(double ra0, double dec0, chart_config *s, line_dra
 
             chart_label_buffer(page, s, colour, labels[i].label,
                                &(label_position) {x, y + 0.045, 0, 0, -1}, 1,
-                               0, 1, 2.0, 1, 0, -0.5);
+                               0, 1, 2.0, 1, 0, 0, -0.5);
         }
 }
 

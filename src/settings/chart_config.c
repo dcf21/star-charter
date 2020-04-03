@@ -99,6 +99,7 @@ void default_config(chart_config *i) {
     i->galaxy_col = (colour) {0.68, 0.76, 1};
     i->galaxy_col0 = (colour) {1, 1, 1};
     i->star_col = (colour) {0, 0, 0};
+    i->star_label_col = (colour) {0, 0, 0};
     i->magnitude_key = 1;
     i->great_circle_key = 1;
     i->cardinals = 1;
