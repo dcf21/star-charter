@@ -1,7 +1,7 @@
 // errorReport.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2019 Dominic Ford
+// Copyright 2015-2020 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -41,10 +41,10 @@ void galmap_error(char *msg) {
         msg = temp_stringA;
     }
     if (DEBUG) {
-        sprintf(temp_stringC, "%s%s", "Error: ", msg);
+        snprintf(temp_stringC, FNAME_LENGTH, "%s%s", "Error: ", msg);
         galmap_log(temp_stringC);
     }
-    sprintf(temp_stringC, "Error: %s\n", msg);
+    snprintf(temp_stringC, FNAME_LENGTH, "Error: %s\n", msg);
     fputs(temp_stringC, stderr);
 }
 
@@ -54,7 +54,7 @@ void galmap_error(char *msg) {
 void galmap_fatal(char *file, int line, char *msg) {
     char introline[FNAME_LENGTH];
     if (msg != temp_stringE) strcpy(temp_stringE, msg);
-    sprintf(introline, "Fatal Error encounted in %s at line %d:", file, line);
+    snprintf(introline, FNAME_LENGTH, "Fatal Error encounted in %s at line %d:", file, line);
     galmap_error(introline);
     galmap_error(temp_stringE);
     if (DEBUG) galmap_log("Terminating with error condition 1.");
@@ -67,10 +67,10 @@ void galmap_fatal(char *file, int line, char *msg) {
 void galmap_warning(char *msg) {
     if (msg != temp_stringA) strcpy(temp_stringA, msg);
     if (DEBUG) {
-        sprintf(temp_stringC, "%s%s", "Warning: ", temp_stringA);
+        snprintf(temp_stringC, FNAME_LENGTH, "%s%s", "Warning: ", temp_stringA);
         galmap_log(temp_stringC);
     }
-    sprintf(temp_stringC, "Warning: %s\n", temp_stringA);
+    snprintf(temp_stringC, FNAME_LENGTH, "Warning: %s\n", temp_stringA);
     fputs(temp_stringC, stderr);
 }
 
@@ -80,10 +80,10 @@ void galmap_warning(char *msg) {
 void galmap_report(char *msg) {
     if (msg != temp_stringA) strcpy(temp_stringA, msg);
     if (DEBUG) {
-        sprintf(temp_stringC, "%s%s", "Reporting: ", temp_stringA);
+        snprintf(temp_stringC, FNAME_LENGTH, "%s%s", "Reporting: ", temp_stringA);
         galmap_log(temp_stringC);
     }
-    sprintf(temp_stringC, "%s\n", temp_stringA);
+    snprintf(temp_stringC, FNAME_LENGTH, "%s\n", temp_stringA);
     fputs(temp_stringC, stdout);
 }
 
