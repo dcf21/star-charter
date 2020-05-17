@@ -146,7 +146,6 @@ void star_list_to_binary() {
 void tweak_magnitude_limits(chart_config *s) {
     FILE *file;
     long int N, j, k, l;
-    int dummy;
 
     // A histogram of the number of stars in each <mag_step> interval
     int Nstars[LEN_NSTARS + 1];
@@ -160,7 +159,7 @@ void tweak_magnitude_limits(chart_config *s) {
     }
 
     // Read the number of stars in the binary catalogue
-    dummy = fread(&N, sizeof(long int), 1, file);
+    fread(&N, sizeof(long int), 1, file);
 
     // Zero the histogram we're going to create of the magnitudes of the stars
     for (j = 0; j <= LEN_NSTARS; j++) Nstars[j] = 0;
@@ -174,7 +173,7 @@ void tweak_magnitude_limits(chart_config *s) {
         double mag2, x, y;
 
         // Read the star from disk
-        dummy = fread(&sd, sizeof(star_definition), 1, file);
+        fread(&sd, sizeof(star_definition), 1, file);
 
         // Work out which histogram bin this star falls into
         mag2 = floor((s->mag_max - sd.mag) / s->mag_step);
@@ -243,7 +242,6 @@ void tweak_magnitude_limits(chart_config *s) {
 void plot_stars(chart_config *s, cairo_page *page) {
     FILE *file;
     long int n, j;
-    int dummy;
 
     // Open the binary catalogue listing all the stars
     file = fopen(SRCDIR "../data/stars/starCataloguesMerge/output/star_charter_stars.bin", "r");
@@ -254,7 +252,7 @@ void plot_stars(chart_config *s, cairo_page *page) {
     }
 
     // Read the number of stars in the binary catalogue
-    dummy = fread(&n, sizeof(long int), 1, file);
+    fread(&n, sizeof(long int), 1, file);
 
     // Count the number of stars we have labelled, and make sure it doesn't exceed <s->maximum_star_label_count>
     int label_counter = 0;
@@ -265,7 +263,7 @@ void plot_stars(chart_config *s, cairo_page *page) {
         double x, y, mag2;
 
         // Read the star's <star_definition> structure
-        dummy = fread(&sd, sizeof(star_definition), 1, file);
+        fread(&sd, sizeof(star_definition), 1, file);
 
         // Normalise the star's brightness into a number of <mag_step> intervals fainter than <mag_max>
         mag2 = (s->mag_max - sd.mag) / s->mag_step;

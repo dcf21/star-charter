@@ -25,9 +25,10 @@ VERSION = 3.0
 DATE    = 09/06/2019
 PATHLINK= /
 
-COMPILE = $(CC) -Wall -g -fopenmp -c -I $(CWD)/src
+WARNINGS= -Wall -Wno-format-truncation -Wno-unused-result
+COMPILE = $(CC) $(WARNINGS) -g -fopenmp -c -I $(CWD)/src
 LIBS    = -lcairo -lgsl -lgslcblas -lz -lm
-LINK    = $(CC) -Wall -g -fopenmp
+LINK    = $(CC) $(WARNINGS) -g -fopenmp
 
 OPTIMISATION = -O3
 
