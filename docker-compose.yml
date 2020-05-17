@@ -1,0 +1,8 @@
+version: '3'
+services:
+  star-charter:
+    build: .
+    image: star-charter:v1
+    volumes:
+    - ./examples/output:/star-charter/examples/output
+    command: ../bin/starchart.bin orion.sch
