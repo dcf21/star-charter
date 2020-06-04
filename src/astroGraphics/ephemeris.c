@@ -298,7 +298,7 @@ void ephemerides_fetch(chart_config *s) {
 
         // Avoid having ridiculously many lines
         if (angular_width_base > 20) s->ra_line_count = MIN(s->ra_line_count, 48);
-        if (angular_width_base > 26) s->ra_line_count = MIN(s->ra_line_count, 24);
+        if (angular_width_base > 40) s->ra_line_count = MIN(s->ra_line_count, 24);
         if (angular_width_base > 24) s->dec_line_count = MIN(s->dec_line_count, 36);
 
         if (angular_width_base > 22) s->star_flamsteed_labels = 0;

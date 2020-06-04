@@ -97,8 +97,8 @@ void cairo_init(cairo_page *p, chart_config *s) {
     s->line_width_base = 0.5 * s->pt; // standard line width
 
     // Work out the bounding box of the canvas to draw the star chart onto
-    s->canvas_offset_x = 1.2;
-    s->canvas_offset_y = 1.2;
+    s->canvas_offset_x = 1.6;
+    s->canvas_offset_y = 1.4;
     s->canvas_width = (s->width + 2 * s->canvas_offset_x) * s->cm;
     s->canvas_height = (s->width * s->aspect + 2 * s->canvas_offset_y) * s->cm;
 
