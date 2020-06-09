@@ -235,6 +235,26 @@ void tweak_magnitude_limits(chart_config *s) {
     fclose(file);
 }
 
+//! get_star_size - Calculate the radius of this star, in canvas coordinates
+//! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param mag - The magnitude of the star whose radius we are to calculate.
+//! \return The radius of the circle we should draw on the page
+
+double get_star_size(const chart_config *s, double mag) {
+    // Normalise the star's brightness into a number of <mag_step> intervals fainter than <mag_max>
+    double mag2 = (s->mag_max - mag) / s->mag_step;
+
+    // Truncate size of stars at magMax. But this can make very bright stars look much too faint
+    // if ( mag2 > 0) mag2 = 0;
+
+    // Physical radius of this star on the page, logarithmically scaled as a function of brightness
+    mag2 = s->mag_size_norm * 46.6 * pow(s->mag_alpha, floor(mag2));
+
+    const double pt = 1. / 72; // 1 pt
+    const double size = 0.75 * 3 * pt * mag2 * 0.0014552083 * 60;
+    return size;
+}
+
 //! plot_stars - Plot stars onto the star chart
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 //! \param page - A <cairo_page> structure defining the cairo drawing context.
@@ -260,19 +280,13 @@ void plot_stars(chart_config *s, cairo_page *page) {
     // Loop over the stars in the binary file
     for (j = 0; j < n; j++) {
         star_definition sd;
-        double x, y, mag2;
+        double x, y;
 
         // Read the star's <star_definition> structure
         fread(&sd, sizeof(star_definition), 1, file);
 
-        // Normalise the star's brightness into a number of <mag_step> intervals fainter than <mag_max>
-        mag2 = (s->mag_max - sd.mag) / s->mag_step;
-
         // Stars are sorted in order of brightness, so can stop immediately once we find one that is too faint
         if (sd.mag > s->mag_min) break;
-
-        // Truncate size of stars at magMax. But this can make very bright stars look much too faint
-        // if ( mag2 > 0) mag2 = 0;
 
         // Work out coordinates of this star on the star chart
         plane_project(&x, &y, s, sd.ra, sd.dec, 0);
@@ -282,14 +296,11 @@ void plot_stars(chart_config *s, cairo_page *page) {
             (y > s->y_max))
             continue;
 
-        // Physical radius of this star on the page, logarithmically scaled as a function of brightness
-        mag2 = s->mag_size_norm * 46.6 * pow(s->mag_alpha, floor(mag2));
-
         // Keep track of the brightest star in the field
         if (sd.mag < s->mag_highest) s->mag_highest = sd.mag;
 
-        double pt = 1. / 72; // 1 pt
-        double size = 0.75 * 3 * pt * mag2 * 0.0014552083 * 60;
+        // Calculate the radius of this star on tha canvas
+        const double size = get_star_size(s, sd.mag);
 
         // Draw a circular splodge on the star chart
         double x_canvas, y_canvas;
@@ -458,24 +469,26 @@ void draw_magnitude_key(chart_config *s) {
 
     // Loop over each magnitude bin in turn
     for (i = 0; i <= N; i++) {
-        double m = s->mag_min - i * s->mag_step;
-        double size =
-                s->mag_size_norm * 46.6 * pow(s->mag_alpha, floor((s->mag_max - m) / s->mag_step)) * 0.0014552083 * 3;
-        double x = x_left + (i % Ncol) * w_item;
-        double y = y1 + floor(i / Ncol) * 0.8;
+        const double magnitude = s->mag_min - i * s->mag_step;
+
+        // Calculate the radius of this star on tha canvas
+        const double size = get_star_size(s, magnitude);
+
+        const double x_pos = x_left + (i % Ncol) * w_item;
+        const double y_pos = y1 + floor(i / Ncol) * 0.8;
         //if (size > (y0-y1)) continue;
 
         // Draw a splodge representing a star of a particular magnitude
         cairo_new_path(s->cairo_draw);
-        cairo_arc(s->cairo_draw, x * s->cm, y * s->cm, size * s->cm, 0, 2 * M_PI);
+        cairo_arc(s->cairo_draw, x_pos * s->cm, y_pos * s->cm, size * s->dpi, 0, 2 * M_PI);
         cairo_fill(s->cairo_draw);
 
         // Write the magnitude value next to it
-        snprintf(line, 1024, "%.1f", m);
+        snprintf(line, 1024, "%.1f", magnitude);
         cairo_text_extents(s->cairo_draw, line, &extents);
         cairo_move_to(s->cairo_draw,
-                      (x + 0.1 + size * 1.25) * s->cm - extents.x_bearing,
-                      y * s->cm - extents.height / 2 - extents.y_bearing
+                      (x_pos + 0.1) * s->cm + size * 1.25 * s->dpi - extents.x_bearing,
+                      y_pos * s->cm - extents.height / 2 - extents.y_bearing
         );
         cairo_show_text(s->cairo_draw, line);
     }
