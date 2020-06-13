@@ -248,7 +248,7 @@ double get_star_size(const chart_config *s, double mag) {
     // if ( mag2 > 0) mag2 = 0;
 
     // Physical radius of this star on the page, logarithmically scaled as a function of brightness
-    mag2 = s->mag_size_norm * 46.6 * pow(s->mag_alpha, floor(mag2));
+    mag2 = s->mag_size_norm * 46.6 * pow(s->mag_alpha, mag2);
 
     const double pt = 1. / 72; // 1 pt
     const double size = 0.75 * 3 * pt * mag2 * 0.0014552083 * 60;
