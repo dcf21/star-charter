@@ -426,7 +426,7 @@ void draw_magnitude_key(chart_config *s) {
     const double w_item = 1.5 * s->font_size;
 
     // The number of items in the magnitude key
-    int N = (int) floor((s->mag_min - s->mag_highest) / s->mag_step);
+    const int N = (int) ceil((s->mag_min - s->mag_highest) / s->mag_step);
 
     // The number of columns we can fit in the magnitude key, spanning the full width of the star chart
     int Ncol = (int) floor((s->width - w_tag) / w_item);
