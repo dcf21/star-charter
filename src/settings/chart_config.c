@@ -103,7 +103,7 @@ void default_config(chart_config *i) {
     i->magnitude_key = 1;
     i->great_circle_key = 1;
     i->cardinals = 1;
-    strcpy(i->ephemeris_compute_path, SRCDIR "../../ephemerisCompute/bin/ephem.bin");
+    strcpy(i->ephemeris_compute_path, SRCDIR "../../ephemeris-compute-de430/bin/ephem.bin");
     strcpy(i->galaxy_map_filename, SRCDIR "../data/milkyWay/process/output/galaxymap.dat");
     strcpy(i->photo_filename, "");
     strcpy(i->output_filename, "chart");

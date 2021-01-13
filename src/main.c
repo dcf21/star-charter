@@ -747,8 +747,8 @@ int main(int argc, char **argv) {
             continue;
         } else if (strcmp(key, "ephemeris_compute_path") == 0) {
             //! ephemeris_compute_path - The path to the tool <ephemerisCompute>, used to compute paths for solar
-            //! system objects. See <https://github.com/dcf21/ephemeris-compute>. If this tool is installed in the
-            //! same directory as StarCharter, the default value should be <../ephemerisCompute/bin/ephem.bin>.
+            //! system objects. See <https://github.com/dcf21/ephemeris-compute-de430>. If this tool is installed in the
+            //! same directory as StarCharter, the default value should be <../ephemeris-compute-de430/bin/ephem.bin>.
             strcpy(settings_destination->ephemeris_compute_path, key_val);
             continue;
         } else {

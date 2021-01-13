@@ -5,7 +5,7 @@
 `StarCharter` is a command-line tool for producing vector-graphics charts of
 the night sky in SVG, PDF and PNG formats. It can also overlay the paths of
 solar system objects, such as planets and comets, across the sky if the tool
-[ephemerisCompute](https://github.com/dcf21/ephemeris-compute) is also
+[ephemerisCompute](https://github.com/dcf21/ephemeris-compute-de430) is also
 installed.
 
 `StarCharter` was written to produce all of the star charts on the website
@@ -99,7 +99,7 @@ The configuration settings which are recognised are listed below under
 
 The `draw_ephemeris` option in a configuration file can be used to draw the
 path of a solar system object across the sky.  This requires the tool
-[ephemerisCompute](https://github.com/dcf21/ephemeris-compute) to be installed.
+[ephemerisCompute](https://github.com/dcf21/ephemeris-compute-de430) to be installed.
 
 The syntax is as follows:
 
@@ -161,7 +161,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `ecliptic_col` - Colour to use when drawing a line along the ecliptic
 * `ephemeris_autoscale` - Boolean (0 or 1) indicating whether to auto-scale the star chart to contain the requested ephemerides. This overrides settings for ra_central, dec_central and angular_width.
 * `ephemeris_col` - Colour to use when drawing ephemerides for solar system objects
-* `ephemeris_compute_path` - The path to the tool <ephemerisCompute>, used to compute paths for solar system objects. See <https://github.com/dcf21/ephemeris-compute>. If this tool is installed in the same directory as StarCharter, the default value should be <../ephemerisCompute/bin/ephem.bin>.
+* `ephemeris_compute_path` - The path to the tool <ephemerisCompute>, used to compute paths for solar system objects. See <https://github.com/dcf21/ephemeris-compute-de430>. If this tool is installed in the same directory as StarCharter, the default value should be <../ephemeris-compute-de430/bin/ephem.bin>.
 * `equator_col` - Colour to use when drawing a line along the equator
 * `font_size` - A normalisation factor to apply to the font size of all text (default 1.0)
 * `galactic_plane_col` - Colour to use when drawing a line along the galactic plane
