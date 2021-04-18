@@ -3,7 +3,7 @@
 # dataFetch.py
 #
 # -------------------------------------------------
-# Copyright 2015-2020 Dominic Ford
+# Copyright 2015-2021 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -25,9 +25,12 @@
 Automatically download all of the required data files from the internet.
 """
 
+import argparse
 import os
 import sys
 import logging
+import urllib.request
+import urllib.error
 
 
 def fetch_file(web_address, destination, force_refresh=False):
@@ -49,7 +52,7 @@ def fetch_file(web_address, destination, force_refresh=False):
     :return:
         Boolean flag indicating whether the file was downloaded. Raises IOError if the download fails.
     """
-    logging.info("Fetching file <{}>".format(destination))
+    logging.info("Fetching <{}>".format(destination))
 
     # Check if the file already exists
     if os.path.exists(destination):
@@ -60,123 +63,173 @@ def fetch_file(web_address, destination, force_refresh=False):
             logging.info("File already exists, but downloading fresh copy.")
             os.unlink(destination)
 
-    # Fetch the file with wget
-    os.system("wget -q '{}' -O {}".format(web_address, destination))
+    # Check whether source URL is gzipped
+    supplied_source_is_gzipped = web_address.endswith(".gz")
+    target_is_gzipped = destination.endswith(".gz")
 
-    # Check that the file now exists
-    if not os.path.exists(destination):
-        raise IOError("Could not download file <{}>".format(web_address))
+    # Try downloading file in both gzipped and uncompressed format, as CDS archive sometimes changes compression
+    for source_is_gzipped in [supplied_source_is_gzipped, not supplied_source_is_gzipped]:
+        # Make source source URL has the right suffix
+        url = web_address
+        if source_is_gzipped and not supplied_source_is_gzipped:
+            url = web_address + ".gz"
+        elif supplied_source_is_gzipped and not source_is_gzipped:
+            url = web_address.strip(".gz")
 
-    return True
+        # Make sure file destination has the right suffix
+        destination_download = destination
+        if source_is_gzipped and not target_is_gzipped:
+            destination_download = destination + ".gz"
+        elif target_is_gzipped and not source_is_gzipped:
+            destination_download = destination.strip(".gz")
+
+        # Fetch the file with wget
+        logging.info("Downloading <{}> to <{}>".format(url, destination_download))
+        try:
+            urllib.request.urlretrieve(url=url, filename=destination_download)
+        except urllib.error.URLError:
+            logging.info("Download failed; attempting alternative URLs")
+            continue
+
+        # Check that the file now exists
+        if not (os.path.exists(destination_download) and os.path.getsize(destination_download) > 0):
+            logging.info("Download failed; attempting alternative URLs")
+            continue
+
+        # Check that file is compressed or uncompressed, as required
+        if source_is_gzipped and not target_is_gzipped:
+            logging.info("Uncompressing to <{}>".format(destination))
+            os.system("gunzip {}".format(destination_download))
+        elif target_is_gzipped and not source_is_gzipped:
+            logging.info("Compressing to <{}>".format(destination))
+            os.system("gzip {}".format(destination_download))
+
+        # Check that the file now exists
+        if not os.path.exists(destination):
+            raise IOError("Failed to create target file. Is gzip/gunzip installed?")
+
+        # Success!
+        return True
+
+    # We didn't manage to download the file...
+    raise IOError("Could not download file <{}>".format(web_address))
 
 
-def fetch_required_files():
+def fetch_required_files(refresh):
+    """
+    Fetch all of the files we require.
+
+    :param refresh:
+        Switch indicating whether to fetch fresh copies of any files we've already downloaded.
+    :type refresh:
+        bool
+    :return:
+    """
     # List of the files we require
     required_files = [
         # Definitions of constellation boundaries
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/VI/49/bound_20.dat.gz',
-            'destination': 'data/constellations/downloads/boundaries.dat.gz',
-            'force_refresh': False
+            'destination': 'data/constellations/downloads/boundaries.dat',
+            'force_refresh': refresh
         },
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/VI/49/ReadMe',
             'destination': 'data/constellations/downloads/ReadMe',
-            'force_refresh': False
+            'force_refresh': refresh
         },
 
         # Yale Bright Star Catalog (copy for use in making constellation stick figures)
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/V/50/catalog.gz',
             'destination': 'data/constellations/downloads/ybsc.gz',
-            'force_refresh': False
+            'force_refresh': refresh
         },
 
         # Hipparcos Catalog (copy for use in making constellation stick figures)
         {
             'url': 'ftp://cdsarc.u-strasbg.fr/pub/cats/I/239/hip_main.dat.gz',
             'destination': 'data/constellations/downloads/hip_main.dat.gz',
-            'force_refresh': False
+            'force_refresh': refresh
         },
 
         # Axel Mellinger's Milky Way Panorama 2.0 (licensed for personal use only)
         {
             'url': 'http://galaxy.phy.cmich.edu/~axel/mwpan2/mwpan2_Merc_2000x1200.jpg',
             'destination': 'data/milkyWay/mwpan2_Merc_2000x1200.jpg',
-            'force_refresh': False
+            'force_refresh': refresh
         },
 
         # HD-DM-GC-HR-HIP-Bayer-Flamsteed Cross Index
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/IV/27A/ReadMe',
             'destination': 'data/stars/bayerAndFlamsteed/ReadMe',
-            'force_refresh': False
+            'force_refresh': refresh
         },
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/IV/27A/catalog.dat',
             'destination': 'data/stars/bayerAndFlamsteed/catalog.dat',
-            'force_refresh': False
+            'force_refresh': refresh
         },
 
         # Yale Bright Star Catalog
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/V/50/ReadMe',
             'destination': 'data/stars/brightStars/ReadMe',
-            'force_refresh': False
+            'force_refresh': refresh
         },
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/V/50/catalog.gz',
             'destination': 'data/stars/brightStars/catalog.gz',
-            'force_refresh': False
+            'force_refresh': refresh
         },
 
         # Gaia DR1
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/I/337/ReadMe',
             'destination': 'data/stars/gaiaDR1/ReadMe',
-            'force_refresh': False
+            'force_refresh': refresh
         },
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/I/337/tgas.dat.gz',
             'destination': 'data/stars/gaiaDR1/tgas.dat.gz',
-            'force_refresh': False
+            'force_refresh': refresh
         },
 
         # Tycho 1
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/I/239/ReadMe',
             'destination': 'data/stars/tycho1/ReadMe',
-            'force_refresh': False
+            'force_refresh': refresh
         },
         {
             'url': 'ftp://cdsarc.u-strasbg.fr/pub/cats/I/239/tyc_main.dat',
             'destination': 'data/stars/tycho1/tyc_main.dat',
-            'force_refresh': False
+            'force_refresh': refresh
         },
         {
             'url': 'ftp://cdsarc.u-strasbg.fr/pub/cats/I/239/hip_main.dat.gz',
             'destination': 'data/stars/tycho1/hip_main.dat.gz',
-            'force_refresh': False
+            'force_refresh': refresh
         },
 
         # Hipparcos catalogue new reduction
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/I/311/ReadMe',
             'destination': 'data/stars/hipparcosNewReduction/ReadMe',
-            'force_refresh': False
+            'force_refresh': refresh
         },
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/I/311/hip2.dat.gz',
             'destination': 'data/stars/hipparcosNewReduction/hip2.dat.gz',
-            'force_refresh': False
+            'force_refresh': refresh
         },
-
 
         # Tycho 2
         {
             'url': 'http://cdsarc.u-strasbg.fr/ftp/I/259/ReadMe',
             'destination': 'data/stars/tycho2/ReadMe',
-            'force_refresh': False
+            'force_refresh': refresh
         }
     ]
 
@@ -185,7 +238,7 @@ def fetch_required_files():
         required_files.append({
             'url': 'ftp://cdsarc.u-strasbg.fr/pub/cats/I/259/tyc2.dat.{:02d}.gz'.format(file_number),
             'destination': 'data/stars/tycho2/tyc2.dat.{:02d}.gz'.format(file_number),
-            'force_refresh': False
+            'force_refresh': refresh
         })
 
     # Fetch all the files
@@ -195,12 +248,18 @@ def fetch_required_files():
                    force_refresh=required_file['force_refresh']
                    )
 
-    # Unzip the constellation boundaries
-    os.system("gunzip -f data/constellations/downloads/boundaries.dat.gz")
-
-
 
 if __name__ == "__main__":
+    # Read command-line arguments
+    parser = argparse.ArgumentParser(description=__doc__)
+
+    # Add command-line options
+    parser.add_argument('--refresh', dest='refresh', action='store_true', help='Download a fresh copy of all files.')
+    parser.add_argument('--no-refresh', dest='refresh', action='store_false', help='Do not re-download existing files.')
+    parser.set_defaults(refresh=False)
+    args = parser.parse_args()
+
+    # Set up logging
     logging.basicConfig(level=logging.INFO,
                         stream=sys.stdout,
                         format='[%(asctime)s] %(levelname)s:%(filename)s:%(message)s',
@@ -208,4 +267,5 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
     logger.info(__doc__.strip())
 
-    fetch_required_files()
+    # Fetch all the data
+    fetch_required_files(refresh=args.refresh)
