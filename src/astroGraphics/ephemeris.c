@@ -46,8 +46,8 @@ void ephemerides_fetch(chart_config *s) {
     // Track the sky coverage of the ephemerides in RA and Dec
     int ra_bins = s->ra_line_count * 2;
     int dec_bins = s->dec_line_count * 2;
-    int *ra_usage = (int *) malloc(ra_bins * sizeof(ra_usage));
-    int *dec_usage = (int *) malloc(dec_bins * sizeof(dec_usage));
+    int *ra_usage = (int *) malloc(ra_bins * sizeof(*ra_usage));
+    int *dec_usage = (int *) malloc(dec_bins * sizeof(*dec_usage));
 
     // Zero map of sky coverage
     for (i = 0; i < ra_bins; i++) ra_usage[i] = 0;
