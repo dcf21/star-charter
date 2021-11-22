@@ -17,6 +17,10 @@ installed.
 Unix-like operating systems.  The installation scripts require python3.
 `StarCharter` uses `libcairo` to produce its graphical output.
 
+The build process requires a minimum of 8GB RAM. Note that Docker Desktop for
+Mac imposes a default memory limit of 2GB, which needs to be increased to build
+`ephemerisCompute` successfully.
+
 ### License
 
 This code is distributed under the Gnu General Public License. It is (C)
@@ -30,6 +34,24 @@ Milky Way to use to shade the background of star charts.
 
 This can be done with the shell script `setup.sh`. The total download size will
 be around 500 MB.
+
+### Docker container
+
+A `Dockerfile` is provided to build `ephemerisCompute`. A `docker compose`
+script is provided to build a single example starchart:
+
+```
+docker compose build
+docker compose run star-charter
+```
+
+This builds a single example starchart of the constellation Orion, in the
+directory `examples/output`. To make other star charts, open a shell within the
+Docker container as follows:
+
+```
+docker run -it star-charter:v1 /bin/bash
+```
 
 ## Generating a star chart
 
