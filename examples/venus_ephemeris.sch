@@ -2,7 +2,7 @@
 # in 2020
 # 
 # -------------------------------------------------
-# Copyright 2015-2019 Dominic Ford
+# Copyright 2015-2022 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -22,10 +22,10 @@
 
 # Default settings which affect all the charts below
 DEFAULTS
-width=18.0
+width=24.0
 aspect=1
 ra_dec_lines=1
-messier_names=0
+dso_names=0
 constellation_boundaries=1
 constellation_sticks=1
 projection=gnomonic

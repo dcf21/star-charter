@@ -2,7 +2,7 @@
 # in a Peters projection
 #
 # -------------------------------------------------
-# Copyright 2015-2019 Dominic Ford
+# Copyright 2015-2022 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -32,6 +32,6 @@ coords=ra_dec
 projection=peters
 star_names=1
 maximum_star_label_count=20
-messier_names=0
+dso_names=0
 constellation_names=1
 

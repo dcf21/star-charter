@@ -2,7 +2,7 @@
 # all_constellations.py
 #
 # -------------------------------------------------
-# Copyright 2015-2019 Dominic Ford
+# Copyright 2015-2022 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -34,13 +34,10 @@ CHART
 output_filename=output/{}.png
 ra_central={}
 dec_central={}
-ra_line_count=24
-dec_line_count=18
 angular_width=77.0
 width=25.0
 aspect=0.63
 ra_dec_lines=1
-messier_names=1
 constellation_boundaries=1
 constellation_sticks=1
 coords=ra_dec
@@ -48,7 +45,6 @@ projection=gnomonic
 star_names=1
 star_flamsteed_labels=0
 constellation_names=1
-# plot_galaxy_map=0
 mag_min=6.5
 """
 

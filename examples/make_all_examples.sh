@@ -1,6 +1,6 @@
-# Demonstration configuration file which projects a star chart over the top of
-# a photo
-# 
+#!/bin/bash
+# make_all_examples.sh
+#
 # -------------------------------------------------
 # Copyright 2015-2022 Dominic Ford
 #
@@ -20,10 +20,15 @@
 # along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 # -------------------------------------------------
 
-CHART
-output_filename=output/cygnus_photo.png
-photo_filename=/mnt/ganymede1/dcf21/photography/2010/cygnus/cygnus_0002.jpg
-position_angle=74.640
-ra_central=20.6802
-dec_central=54.191
+./all_constellations.py
+../bin/starchart.bin all_sky_maps.sch
+../bin/starchart.bin alt_az.sch
+../bin/starchart.bin background_image_demo.sch
+../bin/starchart.bin cygnus_photo_overlay.sch
+../bin/starchart.bin demo_charts.sch
+../bin/starchart.bin galactic_coordinates.sch
+../bin/starchart.bin jupiter_ephemeris.sch
+../bin/starchart.bin orion.sch
+../bin/starchart.bin peters.sch
+../bin/starchart.bin venus_ephemeris.sch
 

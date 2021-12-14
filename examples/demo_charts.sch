@@ -2,7 +2,7 @@
 # charts
 # 
 # -------------------------------------------------
-# Copyright 2015-2019 Dominic Ford
+# Copyright 2015-2022 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -27,8 +27,6 @@ ra_central=5.5
 dec_central=0.0
 font_size=1.8
 ra_dec_lines=0
-ra_line_count=2
-dec_line_count=2
 angular_width=40.0
 width=20
 aspect=1.41421356
@@ -40,11 +38,9 @@ star_names=0
 star_bayer_labels=1
 star_flamsteed_labels=0
 star_mag_labels=0
-messier_mag_labels=0
-plot_messier=0
-plot_ngc=0
-ngc_mags=1
-ngc_mag_min=10
+plot_dso=0
+dso_mags=1
+dso_mag_min=10
 constellation_names=1
 
 # A demo chart which shows the HR numbers of stars in the constellation Orion
@@ -79,7 +75,6 @@ projection=gnomonic
 star_names=1
 constellation_names=1
 great_circle_key=0
-plot_messier=0
 maximum_star_label_count=20
 constellation_stick_col=0,0.25,1
 font_size=1.25
@@ -101,7 +96,6 @@ projection=gnomonic
 star_names=1
 constellation_names=1
 great_circle_key=0
-plot_messier=0
 maximum_star_label_count=20
 constellation_stick_col=0,0.25,1
 font_size=1.25

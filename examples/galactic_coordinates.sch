@@ -2,7 +2,7 @@
 # in galactic coordinates
 #
 # -------------------------------------------------
-# Copyright 2015-2019 Dominic Ford
+# Copyright 2015-2022 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -46,7 +46,9 @@ output_filename=output/galactic_coordinates.png
 grid_col=0.7,0.7,0.7
 constellation_stick_col=0,0.6,0
 constellation_boundary_col=0.6,0.6,0.6
-messier_col=0.1,0.6,0.25
+dso_cluster_col=0.75,0.75,0
+dso_galaxy_col=0.75,0,0
+dso_nebula_col=0,0.75,0
 galaxy_col=0.68,0.76,1
 galaxy_col0=1,1,1
 equator_col=0.65,0,0.65
@@ -59,7 +61,9 @@ output_filename=output/galactic_coordinates_2.png
 constellation_stick_col=0,0.5,0
 constellation_boundary_col=0.5,0.5,0
 constellation_label_col=0.9,0.9,0.9
-messier_col=0,0.8,0.8
+dso_cluster_col=0.75,0.75,0
+dso_galaxy_col=0.75,0,0
+dso_nebula_col=0,0.75,0
 galaxy_col=0,0,0.5
 galaxy_col0=0,0,0.25
 star_col=0.95,0.95,0.95
