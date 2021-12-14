@@ -1,7 +1,7 @@
-// ngc.h
+// deepSky.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -19,8 +19,8 @@
 // along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------
 
-#ifndef NGC_H
-#define NGC_H 1
+#ifndef DEEPSKY_H
+#define DEEPSKY_H 1
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,7 +29,9 @@
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
 
-void plot_ngc_objects(chart_config *s, cairo_page *page);
+void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only);
+
+double draw_dso_symbol_key(chart_config *s, double legend_y_pos);
 
 #endif
 

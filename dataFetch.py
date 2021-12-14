@@ -3,7 +3,7 @@
 # dataFetch.py
 #
 # -------------------------------------------------
-# Copyright 2015-2021 Dominic Ford
+# Copyright 2015-2022 Dominic Ford
 #
 # This file is part of StarCharter.
 #

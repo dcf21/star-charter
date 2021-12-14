@@ -1,7 +1,7 @@
 // cairo_page.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -122,8 +122,9 @@ void cairo_init(cairo_page *p, chart_config *s) {
         // And how much vertical height they will take up
         s->canvas_height += (s->magnitude_key_rows * 0.8) * s->cm;
     }
+
     if (s->great_circle_key) s->canvas_height += 1.5 * s->cm;
-    // if (s->copyright[0] != '\0') s->canvas_height += (0.6 + s->copyright_gap_2) * s->cm;
+    if (s->dso_symbol_key) s->canvas_height += 1.5 * s->cm;
 
     // Create cairo drawing surface of the appropriate graphics type
     switch (s->output_format) {
@@ -241,7 +242,7 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
     cairo_restore(s->cairo_draw);
 
     // Select a font
-    cairo_select_font_face(s->cairo_draw, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(s->cairo_draw, s->font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
     // Draw title at top
     cairo_set_font_size(s->cairo_draw, 4.5 * s->mm * s->font_size);
@@ -253,7 +254,7 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
 
     // Draw outline of chart
     cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
-    cairo_set_line_width(s->cairo_draw, 2.0 * s->line_width_base);
+    cairo_set_line_width(s->cairo_draw, s->chart_edge_line_width * s->line_width_base);
     cairo_new_path(s->cairo_draw);
     if ((s->projection == SW_PROJECTION_SPH) || (s->projection == SW_PROJECTION_ALTAZ)) {
         // On alt/az charts, the chart has a circular shape
@@ -429,6 +430,37 @@ void chart_label_unbuffer(cairo_page *p) {
     p->exclusion_region_counter = 0;
 }
 
+//! chart_add_label_exclusion - Add an exclusion region where text labels should not be placed.
+//! \param p - A structure describing the status of the drawing surface
+//! \param s - Settings for the star chart we are drawing
+//! \param x_min - The left extent of the exclusion rectangle
+//! \param x_max - The right extent of the exclusion rectangle
+//! \param y_min - The top extent of the exclusion rectangle
+//! \param y_max - The bottom extent of the exclusion rectangle
+
+void chart_add_label_exclusion(cairo_page *p, chart_config *s, double x_min, double x_max, double y_min, double y_max) {
+    p->exclusion_regions[p->exclusion_region_counter].x_min = x_min;
+    p->exclusion_regions[p->exclusion_region_counter].x_max = x_max;
+    p->exclusion_regions[p->exclusion_region_counter].y_min = y_min;
+    p->exclusion_regions[p->exclusion_region_counter].y_max = y_max;
+
+    // Debugging code to draw bounding box around text item
+    if (0) {
+        cairo_set_source_rgb(s->cairo_draw, 1, 0,0);
+        double a, b, c, d;
+        fetch_canvas_coordinates(&a, &b, x_min, y_min, s);
+        fetch_canvas_coordinates(&c, &d, x_max, y_max, s);
+        cairo_move_to(s->cairo_draw, a-1, b-1);
+        cairo_line_to(s->cairo_draw, a-1, d+1);
+        cairo_line_to(s->cairo_draw, c+1, d+1);
+        cairo_line_to(s->cairo_draw, c+1, b-1);
+        cairo_close_path(s->cairo_draw);
+        cairo_stroke(s->cairo_draw);
+    }
+
+    p->exclusion_region_counter++;
+}
+
 //! chart_label - Write a text label onto a cairo page immediately.
 //! \param p - A structure describing the status of the drawing surface
 //! \param s - Settings for the star chart we are drawing
@@ -463,7 +495,7 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
         // Select font
         cairo_text_extents_t extents;
         cairo_set_font_size(s->cairo_draw, 2 * s->mm * font_size * s->font_size);
-        cairo_select_font_face(s->cairo_draw, "Sans",
+        cairo_select_font_face(s->cairo_draw, s->font_family,
                                font_italic ? CAIRO_FONT_SLANT_ITALIC : CAIRO_FONT_SLANT_NORMAL,
                                font_bold ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL);
 
@@ -560,24 +592,7 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
 
         // Add label to collision list
         if (priority >= -1) {
-            p->exclusion_regions[p->exclusion_region_counter].x_min = x_min;
-            p->exclusion_regions[p->exclusion_region_counter].x_max = x_max;
-            p->exclusion_regions[p->exclusion_region_counter].y_min = y_min;
-            p->exclusion_regions[p->exclusion_region_counter].y_max = y_max;
-
-            // Debugging code to draw bounding box around text item
-            // cairo_set_source_rgb(s->cairo_draw, colour.red, colour.grn, colour.blu);
-            // double a, b, c, d;
-            // fetch_canvas_coordinates(&a, &b, x_min, y_min, s);
-            // fetch_canvas_coordinates(&c, &d, x_max, y_max, s);
-            // cairo_move_to(s->cairo_draw, a, b);
-            // cairo_line_to(s->cairo_draw, a, d);
-            // cairo_line_to(s->cairo_draw, c, d);
-            // cairo_line_to(s->cairo_draw, c, b);
-            // cairo_line_to(s->cairo_draw, a, b);
-            // cairo_stroke(s->cairo_draw);
-
-            p->exclusion_region_counter++;
+            chart_add_label_exclusion(p, s, x_min, x_max, y_min, y_max);
         }
 
         // If <make_background> is set, we smear the background around the label with a dark colour
@@ -697,7 +712,7 @@ int chart_finish(cairo_page *p, chart_config *s) {
     chart_label_unbuffer(p);
 
     // Reset font weight
-    cairo_select_font_face(s->cairo_draw, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(s->cairo_draw, s->font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
     // Write copyright text
     cairo_text_extents_t extents;
@@ -708,21 +723,15 @@ int chart_finish(cairo_page *p, chart_config *s) {
                   (s->canvas_offset_x * 0.5) * s->cm,
                   (s->canvas_offset_y * 2
                    + s->width * s->aspect
-                   //+ (s->magnitude_key ? (0.4 + 0.8 * s->magnitude_key_rows) : 0)
                    + s->copyright_gap - 0.2
-                   //+ 2.2 * (s->great_circle_key != 0)
                    + s->copyright_gap_2) * s->cm);
     cairo_show_text(s->cairo_draw, s->copyright);
 
     // Write lists of ticks to put on axes
     chart_ticks_draw(s, p->x_labels, "x");
     chart_ticks_draw(s, p->y_labels, "y");
-
-    // On charts wider than 24 cm across, also put labels on top and right sides
-    if (s->width > 24) {
-        chart_ticks_draw(s, p->x2_labels, "x2");
-        chart_ticks_draw(s, p->y2_labels, "y2");
-    }
+    chart_ticks_draw(s, p->x2_labels, "x2");
+    chart_ticks_draw(s, p->y2_labels, "y2");
 
     // Close cairo drawing context
     cairo_destroy(s->cairo_draw);

@@ -3,7 +3,7 @@
 # catalogue_merge.py
 #
 # -------------------------------------------------
-# Copyright 2015-2019 Dominic Ford
+# Copyright 2015-2022 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -26,12 +26,12 @@ Take the Bright Star, Hipparcos, Tycho Catalogues, Gaia DR1 and Gaia DR2, and me
 listed for each star.
 """
 
+import glob
+import gzip
+import json
 import os
 import re
-import json
 from math import pi, floor, cos, hypot, atan2
-import gzip
-import glob
 
 # Make sure output directory exists
 os.system("mkdir -p output")
@@ -169,7 +169,7 @@ def check_positions_agree(ra_old, dec_old, ra_new, dec_new, mag, uid, cat_name_o
     ang_change = hypot(dec_diff, ra_diff * cos(ra_new * pi / 180))
     if ang_change > threshold:
         print("Warning: moving mag {:4.1f} star {} by {:.3f} deg ({} --> {})"
-            .format(mag, uid, ang_change, cat_name_old, cat_name_new)
+              .format(mag, uid, ang_change, cat_name_old, cat_name_new)
               )
 
 
@@ -180,6 +180,7 @@ star_counter = 1
 star_data = {}
 
 star_names_english = {}  # List of English names for each star, indexed by UID
+star_names_catalogue_ref = {}  # List of catalogue references for each star (e.g. V337_Car), indexed by UID
 star_names_bayer_letter = {}  # Bayer letter, stored in TeX format for legacy reasons, possibly with superscript number
 star_names_const = {}  # Flamsteed/Bayer three-letter constellation abbreviations, e.g. "Peg"
 star_names_flamsteed_number = {}  # Flamsteed numbers, stored as integers
@@ -266,9 +267,9 @@ for line in gzip.open("../brightStars/catalog.gz", "rt"):
     elif (variability and
           (re.sub(' ', '', variability) != re.sub(' ', '', line[7:14].strip())) and
           (variability.lower() != 'var')):
-        if star_counter not in star_names_english:
-            star_names_english[star_counter] = []
-        star_names_english[star_counter].append(variability)
+        if star_counter not in star_names_catalogue_ref:
+            star_names_catalogue_ref[star_counter] = []
+        star_names_catalogue_ref[star_counter].append(variability)
 
     star_data[star_counter] = {'RA': RA * 180 / 12,  # degrees, J2000
                                'Decl': Dec,  # degrees, J2000
@@ -949,6 +950,9 @@ star_magnitudes.sort(key=lambda x: x[1])
 # Produce output catalogues
 print("Producing output data catalogues")
 
+# Make sure that StarCharter regenerates its binary file
+os.system("rm -f output/star_charter_stars.bin")
+
 # Write output as a text file for use in StarCharter
 output_star_charter = open("output/star_charter_stars.dat", "wt")
 
@@ -963,13 +967,14 @@ for item in star_magnitudes:
     parallax = dist = proper_motion = proper_motion_pa = mag_bv = ybsn = hd = Nhip = nsv = variable = 0
     source_pos = source_par = ""
     tycho_id = dr2_id = name_const = name_bayer_letter = name_flamsteed_num = ""
-    names_english = []
+    names_english = names_catalogue_ref = []
 
     # Name1 is the star's Bayer letter, as a UTF8 character
     # Name2 is 'x-c' where x is Name1 and c is the constellation
     # Name3 is the star's English name, which spaces rendered as underscores
-    # Name4 is 'y' where y is the Flamsteed number
-    Name1 = Name2 = Name3 = Name4 = "-"
+    # Name4 is the star's catalogue name, e.g. "V337_Car"
+    # Name5 is 'y' where y is the Flamsteed number
+    Name1 = Name2 = Name3 = Name4 = Name5 = "-"
 
     # Populate variables with data from the <star_data> list
     uid = item[0]
@@ -1011,6 +1016,9 @@ for item in star_magnitudes:
     if uid in star_names_english:
         Name3 = re.sub(' ', '_', star_names_english[uid][0])  # StarCharter using whitespace-sep columns
         names_english = star_names_english[uid]  # JSON output allows spaces in the names of stars
+    if uid in star_names_catalogue_ref:
+        Name4 = re.sub(' ', '_', star_names_catalogue_ref[uid][0])  # StarCharter using whitespace-sep columns
+        names_catalogue_ref = star_names_catalogue_ref[uid]  # JSON output allows spaces in the names of stars
     if uid in star_names_const:
         name_const = star_names_const[uid]
         if uid in star_names_bayer_letter:
@@ -1018,20 +1026,20 @@ for item in star_magnitudes:
             Name1 = greek_html_to_utf8(name_to_html(name_bayer_letter))
             Name2 = "{}-{}".format(Name1, star_names_const[uid])
         if uid in star_names_flamsteed_number:
-            Name4 = "{}".format(star_names_flamsteed_number[uid])
+            Name5 = "{}".format(star_names_flamsteed_number[uid])
             name_flamsteed_num = star_names_flamsteed_number[uid]
 
     # Limiting magnitude of 12 for StarCharter
     if ('V' in mag_list) and (mag_list['V']['value'] < 12):
         mag = mag_list['V']['value']
         output_star_charter.write(
-            "{:6d} {:6d} {:8d} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:s} {:s} {:s} {:s}\n"
-            .format(hd, ybsn, Nhip, RA, Decl, mag, parallax, dist, Name1, Name2, Name3, Name4)
+            "{:6d} {:6d} {:8d} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:s} {:s} {:s} {:s} {:s}\n"
+                .format(hd, ybsn, Nhip, RA, Decl, mag, parallax, dist, Name1, Name2, Name3, Name4, Name5)
         )
 
     # Dump absolutely everything into the JSON output
     json_structure = [RA, Decl, mag_list, parallax, dist, ybsn, hd, Nhip, tycho_id,
-                      names_english, name_const,
+                      names_english + names_catalogue_ref, name_const,
                       name_to_html(name_bayer_letter), name_to_ascii(name_bayer_letter),
                       name_flamsteed_num,
                       source_pos, source_par,

@@ -1,7 +1,7 @@
 // constellations.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -130,7 +130,7 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgb(s->cairo_draw, s->constellation_stick_col.red,
                          s->constellation_stick_col.grn, s->constellation_stick_col.blu);
-    cairo_set_line_width(s->cairo_draw, 1.4);
+    cairo_set_line_width(s->cairo_draw, s->constellation_sticks_line_width);
 
     // Open file listing constellation stick figures by celestial coordinates
     const char *stick_definitions = "constellation_lines_simplified_by_RA_Dec.dat";

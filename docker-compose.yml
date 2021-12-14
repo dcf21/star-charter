@@ -5,4 +5,5 @@ services:
     image: star-charter:v1
     volumes:
     - ./examples/output:/star-charter/examples/output
-    command: ../bin/starchart.bin orion.sch
+    command: ./make_all_examples.sh
+

@@ -1,7 +1,7 @@
-// messier.h
+// deepSkyOutlines.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -19,8 +19,8 @@
 // along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------
 
-#ifndef MESSIER_H
-#define MESSIER_H 1
+#ifndef DEEPSKY_OUTLINES_H
+#define DEEPSKY_OUTLINES_H 1
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,7 +29,6 @@
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
 
-void plot_messier_objects(chart_config *s, cairo_page *page);
+void plot_deep_sky_outlines(chart_config *s, cairo_page *page);
 
 #endif
-

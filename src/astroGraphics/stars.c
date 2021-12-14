@@ -1,7 +1,7 @@
 // stars.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -40,10 +40,11 @@
 //! star_definition - A structure to represent all of the data that describes a star
 
 typedef struct {
-    char name1[32]; // Bayer letter
-    char name2[32]; // Full Bayer designation
+    char name1[10]; // Bayer letter
+    char name2[24]; // Full Bayer designation
     char name3[32]; // Name of star
-    char name4[32]; // Flamsteed number
+    char name4[24]; // Catalogue designation, e.g. V337_Car
+    char name5[6]; // Flamsteed number
     int hd_num, hip_num, ybsn_num;
     double ra, dec, mag, para, dist;
 } star_definition;
@@ -119,7 +120,9 @@ void star_list_to_binary() {
         scan = next_word(scan);
         strcpy(sd.name3, copy_name(scan)); // Name of star
         scan = next_word(scan);
-        strcpy(sd.name4, copy_name(scan)); // Flamsteed number
+        strcpy(sd.name4, copy_name(scan)); // Catalogue designation of star
+        scan = next_word(scan);
+        strcpy(sd.name5, copy_name(scan)); // Flamsteed number
 
         // Write this star into the binary output file
         fwrite(&sd, sizeof(star_definition), 1, out);
@@ -276,6 +279,7 @@ void plot_stars(chart_config *s, cairo_page *page) {
 
     // Count the number of stars we have labelled, and make sure it doesn't exceed <s->maximum_star_label_count>
     int label_counter = 0;
+    int star_counter = 0;
 
     // Loop over the stars in the binary file
     for (j = 0; j < n; j++) {
@@ -292,9 +296,13 @@ void plot_stars(chart_config *s, cairo_page *page) {
         plane_project(&x, &y, s, sd.ra, sd.dec, 0);
 
         // Ignore this star if it falls outside the plot area
-        if ((!gsl_finite(x)) || (!gsl_finite(y)) || (x < s->x_min) || (x > s->x_max) || (y < s->y_min) ||
-            (y > s->y_max))
+        if ((!gsl_finite(x)) || (!gsl_finite(y)) ||
+            (x < s->x_min) || (x > s->x_max) || (y < s->y_min) || (y > s->y_max)) {
             continue;
+        }
+
+        // Count number of stars
+        star_counter++;
 
         // Keep track of the brightest star in the field
         if (sd.mag < s->mag_highest) s->mag_highest = sd.mag;
@@ -310,18 +318,30 @@ void plot_stars(chart_config *s, cairo_page *page) {
         cairo_arc(s->cairo_draw, x_canvas, y_canvas, size * s->dpi, 0, 2 * M_PI);
         cairo_fill(s->cairo_draw);
 
+        // Don't allow text labels to be placed over this star
+        {
+            double x_exclusion_region, y_exclusion_region;
+            fetch_graph_coordinates(x_canvas, y_canvas, &x_exclusion_region, &y_exclusion_region, s);
+            chart_add_label_exclusion(page, s,
+                                      x_exclusion_region, x_exclusion_region,
+                                      y_exclusion_region, y_exclusion_region);
+        }
+
         // Consider whether to write a text label nest to this star
         if ((sd.mag < s->star_label_mag_min) && (label_counter < s->maximum_star_label_count)) {
 
             // Do we show an English name for this star?
-            const int show_name3 = (s->star_names) && (sd.name3[0] != '\0') && (sd.name3[0] != '-') &&
+            const int show_name3 = s->star_names && (sd.name3[0] != '\0') && (sd.name3[0] != '-') &&
                                    (strcmp_ascii(sd.name3, sd.name2) != 0);
 
+            // Do we show a variable-star designation for this star?
+            const int show_name4 = s->star_variable_labels && (sd.name4[0] != '\0') && (sd.name4[0] != '-');
+
             // Do we show a Bayer designation for this star?
-            const int show_name1 = (s->star_bayer_labels) && (sd.name1[0] != '\0') && (sd.name1[0] != '-');
+            const int show_name1 = s->star_bayer_labels && (sd.name1[0] != '\0') && (sd.name1[0] != '-');
 
             // Do we show a Flamsteed number for this star?
-            const int show_name4 = (s->star_flamsteed_labels) && (sd.name4[0] != '\0') && (sd.name4[0] != '-');
+            const int show_name5 = s->star_flamsteed_labels && (sd.name5[0] != '\0') && (sd.name5[0] != '-');
 
             // Do we show a catalogue number for this star
             const int show_cat = s->star_catalogue_numbers &&
@@ -329,7 +349,8 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                   (s->star_catalogue == SW_CAT_HD));
 
             // Does this star have multiple text labels associated with it?
-            const int multiple_labels = (show_name3 + show_name1 + show_name4 + show_cat + s->star_mag_labels) > 1;
+            const int star_label_count =  show_name3 + show_name1 + show_name4 + show_name5 + show_cat + s->star_mag_labels;
+            const int multiple_labels = (star_label_count > 1) && s->star_allow_multiple_labels;
 
             // How far should we move this label to the side of the star, to avoid writing text on top of the star?
             double horizontal_offset = size * s->dpi + 0.05 * s->cm;
@@ -347,6 +368,7 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                                         {x, y, -horizontal_offset, 1,  0}}, 2,
                                    multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
                 label_counter++;
+                if (!s->star_allow_multiple_labels) continue;
             }
 
             // Write a Bayer designation next to this star
@@ -356,15 +378,33 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                                         {x, y, -horizontal_offset, 1,  0}}, 2,
                                    multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
                 label_counter++;
+                if (!s->star_allow_multiple_labels) continue;
             }
 
             // Write a Flamsteed number next to this star
-            if (show_name4) {
-                chart_label_buffer(page, s, s->star_label_col, sd.name4,
+            if (show_name5) {
+                chart_label_buffer(page, s, s->star_label_col, sd.name5,
                                    (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
                                                         {x, y, -horizontal_offset, 1,  0}}, 2,
                                    multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
                 label_counter++;
+                if (!s->star_allow_multiple_labels) continue;
+            }
+
+            // Write variable star designation next to this star
+            if (show_name4) {
+                strcpy(temp_err_string, sd.name4);
+
+                // Replace underscores with spaces
+                for (int k = 0; temp_err_string[k] > '\0'; k++)
+                    if (temp_err_string[k] == '_') temp_err_string[k] = ' ';
+
+                chart_label_buffer(page, s, s->star_label_col, temp_err_string,
+                                   (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
+                                                        {x, y, -horizontal_offset, 1,  0}}, 2,
+                                   multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
+                label_counter++;
+                if (!s->star_allow_multiple_labels) continue;
             }
 
             // Write a catalogue number next to this star
@@ -376,7 +416,6 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                        (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
                                                             {x, y, -horizontal_offset, 1,  0}}, 2,
                                        multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
-                    label_counter++;
                 } else if (s->star_catalogue == SW_CAT_YBSC) {
                     // Write an HR number (i.e. Yale Bright Star Catalog number)
                     snprintf(temp_err_string, FNAME_LENGTH, "HR%d", sd.ybsn_num);
@@ -384,7 +423,6 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                        (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
                                                             {x, y, -horizontal_offset, 1,  0}}, 2,
                                        multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
-                    label_counter++;
                 } else if (s->star_catalogue == SW_CAT_HD) {
                     // Write a Henry Draper number
                     snprintf(temp_err_string, FNAME_LENGTH, "HD%d", sd.hd_num);
@@ -392,8 +430,9 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                        (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
                                                             {x, y, -horizontal_offset, 1,  0}}, 2,
                                        multiple_labels, 0, 1.2, 0, 0, 0, sd.mag);
-                    label_counter++;
                 }
+                    label_counter++;
+                if (!s->star_allow_multiple_labels) continue;
             }
 
             // Write the magnitude of this star next to it
@@ -404,19 +443,27 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                                         {x, y, -horizontal_offset, 1,  0}}, 2,
                                    multiple_labels, 0, 1.2, 0, 0, 0, sd.mag - 0.000001);
                 label_counter++;
+                if (!s->star_allow_multiple_labels) continue;
             }
         }
     }
 
     // Close the binary file listing all the stars
     fclose(file);
+
+    // print debugging message
+    if (DEBUG) {
+        snprintf(temp_err_string, FNAME_LENGTH, "Displayed %d stars and %d star labels", star_counter, label_counter);
+        stch_log(temp_err_string);
+    }
 }
 
 //! draw_magnitude_key - Draw a legend underneath the star chart showing the mapping between sizes of splodge and
 //! the magnitude of the star.
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param legend_y_pos - The vertical pixel position of the top of the next legend to go under the star chart.
 
-void draw_magnitude_key(chart_config *s) {
+double draw_magnitude_key(chart_config *s, double legend_y_pos) {
     int i;
 
     // The width of the text saying "Magnitude scale:"
@@ -437,7 +484,7 @@ void draw_magnitude_key(chart_config *s) {
     const int Nrow = (int) ceil((N + 1.0) / Ncol);
 
     // Positions of the corners of the magnitude key on the canvas
-    const double y0 = s->canvas_offset_y * 2 + s->width * s->aspect + 0.8 + s->copyright_gap;
+    const double y0 = legend_y_pos;
     const double y1 = y0 - 0.4;
     const double x1 = s->canvas_offset_x + s->width / 2;
     const double xw = w_tag + w_item * Ncol;
@@ -449,7 +496,7 @@ void draw_magnitude_key(chart_config *s) {
     s->magnitude_key_rows = Nrow;
 
     // Reset font weight
-    cairo_select_font_face(s->cairo_draw, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(s->cairo_draw, s->font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
     // Write the heading next to the magnitude key
     const char *heading = "Magnitude scale:";
@@ -492,4 +539,7 @@ void draw_magnitude_key(chart_config *s) {
         );
         cairo_show_text(s->cairo_draw, line);
     }
+
+    const double new_bottom_to_legend_items = y0 + 0.2 + 0.8 * s->magnitude_key_rows;
+    return new_bottom_to_legend_items;
 }

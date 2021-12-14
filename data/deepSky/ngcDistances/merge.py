@@ -21,19 +21,45 @@
 # along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 # -------------------------------------------------
 
+import copy
 import json
+import logging
+import operator
 import os
 import re
-import copy
+import sys
 from math import pi, cos, sin, sqrt, asin
 
 # Create output log listing the cross-matching between various NGC catalogues
-logfile = open("output/merge.log", "w")
+log_file_path = "output/merge.log"
+os.system("rm -f {}".format(log_file_path))
+
+
+# Set up logging
+class InfoFilter(logging.Filter):
+    def filter(self, rec):
+        return rec.levelno in (logging.DEBUG, logging.INFO)
+
+
+h1 = logging.StreamHandler(sys.stdout)
+h1.setLevel(logging.DEBUG)
+h1.addFilter(InfoFilter())
+h2 = logging.StreamHandler()
+h2.setLevel(logging.WARNING)
+
+logging.basicConfig(level=logging.INFO,
+                    format='[%(asctime)s] %(levelname)s:%(filename)s:%(message)s',
+                    datefmt='%d/%m/%Y %H:%M:%S',
+                    handlers=[
+                        logging.FileHandler(log_file_path),
+                        h1, h2
+                    ])
+logger = logging.getLogger(__name__)
 
 
 def angular_distance(ra1, dec1, ra2, dec2):
     """
-    Calculate the angular distance between two points on the sky (used for cross-matching objects_
+    Calculate the angular distance between two points on the sky (used for cross-matching objects)
 
     :param ra1:
         Right ascension of point 1, in hours
@@ -95,9 +121,13 @@ for line in open("../ngc/names.dat"):
     # NGC objects are listed simply as numbers, IC objects are prefixed 'I'
     words = words.split()
     ic = (line[36] == 'I')  # Boolean flag indicating if this object is an IC object
-    n = int(words[0])  # The catalogue number of this object
+    try:
+        n = int(words[0])  # The catalogue number of this object
+    except ValueError:
+        logging.info("Could not read catalogue names for <{}>".format(name))
+        continue
 
-    # English name is in fact an Messier object number. Populate arrays of the Messier numbers of NGC/IC objects
+    # English name is in fact a Messier object number. Populate arrays of the Messier numbers of NGC/IC objects
     if name.split()[0] == 'M':
         if ic:
             if n not in ind_messiers:
@@ -242,21 +272,22 @@ for line in open("../messier/messier.dat"):
     # Messier catalogue uses different object type names from the NGC catalogue
     # Convert Messier catalogue type names into NGC types
     obj_type = line[9:11]
-    if obj_type == "GC":  # globular clusters
-        obj_type = "Gb"
-    if obj_type == "PN":  # planetary nebulae
-        obj_type = "Pl"
-    if obj_type == "BN":  # bright nebulae
-        obj_type = "Nb"
-    if obj_type == "GX":  # galaxies
-        obj_type = "Gx"
-    if obj_type == "*2":  # double stars
-        obj_type = "D*"
-    if obj_type == "*C":  # asterisms
-        obj_type = "As*"
+
+    object_type_conversion = {
+        "GC": "Gb",  # globular clusters
+        "PN": "Pl",  # planetary nebulae
+        "BN": "Nb",  # bright nebulae
+        "GX": "Gx",  # galaxies
+        "*2": "D*",  # double stars
+        "**": "As*",  # asterisms
+        "*C": "As*"  # asterisms
+    }
+
+    if obj_type in object_type_conversion:
+        obj_type = object_type_conversion[obj_type]
 
     # Fetch distance, expressed as value and unit
-    dist = line[48:61].split()
+    dist = line[48:61].split(" ")
     try:
         dist_val = float(dist[0])
 
@@ -268,7 +299,7 @@ for line in open("../messier/messier.dat"):
         elif dist[1] == 'ly':
             dist_val *= 3.06595098e-07
         else:
-            print(("Unknown distance unit <%s>" % dist[1]))
+            logging.info("Unknown distance unit <{}>".format(dist[1]))
             raise ValueError
 
         # Insert distance into object catalogue
@@ -314,13 +345,13 @@ for line in open("output/NED_distances.dat"):
         i = ngc_id[number]
 
     # Look up the distance unit as recorded in the list of distances returned by the NED web interface
-    x = line[51:55].strip()
+    x = line[66:70].strip()
 
     # Reject the distance if it's not in Mpc
     if not ((len(x) > 0) and (x[0] != '-')):
         continue
     if x != "Mpc":
-        logfile.write("WARNING Distance unit = " + x + " (should be Mpc)")
+        logging.info("WARNING Distance unit = {} (should be Mpc)".format(x))
 
     # Look up the median distance to this object
     try:
@@ -353,14 +384,27 @@ for line in open("../ngc/ngc2000.dat"):
         i = ngc_id[number]
 
     # Look up the reported type of this object
-    obj_type = line[7:10].strip()
+    obj_type = line[6:10].strip()
+
+    object_type_conversion = {
+        "": "-",  # no type info
+        "Ast": "As*",  # asterisms
+        "C+N": "Nb",  # clusters with nebulosity
+        "D*?": "D*",  # double stars
+        "Kt": "Nb",  # knot
+        "*": "star",  # stars
+        "***": "As*",  # asterisms
+        "*?": "star",  # stars
+        "?": "Nb"  # whatever
+    }
+
+    if obj_type in object_type_conversion:
+        obj_type = object_type_conversion[obj_type]
 
     # Look up the reported angular size of this object (arcminutes)
     size = line[34:39].strip()
     if size != "":
         size = float(size)
-    if len(obj_type) == 0:
-        obj_type = "--"
 
     # Look up reported brightness and position of this object
     mag = line[40:44].strip()
@@ -411,6 +455,49 @@ for line in open("../ngc/open_ngc.csv"):
     # Read B-V colour
     if words[8] and words[9]:
         catalogue[i]['b_v'] = float(words[8]) - float(words[9])
+
+    # Read object type
+    obj_type_open_ngc = words[1]
+
+    object_type_conversion = {
+        "*": "star",
+        "**": "D*",
+        "*Ass": "As*",
+        "OCl": "OC",
+        "GCl": "Gb",
+        "Cl+N": "Nb",
+        "G": "Gx",
+        "GPair": "Gx2",
+        "GTrpl": "Gx3",
+        "GGroup": "GxC",
+        "PN": "Pl",
+        "HII": "HII",
+        "DrkN": "Dk",
+        "EmN": "EmN",
+        "Neb": "Nb",
+        "RfN": "Ref",
+        "SNR": "SNR",
+        "Nova": "star",
+        "NonEx": "none",
+        "Dup": "dup",
+        "Other": "-",
+    }
+
+    obj_type = object_type_conversion[obj_type_open_ngc]
+    catalogue[i]['type'] = obj_type
+
+    # If this object is a duplicate, what is it a duplicate of?
+    if obj_type == 'dup':
+        for from_catalogue in ((18, "Messier"), (19, "NGC"), (20, "IC")):
+            if words[from_catalogue[0]]:
+                if not words[from_catalogue[0]].isdigit():
+                    if words[from_catalogue[0]][-1].isdigit():
+                        # Truncate NGC1234A to NGC1234
+                        words[from_catalogue[0]] = words[from_catalogue[0]][-1]
+                    else:
+                        # If NGC number isn't recoverable, skip
+                        continue
+                catalogue[i]['duplicate_of'] = "{} {}".format(from_catalogue[1], int(words[from_catalogue[0]]))
 
     # Read RA and Dec
     if words[2] and words[3]:
@@ -480,24 +567,24 @@ for line in open("../openClusters/clusters.txt"):
         if i['type'] != "OC":
             # Possibly object is actually an open cluster, but has the wrong type recorded in NGC catalogue
             if name.endswith(str(i['ngc'])) and i['ngc']:
-                logfile.write("Dodgy match between %s with NGC%s\n" % (name, i['ngc']))
+                logging.info("Dodgy match between {} with NGC{}".format(name, i['ngc']))
                 i['type'] = "OC"
             elif name.endswith(str(i['ic'])) and i['ic']:
-                logfile.write("Dodgy match between %s with IC%s\n" % (name, i['ic']))
+                logging.info("Dodgy match between {} with IC{}".format(name, i['ic']))
                 i['type'] = "OC"
 
             # ... but if name field doesn't match NGC number, reject this match
             else:
-                logfile.write("Rejecting match of %s with M%s NGC%s IC%s\n" % (name, i['m'], i['ngc'], i['ic']))
+                logging.info("Rejecting match of {} with M{} NGC{} IC{}".format(name, i['m'], i['ngc'], i['ic']))
                 continue
-        logfile.write(
-            "%s matched to M%s NGC%s IC%s (distance %s arcmin)\n" % (name, i['m'], i['ngc'], i['ic'], AngDist))
+        # logging.info("{} matched to M{} NGC{} IC{} (distance {} arcmin)".
+        #              format(name, i['m'], i['ngc'], i['ic'], AngDist))
         i['dist'] = dist
         i['source_dist'] = 'open_clusters'
         match = True
         break
     if not match:
-        logfile.write("No match found for %s\n" % name)
+        logging.info("No match found for {}".format(name))
 
 # Import data from catalogue of globular clusters
 for line in open("../globularClusters/catalogue.dat"):
@@ -534,35 +621,29 @@ for line in open("../globularClusters/catalogue.dat"):
         if i['type'] != "Gb":
             # Possibly object is actually an open cluster, but has the wrong type recorded in NGC catalogue
             if name.endswith(str(i['ngc'])) and i['ngc']:
-                logfile.write("Dodgy match between %s with NGC%s\n" % (name, i['ngc']))
+                logging.info("Dodgy match between {} with NGC{}".format(name, i['ngc']))
                 i['type'] = "Gb"
             elif name.endswith(str(i['ic'])) and i['ic']:
-                logfile.write("Dodgy match between %s with IC%s\n" % (name, i['ic']))
+                logging.info("Dodgy match between {} with IC{}".format(name, i['ic']))
                 i['type'] = "Gb"
 
             # ... but if name field doesn't match NGC number, reject this match
             else:
-                logfile.write("Rejecting match of %s with M%s NGC%s IC%s\n" % (name, i['m'], i['ngc'], i['ic']))
+                logging.info("Rejecting match of {} with M{} NGC{} IC{}".format(name, i['m'], i['ngc'], i['ic']))
                 continue
-        logfile.write(
-            "%s matched to M%s NGC%s IC%s (distance %s arcmin)\n" % (name, i['m'], i['ngc'], i['ic'], AngDist))
+        # logging.info("{} matched to M{} NGC{} IC{} (distance {} arcmin)".
+        #              format(name, i['m'], i['ngc'], i['ic'], AngDist))
         i['dist'] = dist
         i['source_dist'] = 'globular_clusters'
         match = True
         break
     if not match:
-        logfile.write("No match found for %s\n" % name)
+        logging.info("No match found for {}".format(name))
 
 # Clean output
 for i in catalogue:
-    # Clean up various kinds of spurious objects in NGC catalogue, e.g. plate defects, into a common type
+    # Clean up various kinds of spurious objects in NGC catalogue into a common type
     if "type" not in i:
-        i["type"] = "-"
-    if i["type"] == "--":
-        i["type"] = "-"
-    if i["type"] == "?":
-        i["type"] = "-"
-    if i["type"] == "*?":
         i["type"] = "-"
 
     # Convert list of names into a JSON list
@@ -607,4 +688,40 @@ catalogue.append(sgr_a)
 f = open("output/ngc_merged.dat", "w")
 s = json.dumps(catalogue)
 f.write(s)
+f.close()
+
+# Work out reference magnitude to use for each object
+for i in catalogue:
+    mag = 999
+    for band in ["V", "G", "B"]:
+        if band in i["mag"]:
+            mag = float(i["mag"][band]["value"])
+            break
+    i['reference_magnitude'] = mag
+
+# Sort objects in order of decreasing brightness
+catalogue.sort(key=operator.itemgetter('reference_magnitude'))
+
+# Write output as an enormous text file
+f = open("output/ngc_merged.txt", "w")
+f.write(
+    "# {:4s} {:6s} {:8s} {:17s} {:17s} {:17s} {:17s} {:17s} {:17s} {:5s}\n"
+        .format("M", "NGC", "IC", "RA", "Dec", "Mag", "Axis major", "Axis minor", "Axis PA", "Type"))
+for i in catalogue:
+    # Ignore objects with no magnitudes
+    if i['reference_magnitude'] > 100:
+        continue
+
+    # Deal with None values
+    axis_major = i["axis_major"] if i["axis_major"] is not None else 0
+    axis_minor = i["axis_minor"] if i["axis_minor"] is not None else 0
+    axis_pa = i["axis_pa"] if i["axis_pa"] is not None else 0
+
+    # Write entry for this object
+    f.write(
+        "{:6d} {:6d} {:8d} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:5s}\n"
+            .format(i["m"], i["ngc"], i["ic"],
+                    i["ra"], i["dec"], i["reference_magnitude"], axis_major, axis_minor, axis_pa,
+                    i["type"]
+                    ))
 f.close()

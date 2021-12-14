@@ -1,7 +1,7 @@
 // settings.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -132,6 +132,12 @@ typedef struct chart_config {
     //! Boolean indicating whether we label the Flamsteed designations of stars
     int star_flamsteed_labels;
 
+    //! Boolean indicating whether we label the variable-star designations of stars
+    int star_variable_labels;
+
+    //! Boolean indicating whether we allow multiple labels next to a single star
+    int star_allow_multiple_labels;
+
     //! Select the star catalogue to use when showing the catalogue numbers of stars
     //! Either SW_CAT_HIP, SW_CAT_YBSC or SW_CAT_HD.
     int star_catalogue;
@@ -139,17 +145,11 @@ typedef struct chart_config {
     //! Boolean indicating whether we label the magnitudes of stars
     int star_mag_labels;
 
-    //! Boolean indicating whether we label the names of Messier objects
-    int messier_names;
-
-    //! Boolean indicating whether we label the magnitudes of Messier objects
-    int messier_mag_labels;
-
     //! Boolean indicating whether we label the names of NGC objects
-    int ngc_names;
+    int dso_names;
 
     //! Boolean indicating whether we label the magnitudes of NGC objects
-    int ngc_mags;
+    int dso_mags;
 
     //! Boolean indicating whether we label the names of constellations
     int constellation_names;
@@ -157,11 +157,11 @@ typedef struct chart_config {
     //! Boolean indicating whether we plot any stars
     int plot_stars;
 
-    //! Boolean indicating whether we plot any Messier objects
-    int plot_messier;
+    //! Boolean indicating whether we plot only Messier objects and no other deep sky objects
+    int messier_only;
 
-    //! Boolean indicating whether we plot any NGC objects
-    int plot_ngc;
+    //! Boolean indicating whether we plot any deep sky objects
+    int plot_dso;
 
     //! Boolean indicating whether we plot only the zodiacal constellations
     int zodiacal_only;
@@ -190,17 +190,17 @@ typedef struct chart_config {
     //! The aspect ratio of the star chart: i.e. the ratio height/width
     double aspect;
 
-    //! The number of RA lines to draw. If set to 24, then one line of RA every hour.
-    int ra_line_count;
-
-    //! The number of declination lines to draw. If set to 18, then one line of RA every 10 degrees
-    int dec_line_count;
-
     //! The maximum number of stars to draw. If this is exceeded, only the brightest stars are shown.
     int maximum_star_count;
 
     //! The maximum number of stars which may be labelled
     int maximum_star_label_count;
+
+    //! The maximum number of DSOs to draw. If this is exceeded, only the brightest objects are shown.
+    int maximum_dso_count;
+
+    //! The maximum number of DSOs which may be labelled
+    int maximum_dso_label_count;
 
     //! The faintest magnitude of star which we draw
     double mag_min;
@@ -220,11 +220,14 @@ typedef struct chart_config {
     //! The radius of a star of magnitude <mag_max>
     double mag_size_norm;
 
-    //! Only show NGC objects down to this faintest magnitude
-    double ngc_mag_min;
+    //! Only show deep sky objects down to this faintest magnitude
+    double dso_mag_min;
 
     //! Do not label stars fainter than this magnitude limit
     double star_label_mag_min;
+
+    //! Do not label DSOs fainter than this magnitude limit
+    double dso_label_mag_min;
 
     //! Computed quantity: the number of rows of star magnitudes we can fit under the chart
     int magnitude_key_rows;
@@ -239,7 +242,7 @@ typedef struct chart_config {
     char ephemeris_definitions[N_TRACES_MAX][FNAME_LENGTH];
 
     //! The path to the binary tool `ephemeris_compute`, used to compute paths for solar system objects.
-    //! See <https://github.com/dcf21/ephemeris-compute>
+    //! See <https://github.com/dcf21/ephemeris-compute-de430>
     char ephemeris_compute_path[FNAME_LENGTH];
 
     //! The target filename for the star chart. The file type (svg, png, eps or pdf) is inferred from the file extension.
@@ -266,11 +269,20 @@ typedef struct chart_config {
     //! Colour to use when writing constellation names
     colour constellation_label_col;
 
-    //! Colour to use when drawing Messier objects
-    colour messier_col;
+    //! Colour to use when drawing star clusters
+    colour dso_cluster_col;
 
-    //! Colour to use when drawing NGC objects
-    colour ngc_col;
+    //! Colour to use when drawing galaxies
+    colour dso_galaxy_col;
+
+    //! Colour to use when drawing nebulae
+    colour dso_nebula_col;
+
+    //! Colour to use when writing the labels for deep sky objects
+    colour dso_label_col;
+
+    //! Colour to use when drawing the outlines of deep sky objects
+    colour dso_outline_col;
 
     //! Colour to use when drawing stars
     colour star_col;
@@ -323,8 +335,33 @@ typedef struct chart_config {
     //! Boolean indicating whether to draw a key to the great circles under the star chart
     int great_circle_key;
 
+    //! Boolean indicating whether to draw a key to the deep sky symbols under the star chart
+    int dso_symbol_key;
+
     //! Boolean indicating whether to write the cardinal points around the edge of alt/az star charts
     int cardinals;
+
+    // ----------------------------------------
+    // Settings which we don't currently expose
+    // ----------------------------------------
+
+    //! The font family we should use for text output
+    char font_family[64];
+
+    //! The line width to use when tracing great circles
+    double great_circle_line_width;
+
+    //! The line width to use when plotting the coordinate grid in the background of the star chart
+    double coordinate_grid_line_width;
+
+    //! Scaling factor to apply to the point size used to represent deep sky objects
+    double dso_point_size_scaling;
+
+    //! Line width to use for constellation stick figures
+    double constellation_sticks_line_width;
+
+    //! Line width to use for the edge of the star chart
+    double chart_edge_line_width;
 
     // ---------------
     // Calculated data

@@ -3,7 +3,13 @@ FROM python:3.10-bullseye
 
 # Install required libraries
 RUN apt-get update
-RUN apt-get install -y wget gzip libgsl-dev libcairo2-dev ; apt-get clean
+RUN apt-get install -y wget gzip git libgsl-dev libcairo2-dev ; apt-get clean
+
+# Install ephemeris software
+WORKDIR /
+RUN git clone https://github.com/dcf21/ephemeris-compute-de430.git
+WORKDIR /ephemeris-compute-de430
+RUN /ephemeris-compute-de430/setup.sh
 
 # Copy code into container
 WORKDIR /

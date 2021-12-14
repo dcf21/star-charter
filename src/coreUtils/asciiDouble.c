@@ -1,7 +1,7 @@
 // asciiDouble.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -139,7 +139,7 @@ char *numeric_display(double in, int N, int sig_fig, int latex) {
     if ((fabs(in) < 1e10) && (fabs(in) > 1e-3)) {
         x = fabs(in);
         AccLevel = x * (1.0 + pow(10, -sig_fig));
-        dp_max = (int)(sig_fig - log10(x));
+        dp_max = (int) (sig_fig - log10(x));
         for (decimal_level = 0; decimal_level < dp_max; decimal_level++)
             if ((x - ((floor(x * pow(10, decimal_level)) / pow(10, decimal_level)) - x)) < AccLevel)break;
         snprintf(format, 16, "%%.%df", decimal_level);
@@ -208,7 +208,7 @@ void file_readline(FILE *file, char *output) {
     char *outputscan = output;
 
     while (((int) c != '\n') && (!feof(file)) && (!ferror(file)))
-        if ((fscanf(file, "%c", &c) >= 0) && ((((int) c) > 31) || (((int) c) < 0))) *(outputscan++) = c;
+        if ((fscanf(file, "%c", &c) >= 0) && ((((int) c) > 31) || (((int) c) < 0) || (((int) c) == 9))) *(outputscan++) = c;
     *outputscan = '\0';
 }
 
