@@ -777,6 +777,12 @@ int main(int argc, char **argv) {
             CHECK_KEYVALNUM("ephemeris_autoscale")
             settings_destination->ephemeris_autoscale = (int) key_val_num;
             continue;
+        } else if (strcmp(key, "must_show_all_ephemeris_labels") == 0) {
+            //! ephemeris_autoscale - Boolean (0 or 1) indicating whether we must show all ephemeris text labels,
+            //! even if they collide with other text.
+            CHECK_KEYVALNUM("must_show_all_ephemeris_labels")
+            settings_destination->must_show_all_ephemeris_labels = (int) key_val_num;
+            continue;
         } else if (strcmp(key, "ephemeris_compute_path") == 0) {
             //! ephemeris_compute_path - The path to the tool <ephemerisCompute>, used to compute paths for solar
             //! system objects. See <https://github.com/dcf21/ephemeris-compute-de430>. If this tool is installed in the

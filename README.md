@@ -219,6 +219,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `maximum_star_count` - The maximum number of stars to draw. If this is exceeded, only the brightest stars are shown.
 * `maximum_star_label_count` - The maximum number of stars which may be labelled
 * `messier_only` - Boolean (0 or 1) indicating whether we plot only Messier objects, and no other deep sky objects
+* `must_show_all_ephemeris_labels` - Boolean (0 or 1) indicating whether we show all ephemeris text labels, even if they collide with other text.
 * `output_filename` - The target filename for the star chart. The file type (svg, png, eps or pdf) is inferred from the file extension.
 * `photo_filename` - The filename of a PNG image to render behind the star chart. Leave blank to show no image.
 * `plot_dso` - Boolean (0 or 1) indicating whether we plot any deep-sky objects

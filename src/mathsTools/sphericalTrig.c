@@ -27,6 +27,28 @@
 
 #include "mathsTools/sphericalTrig.h"
 
+//! angDist_RADec - Calculate the angular distance between (RA0, Dec0) and (RA1, Dec1)
+//! \param ra0 - Right ascension of the first point (radians)
+//! \param dec0 - Declination of the first point (radians)
+//! \param ra1 - Right ascension of the second point (radians)
+//! \param dec1 - Declination of the second point (radians)
+//! \return Angular distance between two points (radians)
+
+double angDist_RADec(double ra0, double dec0, double ra1, double dec1) {
+    double p0x = sin(ra0) * cos(dec0);
+    double p0y = cos(ra0) * cos(dec0);
+    double p0z = sin(dec0);
+
+    double p1x = sin(ra1) * cos(dec1);
+    double p1y = cos(ra1) * cos(dec1);
+    double p1z = sin(dec1);
+
+    double sep2 = gsl_pow_2(p0x - p1x) + gsl_pow_2(p0y - p1y) + gsl_pow_2(p0z - p1z);
+    if (sep2 <= 0) return 0;
+
+    double sep = sqrt(sep2);
+    return 2 * asin(sep / 2);
+}
 
 //! rotate_xy - Rotate a three-component vector about the z axis
 //! \param [out] out Rotated vector

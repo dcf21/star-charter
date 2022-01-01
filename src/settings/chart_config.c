@@ -70,6 +70,7 @@ void default_config(chart_config *i) {
     i->aspect = 1.41421356;
     i->ephmeride_count = 0;
     i->ephemeris_autoscale = 0;
+    i->must_show_all_ephemeris_labels = 0;
     i->mag_min = 6.0;
     i->mag_max = 0.0;
     i->mag_step = 0.5;

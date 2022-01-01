@@ -737,10 +737,16 @@ int chart_finish(cairo_page *p, chart_config *s) {
     cairo_destroy(s->cairo_draw);
 
     if (s->output_format == SW_FORMAT_PNG) {
-        cairo_surface_write_to_png(s->cairo_surface, s->output_filename);
+        int cairo_status = cairo_surface_write_to_png(s->cairo_surface, s->output_filename);
+        if (cairo_status != 0) {
+            snprintf(temp_err_string, 4096, "Could not create PNG file. Error was: %s.",
+                     cairo_status_to_string(cairo_status));
+            stch_fatal(__FILE__, __LINE__, temp_err_string);
+            exit(1);
+        }
 
         // Check that surface is OK
-        int cairo_status = cairo_surface_status(s->cairo_surface);
+        cairo_status = cairo_surface_status(s->cairo_surface);
         if (cairo_status != 0) {
             snprintf(temp_err_string, 4096, "Could not create output file. Error was: %s.",
                      cairo_status_to_string(cairo_status));

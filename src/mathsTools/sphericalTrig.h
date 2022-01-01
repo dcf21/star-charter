@@ -22,6 +22,8 @@
 #ifndef SPHERICALTRIG_H
 #define SPHERICALTRIG_H 1
 
+double angDist_RADec(double ra0, double dec0, double ra1, double dec1);
+
 void rotate_xy(double *out, double *in, double theta);
 
 void rotate_xz(double *out, double *in, double theta);

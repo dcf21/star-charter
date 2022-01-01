@@ -33,6 +33,10 @@ void ephemerides_fetch(chart_config *s);
 
 void ephemerides_free(chart_config *s);
 
+void ephemerides_autoscale_plot(chart_config *s, int total_ephemeris_points);
+
+void ephemerides_add_text_labels(chart_config *s);
+
 void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trace_num);
 
 #endif

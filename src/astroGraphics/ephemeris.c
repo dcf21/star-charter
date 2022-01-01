@@ -40,20 +40,8 @@
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 
 void ephemerides_fetch(chart_config *s) {
-    int i, j, k;
+    int i;
     int total_ephemeris_points = 0;
-
-    // Track the sky coverage of each ephemeris in RA and Dec
-    // Create a coarse grid of RA and Declination where we set Boolean flags for whether the solar system object passes
-    // through each cell.
-    int ra_bins = 24 * 8;
-    int dec_bins = 18 * 8;
-    int *ra_usage = (int *) malloc(ra_bins * sizeof(int));
-    int *dec_usage = (int *) malloc(dec_bins * sizeof(int));
-
-    // Zero map of sky coverage
-    for (i = 0; i < ra_bins; i++) ra_usage[i] = 0;
-    for (i = 0; i < dec_bins; i++) dec_usage[i] = 0;
 
     // Allocate storage for the ephemeris of each solar system object
     s->ephemeris_data = (ephemeris *) malloc(s->ephmeride_count * sizeof(ephemeris));
@@ -75,13 +63,14 @@ void ephemerides_fetch(chart_config *s) {
         // Read ending Julian day number into s->ephemeris_data[i].jd_end
         str_comma_separated_list_scan(&in_scan, buffer);
         s->ephemeris_data[i].jd_end = get_float(buffer, NULL);
-        // Sample planet's movement every 12 days
+        // Sample planet's movement every 12 hours
         s->ephemeris_data[i].jd_step = 0.5;
+
+        const double ephemeris_duration = s->ephemeris_data[i].jd_end - s->ephemeris_data[i].jd_start; // days
 
         // Generous estimate of how many lines we expect ephemerisCompute to return
         s->ephemeris_data[i].point_count = (int) (20 +
-                                                  (s->ephemeris_data[i].jd_end - s->ephemeris_data[i].jd_start) /
-                                                  s->ephemeris_data[i].jd_step
+                                                  ephemeris_duration / s->ephemeris_data[i].jd_step
         );
 
         // Allocate data to hold the ephemeris
@@ -110,12 +99,12 @@ void ephemerides_fetch(chart_config *s) {
 
         // Loop over the lines returned by ephemeris-compute-de430
         int line_counter = 0;
-        const char *previous_label = "";
         while ((!feof(ephemeris_data)) && (!ferror(ephemeris_data))) {
-            char line[FNAME_LENGTH], label[FNAME_LENGTH], *scan;
+            char line[FNAME_LENGTH], *scan;
 
             // Read line of output text
             file_readline(ephemeris_data, line);
+            // printf("%s\n", line);
 
             // Filter whitespace from the beginning of the line
             scan = line;
@@ -135,6 +124,7 @@ void ephemerides_fetch(chart_config *s) {
             double dec = get_float(scan, NULL); // radians
 
             // Store this data point into s->ephemeris_data
+            s->ephemeris_data[i].data[line_counter].jd = jd;
             s->ephemeris_data[i].data[line_counter].ra = ra;
             s->ephemeris_data[i].data[line_counter].dec = dec;
             s->ephemeris_data[i].data[line_counter].text_label = NULL;
@@ -142,39 +132,6 @@ void ephemerides_fetch(chart_config *s) {
             s->ephemeris_data[i].data[line_counter].month = 0;
             s->ephemeris_data[i].data[line_counter].year = 0;
             s->ephemeris_data[i].data[line_counter].sub_month_label = 0;
-
-            // Extract calendar date components for this ephemeris data point
-            int year, month, day, hour, minute, status;
-            double second;
-            inv_julian_day(jd, &year, &month, &day, &hour, &minute, &second, &status, temp_err_string);
-
-            // Create a text label for this point on the ephemeris track
-            int sub_month_label = 0;
-            if (day > 6) {
-                // Within each month, place labels at weekly intervals
-                snprintf(label, FNAME_LENGTH, "%.0f", floor(day / 7.) * 7); // Show day of month only
-                sub_month_label = 1;
-            } else if ((month == 1) || (previous_label[0] == '\0')) {
-                // In January, and in the first label on an ephemeris, include the year
-                snprintf(label, FNAME_LENGTH, "%.3s %d", get_month_name(month), year); // e.g. Jan 2022
-            } else {
-                // Omit the year in subsequent new months within the same year
-                snprintf(label, FNAME_LENGTH, "%.3s", get_month_name(month)); // e.g. Aug
-            }
-
-            // Decide whether to show this label. Do so if we've just entered a new month.
-            // If we've not yet put any labels on the ephemeris, wait until the first day of a month to start.
-            if ((strncmp(label, previous_label, 3) != 0) && ((previous_label[0] != '\0') || (day == 1))) {
-                s->ephemeris_data[i].data[line_counter].text_label = string_make_permanent(label);
-                s->ephemeris_data[i].data[line_counter].day = day;
-                s->ephemeris_data[i].data[line_counter].month = month;
-                s->ephemeris_data[i].data[line_counter].year = year;
-                s->ephemeris_data[i].data[line_counter].sub_month_label = sub_month_label;
-
-                // Keep track of the previous label we have shown on this track, which we use to decide when to
-                // display a next label
-                previous_label = s->ephemeris_data[i].data[line_counter].text_label;
-            }
 
             // Increment data point counter
             line_counter++;
@@ -192,6 +149,43 @@ void ephemerides_fetch(chart_config *s) {
         // Keep tally of the sum total number of points on all ephemerides
         total_ephemeris_points += s->ephemeris_data[i].point_count;
     }
+
+    // Automatically scale plot to contain all of the computed ephmeris tracks
+    ephemerides_autoscale_plot(s, total_ephemeris_points);
+
+    // Place text labels along the ephemeris tracks
+    ephemerides_add_text_labels(s);
+}
+
+
+//! ephemerides_free - Free memory allocated to store ephemeride data for solar system objects
+//! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
+
+void ephemerides_free(chart_config *s) {
+    int i;
+    for (i = 0; i < s->ephmeride_count; i++) {
+        free(s->ephemeris_data[i].data);
+    }
+    free(s->ephemeris_data);
+}
+
+//! ephemerides_autoscale_plot - Automatically scale plot to contain all of the computed ephmeris tracks
+//! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
+
+void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_points) {
+    int i, j, k;
+
+    // Track the sky coverage of each ephemeris in RA and Dec
+    // Create a coarse grid of RA and Declination where we set Boolean flags for whether the solar system object passes
+    // through each cell.
+    int ra_bins = 24 * 8;
+    int dec_bins = 18 * 8;
+    int *ra_usage = (int *) malloc(ra_bins * sizeof(int));
+    int *dec_usage = (int *) malloc(dec_bins * sizeof(int));
+
+    // Zero map of sky coverage
+    for (i = 0; i < ra_bins; i++) ra_usage[i] = 0;
+    for (i = 0; i < dec_bins; i++) dec_usage[i] = 0;
 
     // For the purposes of working out minimal sky area encompassing all ephemerides, we concatenate all ephemerides
     // into a single big array
@@ -376,16 +370,87 @@ void ephemerides_fetch(chart_config *s) {
     free(dec_usage);
 }
 
-
-//! ephemerides_free - Free memory allocated to store ephemeride data for solar system objects
+//! ephemerides_add_text_labels - Add text labels at automatically-determined spacing along the ephemeris tracks
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 
-void ephemerides_free(chart_config *s) {
-    int i;
-    for (i = 0; i < s->ephmeride_count; i++) {
-        free(s->ephemeris_data[i].data);
+void ephemerides_add_text_labels(chart_config *s) {
+    // Loop over all the ephemeris tracks we have computed, and add text labels
+    for (int i = 0; i < s->ephmeride_count; i++) {
+        const double ephemeris_duration = s->ephemeris_data[i].jd_end - s->ephemeris_data[i].jd_start; // days
+
+        const char *previous_label = "";
+        int previous_day_of_month = -1;
+        for (int line_counter = 0; line_counter < s->ephemeris_data[i].point_count; line_counter++) {
+            const double jd = s->ephemeris_data[i].data[line_counter].jd;
+
+            // Work out angular speed of object, to decide how often to write labels
+            double angular_speed = 1e6; // radians per day
+            if (line_counter > 0) {
+                angular_speed = angDist_RADec(s->ephemeris_data[i].data[line_counter - 1].ra,
+                                              s->ephemeris_data[i].data[line_counter - 1].dec,
+                                              s->ephemeris_data[i].data[line_counter].ra,
+                                              s->ephemeris_data[i].data[line_counter].dec
+                ) / s->ephemeris_data[i].jd_step;
+            }
+
+            // Convert from radians/day to cm/day
+            const double cm_per_radian = s->width / s->angular_width;
+            const double angular_speed_cm_day = angular_speed * cm_per_radian;
+            //printf("%10.6f / %10.6f / %10.6f\n", angular_speed, cm_per_radian, angular_speed_cm_day);
+
+            // Extract calendar date components for this ephemeris data point
+            int year, month, day, hour, minute, status;
+            double second;
+            inv_julian_day(jd, &year, &month, &day, &hour, &minute, &second, &status, temp_err_string);
+
+            // Create a text label for this point on the ephemeris track
+            char label[FNAME_LENGTH] = "";
+            int sub_month_label = 0;
+
+            if (day != previous_day_of_month) {
+                if (previous_label[0] == '\0') {
+                    if (day==31) {
+                        // Don't label the last day of December at the beginning of year-long ephemerides
+                    } else {
+                        // For the first label on an ephemeris, include the year, e.g. 1 Jan 2022
+                        snprintf(label, FNAME_LENGTH, "%d %.3s %d",
+                                 day, get_month_name(month), year);
+                    }
+                } else if (day > 1) {
+                    if ((ephemeris_duration < 15) || (angular_speed_cm_day > 0.025)) {
+                        // For ephemerides spanning less than a month, label every day
+                        snprintf(label, FNAME_LENGTH, "%d", day); // Show day of month only
+                        sub_month_label = 1;
+                    } else if (((day % 7) == 0) && ((ephemeris_duration < 70) || (angular_speed_cm_day > 0.025 / 7))) {
+                        // Within each month, place labels at weekly intervals
+                        snprintf(label, FNAME_LENGTH, "%d", day); // Show day of month only
+                        sub_month_label = 1;
+                    }
+                } else if (month == 1) {
+                    // In January, and in the first label on an ephemeris, include the year
+                    snprintf(label, FNAME_LENGTH, "%.3s %d", get_month_name(month), year); // e.g. Jan 2022
+                } else {
+                    // Omit the year in subsequent new months within the same year
+                    snprintf(label, FNAME_LENGTH, "%.3s", get_month_name(month)); // e.g. Aug
+                }
+            }
+
+            // Decide whether to show this label. Do so if we've just entered a new month.
+            if ((label[0] != '\0') && (strncmp(label, previous_label, 3) != 0)) {
+                s->ephemeris_data[i].data[line_counter].text_label = string_make_permanent(label);
+                s->ephemeris_data[i].data[line_counter].day = day;
+                s->ephemeris_data[i].data[line_counter].month = month;
+                s->ephemeris_data[i].data[line_counter].year = year;
+                s->ephemeris_data[i].data[line_counter].sub_month_label = sub_month_label;
+
+                // Keep track of the previous label we have shown on this track, which we use to decide when to
+                // display a next label
+                previous_label = s->ephemeris_data[i].data[line_counter].text_label;
+            }
+
+            previous_day_of_month = day;
+        }
     }
-    free(s->ephemeris_data);
 }
 
 //! plot_ephemeris - Plot an ephemeris for a solar system object.
@@ -425,6 +490,8 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
 
     // Then draw tick marks to indicate notable points along the path of the object
+    int is_first_label = 1;
+
     for (i = 0; i < e->point_count; i++) {
         double x, y, theta;
 
@@ -526,17 +593,16 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
             const double yp_d = y + label_gap_2 * graph_coords_tick_len * cos(theta);
 
             // Prioritise labels at start of years and quarters
-            const double priority = (0.0123 +
-                                     1e-12 * i -
-                                     4e-6 * (!e->data[i].sub_month_label) -
-                                     1e-7 * (e->data[i].day == 14) -
-                                     3e-7 * (e->data[i].month == 1) -
-                                     2e-7 * (e->data[i].month == 7) -
-                                     1e-7 * ((e->data[i].month == 4) || (e->data[i].month == 11))
-            );
+            double priority;
+
+            if (s->must_show_all_ephemeris_labels || is_first_label) {
+                priority = -1;
+            } else {
+                priority = 0.0123 + (1e-12 * i) - (4e-6 * (!e->data[i].sub_month_label));
+            }
 
             // Write text label
-            const double font_size = e->data[i].sub_month_label ? 1.3 : 1.7;
+            const double font_size = e->data[i].sub_month_label ? 1.6 : 1.8;
             const double extra_margin = e->data[i].sub_month_label ? 2 : 0;
             chart_label_buffer(page, s, s->ephemeris_col, e->data[i].text_label,
                                (label_position[4]) {
@@ -547,6 +613,9 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
                                }, 4,
                                0, 1, font_size, 1, 0,
                                extra_margin, priority);
+
+            // We have now rendered first label
+            is_first_label = 0;
         }
     }
 }

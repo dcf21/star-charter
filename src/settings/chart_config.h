@@ -69,6 +69,7 @@ typedef struct colour {
 
 //! A structure defining a point in an ephemeris
 typedef struct ephemeris_point {
+    double jd;
     double ra, dec; // radians, J2000
     char *text_label;
     int day, month, year, sub_month_label;
@@ -237,6 +238,9 @@ typedef struct chart_config {
 
     //! Boolean indicating whether we auto-scale the star chart to the requested ephemerides
     int ephemeris_autoscale;
+
+    //! Boolean indicating whether we must show all ephemeris text labels, even if they collide with other text
+    int must_show_all_ephemeris_labels;
 
     //! The definitions supplied on the command line for the ephemerides to draw
     char ephemeris_definitions[N_TRACES_MAX][FNAME_LENGTH];
