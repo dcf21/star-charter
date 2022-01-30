@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # -------------------------------------------------
-# Copyright 2015-2020 Dominic Ford
+# Copyright 2015-2022 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -54,7 +54,7 @@ cd data/deepSky/ngcDistances
 # Merge data from various star catalogues
 cd ${cwd}
 cd data/stars/starCataloguesMerge
-./catalogue_merge.py
+./main_catalogue_merge.py
 
 # Compile the StarCharter code
 echo "Compiling code"
