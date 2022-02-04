@@ -446,14 +446,14 @@ void chart_add_label_exclusion(cairo_page *p, chart_config *s, double x_min, dou
 
     // Debugging code to draw bounding box around text item
     if (0) {
-        cairo_set_source_rgb(s->cairo_draw, 1, 0,0);
+        cairo_set_source_rgb(s->cairo_draw, 1, 0, 0);
         double a, b, c, d;
         fetch_canvas_coordinates(&a, &b, x_min, y_min, s);
         fetch_canvas_coordinates(&c, &d, x_max, y_max, s);
-        cairo_move_to(s->cairo_draw, a-1, b-1);
-        cairo_line_to(s->cairo_draw, a-1, d+1);
-        cairo_line_to(s->cairo_draw, c+1, d+1);
-        cairo_line_to(s->cairo_draw, c+1, b-1);
+        cairo_move_to(s->cairo_draw, a - 1, b - 1);
+        cairo_line_to(s->cairo_draw, a - 1, d + 1);
+        cairo_line_to(s->cairo_draw, c + 1, d + 1);
+        cairo_line_to(s->cairo_draw, c + 1, b - 1);
         cairo_close_path(s->cairo_draw);
         cairo_stroke(s->cairo_draw);
     }
@@ -716,7 +716,7 @@ int chart_finish(cairo_page *p, chart_config *s) {
 
     // Write copyright text
     cairo_text_extents_t extents;
-    cairo_set_font_size(s->cairo_draw, 2.5 * s->mm * s->font_size);
+    cairo_set_font_size(s->cairo_draw, 3.0 * s->mm * s->font_size);
     cairo_text_extents(s->cairo_draw, s->copyright, &extents);
     cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
     cairo_move_to(s->cairo_draw,

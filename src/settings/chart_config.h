@@ -345,6 +345,9 @@ typedef struct chart_config {
     //! Boolean indicating whether to write the cardinal points around the edge of alt/az star charts
     int cardinals;
 
+    //! Scaling factor to be applied to the font size of all star and DSO labels
+    double label_font_size_scaling;
+
     // ----------------------------------------
     // Settings which we don't currently expose
     // ----------------------------------------

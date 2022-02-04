@@ -8,7 +8,7 @@ solar system objects, such as planets and comets, across the sky if the tool
 [ephemerisCompute](https://github.com/dcf21/ephemeris-compute-de430) is also
 installed.
 
-`StarCharter` was written to produce all of the star charts on the website
+`StarCharter` was written to produce all the star charts on the website
 <https://in-the-sky.org>, which is maintained by the author.
 
 ### Supported operating systems
@@ -17,7 +17,7 @@ installed.
 operating systems.  The installation scripts require python3.  `StarCharter`
 uses `libcairo` to produce its graphical output.
 
-The build process requires a minimum of 8GB RAM. Note that Docker Desktop for
+The build process requires a minimum of 4GB RAM. Note that Docker Desktop for
 Mac imposes a default memory limit of 2GB, which needs to be increased to build
 `StarCharter` successfully.
 
@@ -207,6 +207,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `great_circle_key` - Boolean (0 or 1) indicating whether to draw a key to the great circles under the star chart
 * `grid_col` - Colour to use when drawing grid of RA/Dec lines
 * `label_ecliptic` - Boolean (0 or 1) indicating whether to label the months along the ecliptic, showing the Sun's annual progress
+* `label_font_size_scaling` - Scaling factor to be applied to the font size of all star and DSO labels (default 1.0)
 * `language` - The language used for the constellation names. Either "english" or "french".
 * `mag_alpha` - The multiplicative scaling factor to apply to the radii of stars differing in magnitude by one <mag_step>
 * `mag_max` - Used to regulate the size of stars. A star of this magnitude is drawn with size mag_size_norm. Also, this is the brightest magnitude of star which is shown in the magnitude key below the chart.

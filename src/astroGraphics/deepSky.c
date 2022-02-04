@@ -235,7 +235,8 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
                 chart_label_buffer(page, s, s->dso_label_col, object_name,
                                    (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
                                                         {x, y, -horizontal_offset, 1,  0}}, 2,
-                                   multiple_labels, 0, 1.2, 0, 0, 0, mag);
+                                   multiple_labels, 0, 1.2 * s->label_font_size_scaling,
+                                   0, 0, 0, mag);
                 label_counter++;
             }
             if (show_mag) {
@@ -243,7 +244,8 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
                 chart_label_buffer(page, s, s->dso_label_col, temp_err_string,
                                    (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
                                                         {x, y, -horizontal_offset, 1,  0}}, 2,
-                                   multiple_labels, 0, 1.2, 0, 0, 0, mag);
+                                   multiple_labels, 0, 1.2 * s->label_font_size_scaling,
+                                   0, 0, 0, mag);
                 label_counter++;
             }
         }

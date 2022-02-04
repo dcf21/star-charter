@@ -766,6 +766,11 @@ int main(int argc, char **argv) {
             CHECK_KEYVALNUM("cardinals")
             settings_destination->cardinals = (int) key_val_num;
             continue;
+        } else if (strcmp(key, "label_font_size_scaling") == 0) {
+            //! label_font_size_scaling - Scaling factor to be applied to the font size of all star and DSO labels
+            CHECK_KEYVALNUM("label_font_size_scaling")
+            settings_destination->label_font_size_scaling = key_val_num;
+            continue;
         } else if (strcmp(key, "draw_ephemeris") == 0) {
             //! draw_ephemeris - Definitions of ephemerides to draw
             strcpy(settings_destination->ephemeris_definitions[settings_destination->ephmeride_count], key_val);
