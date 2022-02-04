@@ -57,7 +57,13 @@ void plot_ra_dec_lines(chart_config *s, line_drawer *ld) {
     int ra_line_count = 24;
     int dec_line_count = 18;
 
-    if (degrees_per_cm < 0.38) {
+    if (degrees_per_cm < 0.1) {
+        ra_line_count *= 60;
+        dec_line_count *= 50;
+    } else if (degrees_per_cm < 0.2) {
+        ra_line_count *= 30;
+        dec_line_count *= 20;
+    } else if (degrees_per_cm < 0.38) {
         ra_line_count *= 12;
         dec_line_count *= 10;
     } else if (degrees_per_cm < 0.65) {

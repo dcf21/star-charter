@@ -178,8 +178,8 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     // Track the sky coverage of each ephemeris in RA and Dec
     // Create a coarse grid of RA and Declination where we set Boolean flags for whether the solar system object passes
     // through each cell.
-    int ra_bins = 24 * 8;
-    int dec_bins = 18 * 8;
+    int ra_bins = 24 * 16;
+    int dec_bins = 18 * 16;
     int *ra_usage = (int *) malloc(ra_bins * sizeof(int));
     int *dec_usage = (int *) malloc(dec_bins * sizeof(int));
 
@@ -291,7 +291,7 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     // printf("RA %.4f %.4f; Dec %.4f %.4f\n", ra_min, ra_max, dec_min, dec_max);
 
     // Work out maximum angular size of the star chart we need
-    double angular_width_base = MAX((ra_max - ra_min) * 180 / 12, dec_max - dec_min) * 1.1;
+    double angular_width_base = MAX((ra_max - ra_min) * 180 / 12, dec_max - dec_min) * 1.15;
 
     // If star chart covers almost the whole sky, it may as well cover the entire sky
     if (angular_width_base > 350) angular_width_base = 360;
@@ -353,7 +353,7 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
 
             // Pick an attractive aspect ratio for this chart
             s->aspect = ceil(fabs(dec_max - dec_min) / (fabs(ra_max - ra_min) * 180 / 12) * 10.) / 10.;
-            if (s->aspect < 0.5) s->aspect = 0.5;
+            if (s->aspect < 0.6) s->aspect = 0.6;
             if (s->aspect > 1.5) s->aspect = 1.5;
 
             // Fix angular width to take account of the aspect ratio of the plotting area
