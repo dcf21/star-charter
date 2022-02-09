@@ -24,8 +24,10 @@
 Plot star charts showing all 88 constellations in turn
 """
 
+import logging
 import os
 import re
+import sys
 import time
 
 # Template configuration file that we use to make all the star charts
@@ -48,30 +50,48 @@ constellation_names=1
 mag_min=6.5
 """
 
-# Loop through each constellation in turn
-with open("../data/constellations/name_places.dat") as f:
-    for constellation_description in f:
-        # Ignore blank lines and comments
-        if len(constellation_description.strip()) == 0 or constellation_description[0] == "#":
-            continue
 
-        constellation_description = constellation_description.split()
+def draw_constellation_charts():
+    # Loop through each constellation in turn
+    with open("../data/constellations/name_places.dat") as f:
+        for constellation_description in f:
+            # Ignore blank lines and comments
+            if len(constellation_description.strip()) == 0 or constellation_description[0] == "#":
+                continue
 
-        constellation_name = constellation_description[0]
-        constellation_ra = constellation_description[1]
-        constellation_dec = constellation_description[2]
+            # Extract constellation name and position
+            constellation_description = constellation_description.split()
 
-        # Strip out any naughty characters from the constellation name
-        constellation_name = re.sub('[\W_]', '', constellation_name)
+            constellation_name = constellation_description[0]
+            constellation_ra = constellation_description[1]
+            constellation_dec = constellation_description[2]
 
-        # Create configuration file
-        config_filename = "/tmp/constellation_chart.sch"
+            # Strip out any naughty characters from the constellation name
+            constellation_name = re.sub('[\W_]', '', constellation_name)
 
-        with open(config_filename, "w") as out:
-            out.write(template_configuration.format(constellation_name, constellation_ra, constellation_dec))
+            # Logging update
+            logging.info("Working on <{}>".format(constellation_name))
 
-        # Make star chart
-        os.system("../bin/starchart.bin {}".format(config_filename))
+            # Create configuration file
+            config_filename = "/tmp/constellation_chart.sch"
 
-        # Sleep means CTRL-C works...
-        time.sleep(0.1)
+            with open(config_filename, "w") as out:
+                out.write(template_configuration.format(constellation_name, constellation_ra, constellation_dec))
+
+            # Make star chart
+            os.system("../bin/starchart.bin {}".format(config_filename))
+
+            # Sleep means CTRL-C works...
+            time.sleep(0.1)
+
+
+# Do it right away if we're run as a script
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO,
+                        stream=sys.stdout,
+                        format='[%(asctime)s] %(levelname)s:%(filename)s:%(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S')
+    logger = logging.getLogger(__name__)
+    logger.info(__doc__.strip())
+
+    draw_constellation_charts()

@@ -34,6 +34,7 @@ star_flamsteed_labels=0
 constellation_names=1
 plot_galaxy_map=1
 ephemeris_autoscale=1
+ephemeris_table=1
 draw_ephemeris=jupiter,2458849.5,2459216.5
 
 # Produce a PNG copy of this star chart
