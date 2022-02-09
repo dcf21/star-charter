@@ -108,7 +108,8 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
 
     // Loop over the lines of the data file
     while ((!feof(file)) && (!ferror(file))) {
-        char line[FNAME_LENGTH], *line_ptr = line;
+        char line[FNAME_LENGTH];
+        const char *line_ptr = line;
 
         file_readline(file, line);
 
@@ -277,7 +278,7 @@ double draw_dso_symbol_key(chart_config *s, double legend_y_pos) {
     const double y1 = y0 - 0.4;
 
     // The horizontal position of the centre of the legend
-    const double x1 = s->canvas_offset_x + s->width / 2;
+    const double x1 = s->canvas_offset_x + (s->width - s->legend_right_column_width) / 2;
 
     // The width of the legend
     const double xw = w_left * 1.5 + w_item * N;

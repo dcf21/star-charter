@@ -18,6 +18,8 @@ set(SOURCE_FILES
         src/astroGraphics/greatCircles.h
         src/astroGraphics/raDecLines.c
         src/astroGraphics/raDecLines.h
+        src/astroGraphics/starListReader.c
+        src/astroGraphics/starListReader.h
         src/astroGraphics/stars.c
         src/astroGraphics/stars.h
         src/coreUtils/asciiDouble.c

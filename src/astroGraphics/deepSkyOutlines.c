@@ -86,7 +86,8 @@ void plot_deep_sky_outlines(chart_config *s, cairo_page *page) {
             int point_counter = 0;
             int reject_object = 0;
             while ((!feof(file)) && (!ferror(file))) {
-                char line[FNAME_LENGTH], *line_ptr = line;
+                char line[FNAME_LENGTH];
+                const char *line_ptr = line;
 
                 file_readline(file, line);
 

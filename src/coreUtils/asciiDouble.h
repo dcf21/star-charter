@@ -38,7 +38,7 @@ void file_readline(FILE *file, char *output);
 
 void get_word(char *out, const char *in, int max);
 
-char *next_word(char *in);
+const char *next_word(const char *in);
 
 char *friendly_time_string();
 

@@ -231,7 +231,7 @@ void get_word(char *out, const char *in, int max) {
 //! \param in The pointer to the character array we are to advance by one word
 //! \return The pointer to the first non-whitespace character of the second word in the input string
 
-char *next_word(char *in) {
+const char *next_word(const char *in) {
     while ((*in <= ' ') && (*in > '\0')) in++; /* Fast-forward over preceding whitespace */
     while ((*in > ' ') || (*in < '\0')) in++; /* Fast-forward over one word */
     while ((*in <= ' ') && (*in > '\0')) in++; /* Fast-forward over whitespace before next word */

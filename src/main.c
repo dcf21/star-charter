@@ -117,7 +117,7 @@ void render_chart(chart_config *s) {
     if (s->constellation_names) plot_constellation_names(s, &page);
 
     // If we're plotting ephemerides for solar system objects, draw these now
-    for (i = 0; i < s->ephmeride_count; i++) plot_ephemeris(s, &ld, &page, i);
+    for (i = 0; i < s->ephemeride_count; i++) plot_ephemeris(s, &ld, &page, i);
 
     // Render labels onto the chart while the clipping region is still in force
     chart_label_unbuffer(&page);
@@ -126,16 +126,20 @@ void render_chart(chart_config *s) {
     draw_chart_edging(&page, s);
 
     // Vertical position of top of legends at the bottom of the star chart
-    double legend_y_pos = s->canvas_offset_y * 2 + s->width * s->aspect + 0.8 + s->copyright_gap;
+    double legend_y_pos_left = s->canvas_offset_y * 2 + s->width * s->aspect + 0.8 + s->copyright_gap;
+    double legend_y_pos_right = s->canvas_offset_y * 2 + s->width * s->aspect - 0.2;
 
     // If we're to show a key below the chart indicating the magnitudes of stars, draw this now
-    if (s->magnitude_key) legend_y_pos = draw_magnitude_key(s, legend_y_pos);
+    if (s->magnitude_key) legend_y_pos_left = draw_magnitude_key(s, legend_y_pos_left);
 
     // If we're to show a key below the chart indicating the colours of the lines, draw this now
-    if (s->great_circle_key) legend_y_pos = draw_great_circle_key(s, legend_y_pos);
+    if (s->great_circle_key) legend_y_pos_left = draw_great_circle_key(s, legend_y_pos_left);
 
     // If we're to show a key below the chart indicating the deep sky object symbols, draw this now
-    if (s->dso_symbol_key) legend_y_pos = draw_dso_symbol_key(s, legend_y_pos);
+    if (s->dso_symbol_key) legend_y_pos_left = draw_dso_symbol_key(s, legend_y_pos_left);
+
+    // If we're showing a table of the object's magnitude, draw that now
+    if (s->ephemeris_table) legend_y_pos_right = draw_ephemeris_table(s, legend_y_pos_right, 1, NULL);
 
     // Finish up and write output
     if (DEBUG) {
@@ -638,6 +642,7 @@ int main(int argc, char **argv) {
             //! mag_min - The faintest magnitude of star which we draw
             CHECK_KEYVALNUM("mag_min")
             settings_destination->mag_min = key_val_num;
+            settings_destination->mag_min_automatic = 0;
             continue;
         } else if (strcmp(key, "mag_max") == 0) {
             //! mag_max - Used to regulate the size of stars. A star of this magnitude is drawn with size mag_size_norm.
@@ -773,14 +778,19 @@ int main(int argc, char **argv) {
             continue;
         } else if (strcmp(key, "draw_ephemeris") == 0) {
             //! draw_ephemeris - Definitions of ephemerides to draw
-            strcpy(settings_destination->ephemeris_definitions[settings_destination->ephmeride_count], key_val);
-            settings_destination->ephmeride_count++;
+            strcpy(settings_destination->ephemeris_definitions[settings_destination->ephemeride_count], key_val);
+            settings_destination->ephemeride_count++;
             continue;
         } else if (strcmp(key, "ephemeris_autoscale") == 0) {
             //! ephemeris_autoscale - Boolean (0 or 1) indicating whether to auto-scale the star chart to contain the
             //! requested ephemerides. This overrides settings for ra_central, dec_central and angular_width.
             CHECK_KEYVALNUM("ephemeris_autoscale")
             settings_destination->ephemeris_autoscale = (int) key_val_num;
+            continue;
+        } else if (strcmp(key, "ephemeris_table") == 0) {
+            //! ephemeris_table - Boolean (0 or 1) indicating whether to include a table of the object's magnitude
+            CHECK_KEYVALNUM("ephemeris_table")
+            settings_destination->ephemeris_table = (int)key_val_num;
             continue;
         } else if (strcmp(key, "must_show_all_ephemeris_labels") == 0) {
             //! ephemeris_autoscale - Boolean (0 or 1) indicating whether we must show all ephemeris text labels,

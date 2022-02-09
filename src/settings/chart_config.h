@@ -59,6 +59,9 @@
 //! The maximum number of text labels we can buffer
 #define MAX_LABELS 65536
 
+//! The maximum number of exclusion regions we can buffer
+#define MAX_EXCLUSION_REGIONS 65536
+
 //! The maximum number of objects we're allowed to draw ephemeris lines for on a single chart
 #define N_TRACES_MAX 32
 
@@ -71,13 +74,17 @@ typedef struct colour {
 typedef struct ephemeris_point {
     double jd;
     double ra, dec; // radians, J2000
+    double mag;
+    double phase; // 0-1
+    double angular_size; // arcseconds
     char *text_label;
-    int day, month, year, sub_month_label;
+    int sub_month_label;
 } ephemeris_point;
 
 //! A structure defining an ephemeris of a solar system object
 typedef struct ephemeris {
     double jd_start, jd_end, jd_step; // Julian day numbers
+    double maximum_angular_size, minimum_phase, brightest_magnitude;
     int point_count;
     ephemeris_point *data;
 } ephemeris;
@@ -194,6 +201,9 @@ typedef struct chart_config {
     //! The maximum number of stars to draw. If this is exceeded, only the brightest stars are shown.
     int maximum_star_count;
 
+    //! The minimum number of stars to draw. If there are fewer stars, then tweak magnitude limits to fainter stars.
+    int minimum_star_count;
+
     //! The maximum number of stars which may be labelled
     int maximum_star_label_count;
 
@@ -202,6 +212,9 @@ typedef struct chart_config {
 
     //! The maximum number of DSOs which may be labelled
     int maximum_dso_label_count;
+
+    //! Boolean flag which we set false if the user manually sets a desired <mag_min> value.
+    int mag_min_automatic;
 
     //! The faintest magnitude of star which we draw
     double mag_min;
@@ -234,10 +247,13 @@ typedef struct chart_config {
     int magnitude_key_rows;
 
     //! The number of ephemeris lines to draw for solar system objects
-    int ephmeride_count;
+    int ephemeride_count;
 
     //! Boolean indicating whether we auto-scale the star chart to the requested ephemerides
     int ephemeris_autoscale;
+
+    //! Boolean indicating whether to include a table of the object's magnitude
+    int ephemeris_table;
 
     //! Boolean indicating whether we must show all ephemeris text labels, even if they collide with other text
     int must_show_all_ephemeris_labels;
@@ -382,6 +398,9 @@ typedef struct chart_config {
 
     double canvas_width, canvas_height, canvas_offset_x, canvas_offset_y, dpi, pt, cm, mm, line_width_base;
     double wlin, x_min, x_max, y_min, y_max;
+
+    //! Width of the right-hand column of the legend under the finder chart
+    double legend_right_column_width;
 
     //! Cairo surface for drawing star chart onto
     cairo_surface_t *cairo_surface;

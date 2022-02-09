@@ -124,7 +124,7 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
 
 void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
     FILE *file;
-    char line[FNAME_LENGTH], *scan;
+    char line[FNAME_LENGTH];
 
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
@@ -149,7 +149,7 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
         double ra0, dec0, ra1, dec1, x0, y0, x1, y1;
         file_readline(file, line);
         if (line[0] == '#') continue; // Comment line
-        scan = line;
+        const char *scan = line;
         while ((scan[0] != '\0') && (scan[0] <= ' ')) scan++;
         if (s->zodiacal_only && (strncmp(scan, "Aqua", 4) != 0) && (strncmp(scan, "Arie", 4) != 0) &&
             (strncmp(scan, "Leo ", 4) != 0) && (strncmp(scan, "Canc", 4) != 0) && (strncmp(scan, "Capr", 4) != 0) &&
@@ -186,7 +186,7 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
 
 void plot_constellation_names(chart_config *s, cairo_page *page) {
     FILE *file;
-    char line[FNAME_LENGTH], *scan, *name;
+    char line[FNAME_LENGTH];
 
     strcpy(line, SRCDIR "../data/constellations/name_places.dat");
     if (s->language == SW_LANG_FR) strcpy(line, SRCDIR "../data/constellations/name_places_fr.dat");
@@ -196,9 +196,9 @@ void plot_constellation_names(chart_config *s, cairo_page *page) {
     while ((!feof(file)) && (!ferror(file))) {
         file_readline(file, line);
         if (line[0] == '#') continue; // Comment line
-        scan = line;
+        const char *scan = line;
         while ((scan[0] > '\0') && (scan[0] <= ' ')) scan++;
-        name = scan;
+        const char *name = scan;
         if (scan[0] == '\0') continue; // Blank line
         scan = next_word(scan);
 

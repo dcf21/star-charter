@@ -36,6 +36,8 @@ import sys
 from math import pi, floor, hypot, atan2
 from typing import Optional
 
+import numpy as np
+
 from star_descriptor import StarDescriptor, StarList
 from star_name_conversion import StarNameConversion
 
@@ -823,14 +825,22 @@ def merge_star_catalogues():
             else:
                 item.parallax = None
 
+
     # Create a histogram of the brightness of all the stars we have inserted into catalogue
     logging.info("Creating list of stars in order of brightness...")
+    bin_size = 0.25
     star_magnitudes = []
     brightness_histogram = {}
     for uid, star in enumerate(star_data.star_list):
+        mag_reference = None
         if star.mag_V is not None:
-            star_magnitudes.append((uid, star.mag_V, star.ra))
-            key = floor(star.mag_V)
+            mag_reference = float(star.mag_V)
+        elif star.mag_G is not None:
+            mag_reference = float(star.mag_G)
+
+        if mag_reference is not None:
+            star_magnitudes.append((uid, mag_reference, star.ra))
+            key = floor(mag_reference / bin_size) * bin_size
             if key not in brightness_histogram:
                 brightness_histogram[key] = 0
             brightness_histogram[key] += 1
@@ -839,13 +849,14 @@ def merge_star_catalogues():
 
     # Display a brightness histogram as a table
     logging.info("Brightness histogram:")
-    accumulator = 0
-    for i in range(-2, 20):
+    total_stars = 0
+    for i in np.arange(-2, 20, bin_size):
         val = 0
         if i in brightness_histogram:
             val = brightness_histogram[i]
-        accumulator += val
-        logging.info("mag {:4d} to {:4d} -- {:7d} stars (total {:7d} stars)".format(i, i + 1, val, accumulator))
+        total_stars += val
+        logging.info("  Mag {:6.2f} to {:6.2f} -- {:7d} stars (total {:7d} stars)".format(i, i + bin_size,
+                                                                                          val, total_stars))
 
     # Sort stars into order of V-band magnitude before writing output.
     # Sort on RA as secondary field to produce reproducible output
@@ -856,110 +867,114 @@ def merge_star_catalogues():
     logging.info("Producing output data catalogues")
 
     # Make sure that StarCharter regenerates its binary file
-    os.system("rm -f output/star_charter_stars.bin")
+    os.system("rm -f output/*")
 
     # Write output as a text file for use in StarCharter
-    output_star_charter = open("output/star_charter_stars.dat", "wt")
+    with gzip.open("output/star_charter_stars.dat.gz", "wt") as output_star_charter:
 
-    # Also write output as a big lump of JSON which other python scripts can use
-    output_json = open("output/all_stars.json", "wt")
+        # Also write output as a big lump of JSON which other python scripts can use
+        with gzip.open("output/all_stars.json.gz", "wt") as output_json:
 
-    # Loop over all the objects we've catalogued
-    for item in star_magnitudes:
-        # item = [uid, V-magnitude, RA]
+            # Loop over all the objects we've catalogued
+            for item in star_magnitudes:
+                # item = [uid, reference magnitude, RA]
 
-        # Some variables we feed data into
-        parallax = dist = proper_motion = proper_motion_pa = mag_bv = ybsn_num = hd_num = hip_num = nsv = variable = 0
-        source_pos = source_par = ""
-        tycho_id = dr2_id = name_const = name_bayer_letter = name_flamsteed_num = ""
-        names_english = names_catalogue_ref = []
+                # Some variables we feed data into
+                parallax = dist = proper_motion = proper_motion_pa = 0
+                mag_bv = ybsn_num = hd_num = hip_num = nsv = variable = 0
+                source_pos = source_par = ""
+                tycho_id = dr2_id = name_const = name_bayer_letter = name_flamsteed_num = ""
+                names_english = names_catalogue_ref = []
 
-        # name_1 is the star's Bayer letter, as a UTF8 character
-        # name_2 is 'x-c' where x is name_1 and c is the constellation
-        # name_3 is the star's English name, which spaces rendered as underscores
-        # name_4 is the star's catalogue name, e.g. "V337_Car"
-        # name_5 is 'y' where y is the Flamsteed number
-        name_1 = name_2 = name_3 = name_4 = name_5 = "-"
+                # name_1 is the star's Bayer letter, as a UTF8 character
+                # name_2 is 'x-c' where x is name_1 and c is the constellation
+                # name_3 is the star's English name, which spaces rendered as underscores
+                # name_4 is the star's catalogue name, e.g. "V337_Car"
+                # name_5 is 'y' where y is the Flamsteed number
+                name_1 = name_2 = name_3 = name_4 = name_5 = "-"
 
-        # Populate variables with data from the StarDescriptor structure
-        uid = item[0]
-        star = star_data.star_list[uid]
-        ra = star.ra
-        decl = star.decl
-        source_pos = star.source_pos
-        mag_list = star.magnitude_dictionary()
-        if star.parallax is not None:
-            parallax = star.parallax
-            dist = star.dist
-            source_par = star.source_par
-        if star.proper_motion is not None:
-            proper_motion = star.proper_motion
-            proper_motion_pa = star.proper_motion_pa
-        if star.color_bv is not None:
-            mag_bv = star.color_bv
-        if star.is_variable:
-            variable = 1
+                # Populate variables with data from the StarDescriptor structure
+                uid = item[0]
+                star = star_data.star_list[uid]
+                ra = star.ra
+                decl = star.decl
+                source_pos = star.source_pos
+                mag_list = star.magnitude_dictionary()
+                if star.parallax is not None:
+                    parallax = star.parallax
+                    dist = star.dist
+                    source_par = star.source_par
+                if star.proper_motion is not None:
+                    proper_motion = star.proper_motion
+                    proper_motion_pa = star.proper_motion_pa
+                if star.color_bv is not None:
+                    mag_bv = star.color_bv
+                if star.is_variable:
+                    variable = 1
 
-        # Catalogue numbers for this star
-        if star.names_bs_num is not None:
-            ybsn_num = star.names_bs_num
-        if star.names_hd_num is not None:
-            hd_num = star.names_hd_num
-        if star.names_nsv_num is not None:
-            nsv = star.names_nsv_num
-        if star.names_hip_num is not None:
-            hip_num = star.names_hip_num
-        if star.names_tyc_num is not None:
-            tycho_id = star.names_tyc_num
-        if star.names_dr2_num is not None:
-            dr2_id = star.names_dr2_num
+                # Catalogue numbers for this star
+                if star.names_bs_num is not None:
+                    ybsn_num = star.names_bs_num
+                if star.names_hd_num is not None:
+                    hd_num = star.names_hd_num
+                if star.names_nsv_num is not None:
+                    nsv = star.names_nsv_num
+                if star.names_hip_num is not None:
+                    hip_num = star.names_hip_num
+                if star.names_tyc_num is not None:
+                    tycho_id = star.names_tyc_num
+                if star.names_dr2_num is not None:
+                    dr2_id = star.names_dr2_num
 
-        # Something dodgy has happened if this star doesn't have any catalogue identifications
-        if (not ybsn_num) and (not hd_num) and (not hip_num) and (not tycho_id) and (not dr2_id):
-            logging.info("Warning: Star in database with no valid catalogue IDs")
+                # Something dodgy has happened if this star doesn't have any catalogue identifications
+                if (not ybsn_num) and (not hd_num) and (not hip_num) and (not tycho_id) and (not dr2_id):
+                    logging.info("Warning: Star in database with no valid catalogue IDs")
 
-        # Names for this star
-        if star.names_english:
-            name_3 = re.sub(' ', '_', star.names_english[0])  # StarCharter using whitespace-sep columns
-            names_english = star.names_english  # JSON output allows spaces in the names of stars
-        if star.names_catalogue_ref:
-            name_4 = re.sub(' ', '_', star.names_catalogue_ref[0])  # StarCharter using whitespace-sep columns
-            names_catalogue_ref = star.names_catalogue_ref  # JSON output allows spaces in the names of stars
-        if star.names_const:
-            name_const = star.names_const
-            if star.names_bayer_letter:
-                name_bayer_letter = star.names_bayer_letter
-                name_1 = star_name_converter.greek_html_to_utf8(
-                    instr=star_name_converter.name_to_html(instr=name_bayer_letter)
-                )
-                name_2 = "{}-{}".format(name_1, star.names_const)
-            if star.names_flamsteed_number:
-                name_5 = "{}".format(star.names_flamsteed_number)
-                name_flamsteed_num = star.names_flamsteed_number
+                # Names for this star
+                if star.names_english:
+                    name_3 = re.sub(' ', '_', star.names_english[0])  # StarCharter using whitespace-sep columns
+                    names_english = star.names_english  # JSON output allows spaces in the names of stars
+                if star.names_catalogue_ref:
+                    name_4 = re.sub(' ', '_', star.names_catalogue_ref[0])  # StarCharter using whitespace-sep columns
+                    names_catalogue_ref = star.names_catalogue_ref  # JSON output allows spaces in the names of stars
+                if star.names_const:
+                    name_const = star.names_const
+                    if star.names_bayer_letter:
+                        name_bayer_letter = star.names_bayer_letter
+                        name_1 = star_name_converter.greek_html_to_utf8(
+                            instr=star_name_converter.name_to_html(instr=name_bayer_letter)
+                        )
+                        name_2 = "{}-{}".format(name_1, star.names_const)
+                    if star.names_flamsteed_number:
+                        name_5 = "{}".format(star.names_flamsteed_number)
+                        name_flamsteed_num = star.names_flamsteed_number
 
-        # Limiting magnitude of 12 for StarCharter
-        if ('V' in mag_list) and (mag_list['V']['value'] < 12):
-            mag = mag_list['V']['value']
-            output_star_charter.write(
-                "{:6d} {:6d} {:8d} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:s} {:s} {:s} {:s} {:s}\n"
-                    .format(hd_num, ybsn_num, hip_num, ra, decl, mag, parallax, dist,
-                            name_1, name_2, name_3, name_4, name_5)
-            )
+                # Limiting magnitude of 12 for StarCharter
+                mag_limit = 12
 
-        # Dump absolutely everything into the JSON output
-        json_structure = [ra, decl, mag_list, parallax, dist, ybsn_num, hd_num, hip_num, tycho_id,
-                          names_english + names_catalogue_ref, name_const,
-                          star_name_converter.name_to_html(instr=name_bayer_letter),
-                          star_name_converter.name_to_ascii(instr=name_bayer_letter),
-                          name_flamsteed_num,
-                          source_pos, source_par,
-                          mag_bv, proper_motion, proper_motion_pa, nsv, variable, dr2_id]
-        output_json.write(json.dumps(json_structure))
-        output_json.write("\n")
+                mag_reference = None
+                if star.mag_V is not None:
+                    mag_reference = float(star.mag_V)
+                elif star.mag_G is not None:
+                    mag_reference = float(star.mag_G)
 
-    # Finish up and close output files
-    output_star_charter.close()
-    output_json.close()
+                if (mag_reference is not None) and (mag_reference < mag_limit):
+                    output_star_charter.write(
+                        "{:6d} {:6d} {:8d} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:s} {:s} {:s} {:s} {:s}\n"
+                            .format(hd_num, ybsn_num, hip_num, ra, decl, mag_reference, parallax, dist,
+                                    name_1, name_2, name_3, name_4, name_5)
+                    )
+
+                # Dump absolutely everything into the JSON output
+                json_structure = [ra, decl, mag_list, parallax, dist, ybsn_num, hd_num, hip_num, tycho_id,
+                                  names_english + names_catalogue_ref, name_const,
+                                  star_name_converter.name_to_html(instr=name_bayer_letter),
+                                  star_name_converter.name_to_ascii(instr=name_bayer_letter),
+                                  name_flamsteed_num,
+                                  source_pos, source_par,
+                                  mag_bv, proper_motion, proper_motion_pa, nsv, variable, dr2_id]
+                output_json.write(json.dumps(json_structure))
+                output_json.write("\n")
 
 
 # Do it right away if we're run as a script

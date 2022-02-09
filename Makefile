@@ -41,17 +41,19 @@ LOCAL_BINDIR = bin
 
 CORE_FILES = astroGraphics/constellations.c astroGraphics/deepSky.c astroGraphics/deepSkyOutlines.c \
              astroGraphics/ephemeris.c astroGraphics/galaxyMap.c astroGraphics/greatCircles.c \
-             astroGraphics/raDecLines.c astroGraphics/stars.c coreUtils/asciiDouble.c coreUtils/errorReport.c \
-             coreUtils/makeRasters.c listTools/ltDict.c listTools/ltList.c listTools/ltMemory.c \
-             listTools/ltStringProc.c mathsTools/julianDate.c mathsTools/projection.c mathsTools/sphericalTrig.c \
-             settings/chart_config.c vectorGraphics/lineDraw.c vectorGraphics/cairo_page.c
+             astroGraphics/raDecLines.c astroGraphics/starListReader.c astroGraphics/stars.c coreUtils/asciiDouble.c \
+             coreUtils/errorReport.c coreUtils/makeRasters.c listTools/ltDict.c listTools/ltList.c \
+             listTools/ltMemory.c listTools/ltStringProc.c mathsTools/julianDate.c mathsTools/projection.c \
+             mathsTools/sphericalTrig.c  settings/chart_config.c vectorGraphics/lineDraw.c \
+             vectorGraphics/cairo_page.c
 
 CORE_HEADERS = astroGraphics/constellations.h astroGraphics/deepSky.h astroGraphics/deepSkyOutlines.h \
                astroGraphics/ephemeris.h astroGraphics/galaxyMap.h astroGraphics/greatCircles.h \
-               astroGraphics/raDecLines.h astroGraphics/stars.h coreUtils/asciiDouble.h coreUtils/errorReport.h \
-               coreUtils/makeRasters.h coreUtils/strConstants.h listTools/ltDict.h listTools/ltList.h \
-               listTools/ltMemory.h listTools/ltStringProc.h mathsTools/julianDate.h mathsTools/projection.h \
-               mathsTools/sphericalTrig.h settings/chart_config.h vectorGraphics/lineDraw.h vectorGraphics/cairo_page.h
+               astroGraphics/raDecLines.h astroGraphics/starListReader.h astroGraphics/stars.h coreUtils/asciiDouble.h \
+               coreUtils/errorReport.h coreUtils/makeRasters.h coreUtils/strConstants.h listTools/ltDict.h \
+               listTools/ltList.h listTools/ltMemory.h listTools/ltStringProc.h mathsTools/julianDate.h \
+               mathsTools/projection.h mathsTools/sphericalTrig.h settings/chart_config.h vectorGraphics/lineDraw.h \
+               vectorGraphics/cairo_page.h
 
 STARCHART_FILES = main.c
 

@@ -44,10 +44,10 @@ void ephemerides_fetch(chart_config *s) {
     int total_ephemeris_points = 0;
 
     // Allocate storage for the ephemeris of each solar system object
-    s->ephemeris_data = (ephemeris *) malloc(s->ephmeride_count * sizeof(ephemeris));
+    s->ephemeris_data = (ephemeris *) malloc(s->ephemeride_count * sizeof(ephemeris));
 
     // Loop over each of the solar system objects we are plotting tracks for
-    for (i = 0; i < s->ephmeride_count; i++) {
+    for (i = 0; i < s->ephemeride_count; i++) {
         // Fetch the string definition, passed by the user
         // For example: jupiter,2458849.5,2459216.5
         const char *trace_definition = s->ephemeris_definitions[i];
@@ -73,6 +73,11 @@ void ephemerides_fetch(chart_config *s) {
                                                   ephemeris_duration / s->ephemeris_data[i].jd_step
         );
 
+        // Keep track of the brightest magnitude and largest angular size of the object
+        s->ephemeris_data[i].brightest_magnitude = 999;
+        s->ephemeris_data[i].minimum_phase = 1;
+        s->ephemeris_data[i].maximum_angular_size = 0;
+
         // Allocate data to hold the ephemeris
         s->ephemeris_data[i].data = (ephemeris_point *) malloc(
                 s->ephemeris_data[i].point_count * sizeof(ephemeris_point)
@@ -86,7 +91,7 @@ void ephemerides_fetch(chart_config *s) {
                                                           "--jd_min %.15f "
                                                           "--jd_max %.15f "
                                                           "--jd_step %.15f "
-                                                          "--output_format 1 "
+                                                          "--output_format 2 "
                                                           "--output_constellations 0 "
                                                           "--output_binary 0 "
                                                           "--objects \"%.256s\" ",
@@ -100,14 +105,14 @@ void ephemerides_fetch(chart_config *s) {
         // Loop over the lines returned by ephemeris-compute-de430
         int line_counter = 0;
         while ((!feof(ephemeris_data)) && (!ferror(ephemeris_data))) {
-            char line[FNAME_LENGTH], *scan;
+            char line[FNAME_LENGTH];
 
             // Read line of output text
             file_readline(ephemeris_data, line);
             // printf("%s\n", line);
 
             // Filter whitespace from the beginning of the line
-            scan = line;
+            const char *scan = line;
             while ((*scan > '\0') && (*scan <= ' ')) scan++;
 
             // Ignore blank lines
@@ -119,19 +124,41 @@ void ephemerides_fetch(chart_config *s) {
             // Read columns of data output from the ephemeris generator
             double jd = get_float(scan, NULL); // Julian day number
             scan = next_word(scan);
+            scan = next_word(scan);
+            scan = next_word(scan);
+            scan = next_word(scan);
             double ra = get_float(scan, NULL); // radians
             scan = next_word(scan);
             double dec = get_float(scan, NULL); // radians
+            scan = next_word(scan);
+            double magnitude = get_float(scan, NULL);
+            scan = next_word(scan);
+            double phase = get_float(scan, NULL); // 0-1
+            scan = next_word(scan);
+            double angular_size = get_float(scan, NULL); // arcseconds
 
             // Store this data point into s->ephemeris_data
             s->ephemeris_data[i].data[line_counter].jd = jd;
             s->ephemeris_data[i].data[line_counter].ra = ra;
             s->ephemeris_data[i].data[line_counter].dec = dec;
+            s->ephemeris_data[i].data[line_counter].mag = magnitude;
+            s->ephemeris_data[i].data[line_counter].phase = phase;
+            s->ephemeris_data[i].data[line_counter].angular_size = angular_size;
             s->ephemeris_data[i].data[line_counter].text_label = NULL;
-            s->ephemeris_data[i].data[line_counter].day = 0;
-            s->ephemeris_data[i].data[line_counter].month = 0;
-            s->ephemeris_data[i].data[line_counter].year = 0;
             s->ephemeris_data[i].data[line_counter].sub_month_label = 0;
+
+            // Keep track of maximum values
+            if (magnitude < s->ephemeris_data[i].brightest_magnitude) {
+                s->ephemeris_data[i].brightest_magnitude = magnitude;
+            }
+
+            if (phase < s->ephemeris_data[i].minimum_phase) {
+                s->ephemeris_data[i].minimum_phase = phase;
+            }
+
+            if (angular_size > s->ephemeris_data[i].maximum_angular_size) {
+                s->ephemeris_data[i].maximum_angular_size = angular_size;
+            }
 
             // Increment data point counter
             line_counter++;
@@ -150,7 +177,7 @@ void ephemerides_fetch(chart_config *s) {
         total_ephemeris_points += s->ephemeris_data[i].point_count;
     }
 
-    // Automatically scale plot to contain all of the computed ephmeris tracks
+    // Automatically scale plot to contain all the computed ephemeris tracks
     ephemerides_autoscale_plot(s, total_ephemeris_points);
 
     // Place text labels along the ephemeris tracks
@@ -163,7 +190,7 @@ void ephemerides_fetch(chart_config *s) {
 
 void ephemerides_free(chart_config *s) {
     int i;
-    for (i = 0; i < s->ephmeride_count; i++) {
+    for (i = 0; i < s->ephemeride_count; i++) {
         free(s->ephemeris_data[i].data);
     }
     free(s->ephemeris_data);
@@ -194,7 +221,7 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
 
     // Loop over all the ephemeris tracks we have computed, and populate the grids <ra_usage> and <dec_usage> with all
     // the cells that any of the moving objects visited
-    for (i = j = 0; i < s->ephmeride_count; i++)
+    for (i = j = 0; i < s->ephemeride_count; i++)
         for (k = 0; k < s->ephemeris_data[i].point_count; j++, k++) {
             // Populate the big list of all ephemeris data points
             ra_list[j] = s->ephemeris_data[i].data[k].ra;
@@ -309,6 +336,15 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
 
     // If plot is auto-scaling, set coordinates for the centre and the angular extent
     if (s->ephemeris_autoscale) {
+        // Set magnitude limits
+        if (s->mag_min_automatic) {
+            for (i = 0; i < s->ephemeride_count; i++) {
+                const double magnitude_margin = 2; // Show stars two magnitudes fainter than target
+                s->mag_min = gsl_max(s->mag_min, s->ephemeris_data[i].brightest_magnitude + magnitude_margin);
+            }
+            s->minimum_star_count = s->maximum_star_count / 8;
+        }
+
         // The coordinates of the centre of the star chart
         s->ra0 = (ra_min + ra_max) / 2;
         s->dec0 = (dec_min + dec_max) / 2;
@@ -317,8 +353,10 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
         while (s->ra0 < 0) s->ra0 += 24;
         while (s->ra0 >= 24) s->ra0 -= 24;
 
-        // Don't display the Flamsteed numbers of stars on charts which cover a very large sky area
-        if (angular_width_base > 22) s->star_flamsteed_labels = 0;
+        // Decide what labels to show, based on how wide the area of sky we're showing
+        s->star_flamsteed_labels = (int) (angular_width_base > 22);
+        s->star_bayer_labels = (int) (angular_width_base > 45);
+        s->constellation_names = (int) (angular_width_base > 20);
 
         // Set an appropriate projection
         if (angular_width_base > 110) {
@@ -375,7 +413,7 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
 
 void ephemerides_add_text_labels(chart_config *s) {
     // Loop over all the ephemeris tracks we have computed, and add text labels
-    for (int i = 0; i < s->ephmeride_count; i++) {
+    for (int i = 0; i < s->ephemeride_count; i++) {
         const double ephemeris_duration = s->ephemeris_data[i].jd_end - s->ephemeris_data[i].jd_start; // days
 
         const char *previous_label = "";
@@ -409,7 +447,7 @@ void ephemerides_add_text_labels(chart_config *s) {
 
             if (day != previous_day_of_month) {
                 if (previous_label[0] == '\0') {
-                    if (day==31) {
+                    if (day == 31) {
                         // Don't label the last day of December at the beginning of year-long ephemerides
                     } else {
                         // For the first label on an ephemeris, include the year, e.g. 1 Jan 2022
@@ -438,9 +476,6 @@ void ephemerides_add_text_labels(chart_config *s) {
             // Decide whether to show this label. Do so if we've just entered a new month.
             if ((label[0] != '\0') && (strncmp(label, previous_label, 3) != 0)) {
                 s->ephemeris_data[i].data[line_counter].text_label = string_make_permanent(label);
-                s->ephemeris_data[i].data[line_counter].day = day;
-                s->ephemeris_data[i].data[line_counter].month = month;
-                s->ephemeris_data[i].data[line_counter].year = year;
                 s->ephemeris_data[i].data[line_counter].sub_month_label = sub_month_label;
 
                 // Keep track of the previous label we have shown on this track, which we use to decide when to
@@ -618,4 +653,228 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
             is_first_label = 0;
         }
     }
+}
+
+//! draw_ephemeris_table - Draw a table of the brightness of the object whose ephemeris we have drawn
+//! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param legend_y_pos - The vertical pixel position of the top of the next legend to go under the star chart.
+//! \param draw_output - Boolean indicating whether we draw output, or simply measure the output
+//! \param width_out - Output the width of the legend we produced
+
+double draw_ephemeris_table(chart_config *s, double legend_y_pos, int draw_output, double *width_out) {
+    char text_buffer[FNAME_LENGTH];
+
+    // If requested, output the width of the table we produced
+    if (width_out != NULL) *width_out = 0;
+
+    // Loop over objects in turn
+    for (int i = 0; i < s->ephemeride_count; i++) {
+        // Pointer to ephemeris data
+        const ephemeris *e = &s->ephemeris_data[i];
+
+        // Duration of ephemeris, days
+        const double ephemeris_duration = s->ephemeris_data[i].jd_end - s->ephemeris_data[i].jd_start;
+
+        // Column widths (in cm) -- Date, Magnitude, Phase, Angular size
+        double col_widths[] = {3.5, 1.5, 1.5, 2.5, 0, 0};
+
+        // Hide phase column if object always shows full phase
+        if (e->minimum_phase > 0.96) col_widths[2] = 0;
+
+        // Decide whether to express angular size in arcseconds or arcminutes
+        char angular_size_unit = '"';
+        if (e->maximum_angular_size > 120) angular_size_unit = '\'';
+        if (e->maximum_angular_size < 1) col_widths[3] = 0;
+
+        // Work out physical dimensions of table
+        // The text offset
+        const double margin_h = 0.15;
+        const double margin_v = 0.1;
+
+        // The width of the table
+        const double w_item = col_widths[0] + col_widths[1] + col_widths[2] + col_widths[3];
+
+        if (width_out != NULL) *width_out = gsl_max(*width_out, w_item);
+
+        // The horizontal position of the left edge of the legend
+        const double x0 = s->canvas_offset_x + s->width - w_item;
+
+        // The horizontal position of the right edge of the legend
+        const double x2 =  s->canvas_offset_x + s->width;
+
+        // The top edge of the legend
+        const double y0 = legend_y_pos;
+
+        // Reset font and line width
+        double font_size = 3.6 * s->mm * s->font_size / s->cm; // cm
+        double line_height = font_size * 1.3;
+        legend_y_pos += line_height;
+        double y = legend_y_pos - margin_v;
+
+        if (draw_output) {
+            cairo_select_font_face(s->cairo_draw, s->font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+            cairo_set_font_size(s->cairo_draw, font_size * s->cm);
+            cairo_set_line_width(s->cairo_draw, 2 * s->line_width_base);
+            cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+
+            cairo_move_to(s->cairo_draw, x0 * s->cm, (legend_y_pos - line_height) * s->cm);
+            cairo_line_to(s->cairo_draw, x2 * s->cm, (legend_y_pos - line_height) * s->cm);
+            cairo_move_to(s->cairo_draw, x0 * s->cm, legend_y_pos * s->cm);
+            cairo_line_to(s->cairo_draw, x2 * s->cm, legend_y_pos * s->cm);
+            cairo_stroke(s->cairo_draw);
+
+            // Write column headings
+            double x = x0 + margin_h;
+
+            // Date column
+            if (col_widths[0] > 0) {
+                cairo_move_to(s->cairo_draw, x * s->cm, y * s->cm);
+                cairo_show_text(s->cairo_draw, "Date");
+                x += col_widths[0];
+            }
+
+            // Magnitude column
+            if (col_widths[1] > 0) {
+                cairo_move_to(s->cairo_draw, x * s->cm, y * s->cm);
+                cairo_show_text(s->cairo_draw, "Mag");
+                x += col_widths[1];
+            }
+
+            // Phase column
+            if (col_widths[2] > 0) {
+                cairo_move_to(s->cairo_draw, x * s->cm, y * s->cm);
+                cairo_show_text(s->cairo_draw, "Phase");
+                x += col_widths[2];
+            }
+
+            // Angular size column
+            if (col_widths[3] > 0) {
+                cairo_move_to(s->cairo_draw, x * s->cm, y * s->cm);
+                cairo_show_text(s->cairo_draw, "Angular size");
+                x += col_widths[3];
+            }
+        }
+
+        // Advance vertically below column headings
+        y += line_height;
+        legend_y_pos += line_height;
+
+        // Keep track of which day we last saw
+        int previous_day_of_month = -1;
+
+        // Loop over ephemeris data points
+        double latest_mag_displayed = e->data[0].mag;
+        for (int j = 0; j < e->point_count; j++) {
+            // Extract calendar date components for this ephemeris data point
+            int year, month, day, hour, minute, status;
+            double second;
+            inv_julian_day(e->data[j].jd,
+                           &year, &month, &day, &hour, &minute, &second,
+                           &status, temp_err_string);
+
+            // Reject this point if it is within same day as previous point
+            if (day == previous_day_of_month) continue;
+            previous_day_of_month = day;
+
+            // Decide whether to include this point in our table
+            // Force an update to the table if the brightness of the object has changed considerably
+            int force_display = 0;
+            if ((fabs(e->data[j].mag - latest_mag_displayed) > 1) &&
+                ((day == 1) || (day == 7) || (day == 15) || (day != 21))) {
+                force_display = 1;
+                latest_mag_displayed = e->data[j].mag;
+            }
+
+            if (!force_display) {
+                if (ephemeris_duration > 10 * 365) {
+                    if ((day != 1) || (month != 1) || (year % 2)) continue;
+                } else if (ephemeris_duration > 5 * 365) {
+                    if ((day != 1) || (month != 1)) continue;
+                } else if (ephemeris_duration > 2 * 365) {
+                    if ((day != 1) || (((month - 1) % 6) != 0)) continue;
+                } else if (ephemeris_duration > 365) {
+                    if ((day != 1) || (((month - 1) % 3) != 0)) continue;
+                } else if (ephemeris_duration > 170) {
+                    if ((day != 1) || (((month - 1) % 2) != 0)) continue;
+                } else if (ephemeris_duration > 100) {
+                    if (day != 1) continue;
+                } else if (ephemeris_duration > 60) {
+                    if ((day != 1) && (day != 15)) continue;
+                } else if (ephemeris_duration > 21) {
+                    if ((day != 1) && (day != 7) && (day != 15) && (day != 21)) continue;
+                } else if (ephemeris_duration > 14) {
+                    if (((day - 1) % 4) != 0) continue;
+                } else if (ephemeris_duration > 7) {
+                    if (((day - 1) % 2) != 0) continue;
+                }
+            }
+
+            // Make an entry in the table for this day
+            double x = x0 + margin_h;
+            if (draw_output) {
+                cairo_select_font_face(s->cairo_draw, s->font_family, CAIRO_FONT_SLANT_NORMAL,
+                                       CAIRO_FONT_WEIGHT_NORMAL);
+
+                // Extract calendar date components for this ephemeris data point
+                if (col_widths[0] > 0) {
+                    sprintf(text_buffer, "%d %.3s %d", year, get_month_name(month), day);
+                    cairo_move_to(s->cairo_draw, x * s->cm, y * s->cm);
+                    cairo_show_text(s->cairo_draw, text_buffer);
+                    x += col_widths[0];
+                }
+
+                // Magnitude column
+                if (col_widths[1] > 0) {
+                    sprintf(text_buffer, "%.1f", e->data[j].mag);
+                    cairo_move_to(s->cairo_draw, x * s->cm, y * s->cm);
+                    cairo_show_text(s->cairo_draw, text_buffer);
+                    x += col_widths[1];
+                }
+
+                // Phase column
+                if (col_widths[2] > 0) {
+                    sprintf(text_buffer, "%.0f%%", e->data[j].phase * 100);
+                    cairo_move_to(s->cairo_draw, x * s->cm, y * s->cm);
+                    cairo_show_text(s->cairo_draw, text_buffer);
+                    x += col_widths[2];
+                }
+
+                // Angular size column
+                if (col_widths[3] > 0) {
+                    sprintf(text_buffer, "%.1f%c", e->data[j].angular_size / (angular_size_unit == '"' ? 1 : 60),
+                            angular_size_unit);
+                    cairo_move_to(s->cairo_draw, x * s->cm, y * s->cm);
+                    cairo_show_text(s->cairo_draw, text_buffer);
+                    x += col_widths[3];
+                }
+            }
+
+            // Move down to next row
+            y += line_height;
+            legend_y_pos += line_height;
+        }
+
+        if (draw_output) {
+            double y1 = legend_y_pos - line_height;
+            // Draw bottom table horizontal
+            cairo_move_to(s->cairo_draw, x0 * s->cm, y1 * s->cm);
+            cairo_line_to(s->cairo_draw, x2 * s->cm, y1 * s->cm);
+
+            // Draw table verticals
+            double x = x0;
+            for (int k = 0; k <= 4; k++) {
+                cairo_move_to(s->cairo_draw, x * s->cm, y0 * s->cm);
+                cairo_line_to(s->cairo_draw, x * s->cm, y1 * s->cm);
+                x += col_widths[k];
+            }
+
+            // Stroke all lines
+            cairo_stroke(s->cairo_draw);
+        }
+
+        // Bottom margin
+        legend_y_pos += 0.4;
+    }
+
+    return legend_y_pos;
 }

@@ -170,7 +170,7 @@ double draw_great_circle_key(chart_config *s, double legend_y_pos) {
     const double y1 = y0 - 0.4;
 
     // The horizontal position of the centre of the legend
-    const double x1 = s->canvas_offset_x + s->width / 2;
+    const double x1 = s->canvas_offset_x + (s->width - s->legend_right_column_width) / 2;
 
     // The width of the legend
     const double xw = w_left * 1.5 + w_item * N;

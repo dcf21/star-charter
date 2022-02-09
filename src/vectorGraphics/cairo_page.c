@@ -37,6 +37,8 @@
 #include "listTools/ltList.h"
 #include "listTools/ltMemory.h"
 
+#include "astroGraphics/ephemeris.h"
+
 #include "settings/chart_config.h"
 
 #include "vectorGraphics/cairo_page.h"
@@ -103,6 +105,17 @@ void cairo_init(cairo_page *p, chart_config *s) {
     s->canvas_height = (s->width * s->aspect + 2 * s->canvas_offset_y) * s->cm;
 
     // Add space to the bounding box for legend items which go beneath the star chart
+    double legend_y_pos_left = 0;
+    double legend_y_pos_right = 0;
+    double legend_right_width = 0;
+
+    // If we're showing a table of the object's magnitude, measure that now
+    if (s->ephemeris_table) {
+        double ephemeris_table_height = draw_ephemeris_table(s, 0, 0, &legend_right_width);
+        legend_y_pos_right += ephemeris_table_height * s->cm;
+    }
+
+    // Calculate height of the magnitude key
     if (s->magnitude_key) {
         // Work out how many rows of magnitude key there will be
         const double w_tag = 3.8 * s->font_size;
@@ -112,7 +125,7 @@ void cairo_init(cairo_page *p, chart_config *s) {
         const int N = (int) floor((s->mag_min - s->mag_highest) / s->mag_step);
 
         // The number of columns we can fit in the magnitude key, spanning the full width of the star chart
-        int Ncol = (int) floor((s->width - w_tag) / w_item);
+        int Ncol = (int) floor((s->width - legend_right_width - w_tag) / w_item);
         if (Ncol < 1) Ncol = 1;
         if (Ncol > N + 1) Ncol = N + 1;
 
@@ -120,11 +133,15 @@ void cairo_init(cairo_page *p, chart_config *s) {
         s->magnitude_key_rows = (int) ceil((N + 1.0) / Ncol);
 
         // And how much vertical height they will take up
-        s->canvas_height += (s->magnitude_key_rows * 0.8) * s->cm;
+        legend_y_pos_left += (s->magnitude_key_rows * 0.8) * s->cm;
     }
 
-    if (s->great_circle_key) s->canvas_height += 1.5 * s->cm;
-    if (s->dso_symbol_key) s->canvas_height += 1.5 * s->cm;
+    if (s->great_circle_key) legend_y_pos_left += 1.5 * s->cm;
+    if (s->dso_symbol_key) legend_y_pos_left += 1.5 * s->cm;
+
+    // Calculate full height of the drawing canvas
+    s->canvas_height += gsl_max(legend_y_pos_left, legend_y_pos_right);
+    s->legend_right_column_width = legend_right_width;
 
     // Create cairo drawing surface of the appropriate graphics type
     switch (s->output_format) {
@@ -168,7 +185,7 @@ void cairo_init(cairo_page *p, chart_config *s) {
 
     // A list of the rectangular outlines of all the labels we've already written, such that no future labels are
     // allowed in these regions.
-    p->exclusion_regions = (exclusion_region *) lt_malloc(MAX_LABELS * sizeof(exclusion_region));
+    p->exclusion_regions = (exclusion_region *) lt_malloc(MAX_EXCLUSION_REGIONS * sizeof(exclusion_region));
     p->exclusion_region_counter = 0;
 
     // Create a cairo drawing context
@@ -394,6 +411,11 @@ void chart_label_buffer(cairo_page *p, chart_config *s, colour colour, const cha
     p->labels_buffer[p->labels_buffer_counter].extra_margin = extra_margin;
     p->labels_buffer[p->labels_buffer_counter].priority = priority;
     p->labels_buffer_counter++;
+
+    // Check for buffer overrun
+    if (p->labels_buffer_counter > MAX_LABELS) {
+        stch_fatal(__FILE__, __LINE__, "Exceeded maximum number of text labels");
+    }
 }
 
 //! chart_label_sorter - Sort all of the text labels which have been buffered via calls to <chart_label_buffer> into
@@ -459,6 +481,11 @@ void chart_add_label_exclusion(cairo_page *p, chart_config *s, double x_min, dou
     }
 
     p->exclusion_region_counter++;
+
+    // Check for buffer overrun
+    if (p->exclusion_region_counter >= MAX_EXCLUSION_REGIONS) {
+        stch_fatal(__FILE__, __LINE__, "Exceeded maximum label exclusion regions");
+    }
 }
 
 //! chart_label - Write a text label onto a cairo page immediately.

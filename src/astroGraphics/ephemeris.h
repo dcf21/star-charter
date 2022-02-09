@@ -39,5 +39,7 @@ void ephemerides_add_text_labels(chart_config *s);
 
 void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trace_num);
 
+double draw_ephemeris_table(chart_config *s, double legend_y_pos, int draw_output, double *width_out);
+
 #endif
 
