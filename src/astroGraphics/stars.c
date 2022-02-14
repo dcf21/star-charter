@@ -53,8 +53,8 @@ static int strcmp_ascii(const char *in1, const char *in2) {
 #define STAR_HISTOGRAM_MAX_LEN (128)
 
 //! Absolute limits on magnitudes of stars in the input dataset
-const double CATALOGUE_MAG_MAX = -2;
-const double CATALOGUE_MAG_MIN = 14;
+const double CATALOGUE_MAG_MAX = -2.0;
+const double CATALOGUE_MAG_MIN = 14.0;
 
 //! tweak_mag_limits - Tweak the values of <mag_max> and <mag_min>, defining the magnitude limits of the stars we
 //! plot, to ensure that (a) there are no <mag_step> intervals at the bright end with no stars in them, and (b) that
@@ -448,7 +448,6 @@ void plot_stars(chart_config *s, cairo_page *page) {
 //! \param legend_y_pos - The vertical pixel position of the top of the next legend to go under the star chart.
 
 double draw_magnitude_key(chart_config *s, double legend_y_pos) {
-    int i;
 
     // The width of the text saying "Magnitude scale:"
     const double w_tag = 3.8 * s->font_size;
@@ -457,27 +456,27 @@ double draw_magnitude_key(chart_config *s, double legend_y_pos) {
     const double w_item = 1.5 * s->font_size;
 
     // The number of items in the magnitude key
-    const int N = (int) ceil((s->mag_min - s->mag_highest) / s->mag_step);
+    const int n_items = (int) ceil((s->mag_min - s->mag_highest) / s->mag_step);
 
     // The number of columns we can fit in the magnitude key, spanning the full width of the star chart
-    int Ncol = (int) floor((s->width - w_tag) / w_item);
-    if (Ncol < 1) Ncol = 1;
-    if (Ncol > N + 1) Ncol = N + 1;
+    int n_columns = (int) floor((s->width - s->legend_right_column_width - w_tag) / w_item);
+    if (n_columns < 1) n_columns = 1;
+    if (n_columns > n_items + 1) n_columns = n_items + 1;
 
     // Work out how many rows we need
-    const int Nrow = (int) ceil((N + 1.0) / Ncol);
+    const int n_rows = (int) ceil((n_items + 1.0) / n_columns);
 
     // Positions of the corners of the magnitude key on the canvas
     const double y0 = legend_y_pos;
     const double y1 = y0 - 0.4;
     const double x1 = s->canvas_offset_x + (s->width - s->legend_right_column_width) / 2;
-    const double xw = w_tag + w_item * Ncol;
+    const double xw = w_tag + w_item * n_columns;
 
     double x = x1 - xw / 2, x_left;
     char line[FNAME_LENGTH];
     cairo_text_extents_t extents;
 
-    s->magnitude_key_rows = Nrow;
+    s->magnitude_key_rows = n_rows;
 
     // Reset font weight
     cairo_select_font_face(s->cairo_draw, s->font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
@@ -499,14 +498,14 @@ double draw_magnitude_key(chart_config *s, double legend_y_pos) {
     x_left = x;
 
     // Loop over each magnitude bin in turn
-    for (i = 0; i <= N; i++) {
+    for (int i = 0; i <= n_items; i++) {
         const double magnitude = s->mag_min - i * s->mag_step;
 
         // Calculate the radius of this star on tha canvas
         const double size = get_star_size(s, magnitude);
 
-        const double x_pos = x_left + (i % Ncol) * w_item;
-        const double y_pos = y1 + floor(i / Ncol) * 0.8;
+        const double x_pos = x_left + (i % n_columns) * w_item;
+        const double y_pos = y1 + floor(i / n_columns) * 0.8;
         //if (size > (y0-y1)) continue;
 
         // Draw a splodge representing a star of a particular magnitude

@@ -29,14 +29,6 @@
 
 #include "settings/chart_config.h"
 
-//! Return the maximum of two values
-
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
-
-//! Return the minimum of two values
-
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
-
 typedef struct {
     // The (x, y) position to label (star chart angular coordinates)
     double x, y;

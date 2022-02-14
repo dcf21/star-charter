@@ -318,7 +318,7 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     // printf("RA %.4f %.4f; Dec %.4f %.4f\n", ra_min, ra_max, dec_min, dec_max);
 
     // Work out maximum angular size of the star chart we need
-    double angular_width_base = MAX((ra_max - ra_min) * 180 / 12, dec_max - dec_min) * 1.15;
+    double angular_width_base = gsl_max((ra_max - ra_min) * 180 / 12, dec_max - dec_min) * 1.15;
 
     // If star chart covers almost the whole sky, it may as well cover the entire sky
     if (angular_width_base > 350) angular_width_base = 360;
@@ -340,7 +340,10 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
         if (s->mag_min_automatic) {
             for (i = 0; i < s->ephemeride_count; i++) {
                 const double magnitude_margin = 2; // Show stars two magnitudes fainter than target
-                s->mag_min = gsl_max(s->mag_min, s->ephemeris_data[i].brightest_magnitude + magnitude_margin);
+                s->mag_min = gsl_max(
+                        s->mag_min,
+                        ceil((s->ephemeris_data[i].brightest_magnitude + magnitude_margin) / s->mag_step) * s->mag_step
+                );
             }
             s->minimum_star_count = s->maximum_star_count / 8;
         }
@@ -367,12 +370,12 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
             // Plots which cover the whole sky need to be really big...
             s->width *= 1.6;
             s->font_size *= 0.95;
-            s->mag_min = MIN(s->mag_min, 5);
+            s->mag_min = gsl_min(s->mag_min, 5);
             s->maximum_star_label_count = 25;
             s->dso_names = 0;
 
             // Normally use an aspect ratio of 0.5, but if RA span is large and Dec span small, go wide and thin
-            s->aspect = MIN(0.5, fabs(dec_max - dec_min) / (fabs(ra_max - ra_min) * 180 / 12) * 1.8);
+            s->aspect = gsl_min(0.5, fabs(dec_max - dec_min) / (fabs(ra_max - ra_min) * 180 / 12) * 1.8);
 
             // Deal with tall narrow finder charts
             if (fabs(dec_max - dec_min) / (fabs(ra_max - ra_min) * 180 / 12) > 0.5) {
@@ -382,8 +385,8 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
 
             // Make sure that plot does not go outside the declination range -90 to 90
             double ang_height = angular_width_base * s->aspect;
-            s->dec0 = MAX(s->dec0, -89 + ang_height / 2);
-            s->dec0 = MIN(s->dec0, 89 - ang_height / 2);
+            s->dec0 = gsl_max(s->dec0, -89 + ang_height / 2);
+            s->dec0 = gsl_min(s->dec0, 89 - ang_height / 2);
 
         } else {
             // Charts which cover less than 110 degrees should use a gnomonic projection
@@ -395,7 +398,7 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
             if (s->aspect > 1.5) s->aspect = 1.5;
 
             // Fix angular width to take account of the aspect ratio of the plotting area
-            double angular_width = MAX((ra_max - ra_min) * 180 / 12, (dec_max - dec_min) / s->aspect) * 1.1;
+            double angular_width = gsl_max((ra_max - ra_min) * 180 / 12, (dec_max - dec_min) / s->aspect) * 1.1;
             if (angular_width > 350) angular_width = 360;
             s->angular_width = angular_width;
         }
@@ -700,7 +703,7 @@ double draw_ephemeris_table(chart_config *s, double legend_y_pos, int draw_outpu
         const double x0 = s->canvas_offset_x + s->width - w_item;
 
         // The horizontal position of the right edge of the legend
-        const double x2 =  s->canvas_offset_x + s->width;
+        const double x2 = s->canvas_offset_x + s->width;
 
         // The top edge of the legend
         const double y0 = legend_y_pos;

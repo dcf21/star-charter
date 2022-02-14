@@ -74,8 +74,8 @@ char *string_make_permanent(const char *in) {
 void cairo_init(cairo_page *p, chart_config *s) {
 
     // Work out what graphics format we are producing from the extension of <s->output_filename>
-    const int filename_len = strlen(s->output_filename);
-    const int filename_extension_start = MAX(filename_len - 3, 0);
+    const int filename_len = (int) strlen(s->output_filename);
+    const int filename_extension_start = (int) gsl_max(filename_len - 3, 0);
 
     if (str_cmp_no_case(s->output_filename + filename_extension_start, "svg") == 0) {
         s->output_format = SW_FORMAT_SVG;
@@ -122,15 +122,15 @@ void cairo_init(cairo_page *p, chart_config *s) {
         const double w_item = 1.5 * s->font_size;
 
         // The number of items in the magnitude key
-        const int N = (int) floor((s->mag_min - s->mag_highest) / s->mag_step);
+        const int n_items = (int) floor((s->mag_min - s->mag_highest) / s->mag_step);
 
         // The number of columns we can fit in the magnitude key, spanning the full width of the star chart
-        int Ncol = (int) floor((s->width - legend_right_width - w_tag) / w_item);
-        if (Ncol < 1) Ncol = 1;
-        if (Ncol > N + 1) Ncol = N + 1;
+        int n_columns = (int) floor((s->width - legend_right_width - w_tag) / w_item);
+        if (n_columns < 1) n_columns = 1;
+        if (n_columns > n_items + 1) n_columns = n_items + 1;
 
         // Work out how many rows we need
-        s->magnitude_key_rows = (int) ceil((N + 1.0) / Ncol);
+        s->magnitude_key_rows = (int) ceil((n_items + 1.0) / n_columns);
 
         // And how much vertical height they will take up
         legend_y_pos_left += (s->magnitude_key_rows * 0.8) * s->cm;
