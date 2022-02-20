@@ -172,6 +172,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `cardinals` - Boolean (0 or 1) indicating whether to write the cardinal points around the edge of alt/az star charts
 * `constellation_boundaries` - Boolean (0 or 1) indicating whether we draw constellation boundaries
 * `constellation_boundary_col` - Colour to use when drawing constellation boundaries
+* `constellation_highlight` - Optionally, highlight the boundary of one particular constellation, identified by a three-letter abbreviation.
 * `constellation_label_col` - Colour to use when writing constellation names
 * `constellation_names` - Boolean (0 or 1) indicating whether we label the names of constellations
 * `constellation_stick_col` - Colour to use when drawing constellation stick figures

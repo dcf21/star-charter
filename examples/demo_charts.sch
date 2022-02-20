@@ -25,7 +25,6 @@ CHART
 output_filename=output/orion_bayer.png
 ra_central=5.5
 dec_central=0.0
-font_size=1.8
 ra_dec_lines=0
 angular_width=40.0
 width=20
@@ -66,7 +65,7 @@ title=Simplified constellation stick figures
 ra_central=11.5
 dec_central=50.0
 angular_width=65.0
-width=17
+width=20
 aspect=0.70711
 constellation_boundaries=1
 constellation_sticks=1
@@ -76,8 +75,8 @@ star_names=1
 constellation_names=1
 great_circle_key=0
 maximum_star_label_count=20
+dso_mag_min=10
 constellation_stick_col=0,0.25,1
-font_size=1.25
 
 # A demo chart which shows the constellation of Ursa Major, with stick figure by H.A. Rey
 CHART
@@ -86,7 +85,7 @@ title=Constellation stick figures by H.A. Rey
 ra_central=11.5
 dec_central=50.0
 angular_width=65.0
-width=17
+width=20
 aspect=0.70711
 constellation_boundaries=1
 constellation_sticks=1
@@ -97,6 +96,6 @@ star_names=1
 constellation_names=1
 great_circle_key=0
 maximum_star_label_count=20
+dso_mag_min=10
 constellation_stick_col=0,0.25,1
-font_size=1.25
 

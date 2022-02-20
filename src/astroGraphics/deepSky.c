@@ -75,13 +75,13 @@ void draw_galaxy(chart_config *s, double axis_pa, double x_canvas, double y_canv
     cairo_restore(s->cairo_draw);
     cairo_set_source_rgb(s->cairo_draw, s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
     cairo_fill_preserve(s->cairo_draw);
-    cairo_set_line_width(s->cairo_draw, 1);
+    cairo_set_line_width(s->cairo_draw, 0.5);
     cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
     cairo_stroke(s->cairo_draw);
 }
 
 void draw_generic_nebula(chart_config *s, double x_canvas, double y_canvas, double point_size) {
-    cairo_set_line_width(s->cairo_draw, 1);
+    cairo_set_line_width(s->cairo_draw, 0.5);
     cairo_new_path(s->cairo_draw);
     cairo_move_to(s->cairo_draw, x_canvas - point_size, y_canvas - point_size);
     cairo_line_to(s->cairo_draw, x_canvas + point_size, y_canvas - point_size);
@@ -202,8 +202,20 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
             const double radius_major = gsl_max(gsl_max(axis_major, axis_minor) / 2 * arcminute, s->dpi * point_size);
             const double radius_minor = radius_major * aspect_ratio;
 
+            // Work out direction of north on the chart
+            double x2, y2;
+            plane_project(&x2, &y2, s, ra * M_PI / 12, (dec + 1e-3) * M_PI / 180, 0);
+
+            // Check output is finite
+            if ((!gsl_finite(x2)) || (!gsl_finite(y2))) {
+                continue;
+            }
+
+            const double north_direction[2] = {x2-x, y2-y};
+            const double north_theta = atan2(north_direction[0], north_direction[1]) * 180 / M_PI; // degrees
+
             // Start drawing
-            draw_galaxy(s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor);
+            draw_galaxy(s, axis_pa + north_theta, x_canvas, y_canvas, radius_major, radius_minor);
             rendered_symbol_width = (
                     radius_major * sin(axis_pa * M_PI / 180) +
                     radius_minor * cos(axis_pa * M_PI / 180)

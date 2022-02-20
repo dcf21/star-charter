@@ -126,8 +126,9 @@ void render_chart(chart_config *s) {
     draw_chart_edging(&page, s);
 
     // Vertical position of top of legends at the bottom of the star chart
-    double legend_y_pos_left = s->canvas_offset_y * 2 + s->width * s->aspect + 0.8 + s->copyright_gap;
-    double legend_y_pos_right = s->canvas_offset_y * 2 + s->width * s->aspect - 0.2;
+    const double legend_y_pos_baseline = s->canvas_offset_y + s->width * s->aspect + 0.7 + (s->ra_dec_lines ? 0.5 : 0);
+    double legend_y_pos_left = legend_y_pos_baseline + 0.8 + s->copyright_gap;
+    double legend_y_pos_right = legend_y_pos_baseline - 0.2;
 
     // If we're to show a key below the chart indicating the magnitudes of stars, draw this now
     if (s->magnitude_key) legend_y_pos_left = draw_magnitude_key(s, legend_y_pos_left);
@@ -332,12 +333,16 @@ int main(int argc, char **argv) {
         if (strcmp(key, "ra_central") == 0) {
             //! ra_central - The right ascension at the centre of the plot, hours
             CHECK_KEYVALNUM("ra_central")
-            settings_destination->ra0 = key_val_num;
+            settings_destination->ra0 = fmod(key_val_num, 24);
+            while (settings_destination->ra0 < 0) settings_destination->ra0 += 24;
+            while (settings_destination->ra0 >= 24) settings_destination->ra0 -= 24;
             continue;
         } else if (strcmp(key, "dec_central") == 0) {
             //! dec_central - The declination at the centre of the plot, degrees
             CHECK_KEYVALNUM("dec_central")
             settings_destination->dec0 = key_val_num;
+            if (settings_destination->dec0 > 90) settings_destination->dec0 = 90;
+            if (settings_destination->dec0 < -90) settings_destination->dec0 = -90;
             continue;
         } else if (strcmp(key, "axis_ticks_value_only") == 0) {
             //! axis_ticks_value_only - If 1, axis labels will appear as simply "5h" or "30 deg". If 0, these labels
@@ -544,6 +549,12 @@ int main(int argc, char **argv) {
                 stch_error(temp_err_string);
                 return 1;
             }
+            continue;
+        } else if (strcmp(key, "constellation_highlight") == 0) {
+            //! constellation_highlight - Optionally highlight the boundary of a particular constellation, referenced
+            //! by its three-letter abbreviation
+            strncpy(settings_destination->constellation_highlight, key_val, 6);
+            settings_destination->constellation_highlight[6] = '\0';
             continue;
         } else if (strcmp(key, "plot_stars") == 0) {
             //! plot_stars - Boolean (0 or 1) indicating whether we plot any stars
@@ -790,7 +801,7 @@ int main(int argc, char **argv) {
         } else if (strcmp(key, "ephemeris_table") == 0) {
             //! ephemeris_table - Boolean (0 or 1) indicating whether to include a table of the object's magnitude
             CHECK_KEYVALNUM("ephemeris_table")
-            settings_destination->ephemeris_table = (int)key_val_num;
+            settings_destination->ephemeris_table = (int) key_val_num;
             continue;
         } else if (strcmp(key, "must_show_all_ephemeris_labels") == 0) {
             //! ephemeris_autoscale - Boolean (0 or 1) indicating whether we must show all ephemeris text labels,

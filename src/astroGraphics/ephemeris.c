@@ -339,12 +339,20 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
         // Set magnitude limits
         if (s->mag_min_automatic) {
             for (i = 0; i < s->ephemeride_count; i++) {
-                const double magnitude_margin = 2; // Show stars two magnitudes fainter than target
+                // Show stars two magnitudes fainter than target
+                const double magnitude_margin = 2;
+
+                // Limiting magnitude for stars
                 s->mag_min = gsl_max(
                         s->mag_min,
                         ceil((s->ephemeris_data[i].brightest_magnitude + magnitude_margin) / s->mag_step) * s->mag_step
                 );
+
+                // Limiting magnitude for deep sky objects
+                s->dso_mag_min = gsl_max(4, s->mag_min + 1);
             }
+
+            // If we have very few stars, then extend magnitude limit to fainter stars
             s->minimum_star_count = s->maximum_star_count / 8;
         }
 
@@ -357,9 +365,15 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
         while (s->ra0 >= 24) s->ra0 -= 24;
 
         // Decide what labels to show, based on how wide the area of sky we're showing
-        s->star_flamsteed_labels = (int) (angular_width_base > 22);
-        s->star_bayer_labels = (int) (angular_width_base > 45);
-        s->constellation_names = (int) (angular_width_base > 20);
+        s->star_flamsteed_labels = (int) (angular_width_base < 30);
+        s->star_bayer_labels = (int) (angular_width_base < 70);
+        s->constellation_names = 1;
+
+        if (angular_width_base < 8) {
+            s->star_catalogue = SW_CAT_HIP;
+            s->star_catalogue_numbers = 1;
+            s->maximum_star_label_count = 20;
+        }
 
         // Set an appropriate projection
         if (angular_width_base > 110) {

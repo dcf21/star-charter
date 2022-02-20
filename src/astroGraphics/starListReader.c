@@ -147,18 +147,22 @@ int test_if_tile_in_field_of_view(chart_config *s, int level, int ra_index, int 
     const double ra_max = ra_min + (2 * M_PI) / object_tilings[level].ra_bins;
     const double dec_min = (dec_index / (double) object_tilings[level].dec_bins - 0.5) * M_PI;
     const double dec_max = dec_min + M_PI / object_tilings[level].dec_bins;
-    double ra[2] = {ra_min, ra_max};
-    double dec[2] = {dec_min, dec_max};
 
     // Does centre of field of view fall within this tile?
     if ((s->ra0 >= ra_min) && (s->ra0 <= ra_max) && (s->dec0 >= dec_min) && (s->dec0 <= dec_max)) return 1;
 
     // Do any of the corners of this tile fall within the field of view?
-    for (int i = 0; i < 2; i++)
-        for (int j = 0; j < 2; j++) {
+    const int steps = 4;
+    for (int i = 0; i <= steps; i++)
+        for (int j = 0; j <= steps; j++) {
+            // Only need to consider tile edges
+            if ((i != 0) && (i != steps) && (j != 0) && (j != steps)) continue;
+
             // Work out where tile-corner appears on chart
             double x, y;
-            plane_project(&x, &y, s, ra[i], dec[i], 0);
+            const double ra = (ra_min * (steps - i) + ra_max * i) / steps;
+            const double dec = (dec_min * (steps - i) + dec_max * i) / steps;
+            plane_project(&x, &y, s, ra, dec, 0);
 
             // Include this tile if this corner falls inside the plot area
             if (gsl_finite(x) && gsl_finite(y) &&

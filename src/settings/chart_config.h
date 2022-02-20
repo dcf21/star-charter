@@ -128,6 +128,9 @@ typedef struct chart_config {
     //! Either SW_STICKS_SIMPLIFIED or SW_STICKS_REY
     int constellation_stick_design;
 
+    //! Optionally select a constellation to highlight
+    char constellation_highlight[8];
+
     //! Boolean indicating whether we label the English names of stars
     int star_names;
 

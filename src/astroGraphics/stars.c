@@ -384,7 +384,7 @@ void plot_stars(chart_config *s, cairo_page *page) {
 
                         // Write a catalogue number next to this star
                         if (show_cat) {
-                            if (s->star_catalogue == SW_CAT_HIP) {
+                            if ((s->star_catalogue == SW_CAT_HIP) && (sd.hip_num > 0)) {
                                 // Write a Hipparcos number
                                 snprintf(temp_err_string, FNAME_LENGTH, "HIP%d", sd.hip_num);
                                 chart_label_buffer(page, s, s->star_label_col, temp_err_string,
@@ -392,7 +392,7 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                                                         {x, y, -horizontal_offset, 1,  0}}, 2,
                                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                    0, 0, 0, sd.mag);
-                            } else if (s->star_catalogue == SW_CAT_YBSC) {
+                            } else if ((s->star_catalogue == SW_CAT_YBSC) && (sd.ybsn_num > 0)) {
                                 // Write an HR number (i.e. Yale Bright Star Catalog number)
                                 snprintf(temp_err_string, FNAME_LENGTH, "HR%d", sd.ybsn_num);
                                 chart_label_buffer(page, s, s->star_label_col, temp_err_string,
@@ -400,7 +400,7 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                                                         {x, y, -horizontal_offset, 1,  0}}, 2,
                                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                    0, 0, 0, sd.mag);
-                            } else if (s->star_catalogue == SW_CAT_HD) {
+                            } else if ((s->star_catalogue == SW_CAT_HD) && (sd.hd_num > 0)) {
                                 // Write a Henry Draper number
                                 snprintf(temp_err_string, FNAME_LENGTH, "HD%d", sd.hd_num);
                                 chart_label_buffer(page, s, s->star_label_col, temp_err_string,

@@ -61,11 +61,11 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
     double x_first = 0, y_first = 0;
     char line[FNAME_LENGTH], *scan, constellation[6] = "@@@@";
 
-    // Set line colour
+    // This must be set to true initially, to ensure that colour is set when we start tracing the first constellation
+    int was_highlighted = 1;
+
+    // Set up line-drawing class
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
-    cairo_set_source_rgb(s->cairo_draw, s->constellation_boundary_col.red, s->constellation_boundary_col.grn,
-                         s->constellation_boundary_col.blu);
-    cairo_set_line_width(s->cairo_draw, 0.8);
     ld_label(ld, NULL, 1, 1);
 
     // Open file defining the celestial coordinates of the constellation boundaries
@@ -109,6 +109,19 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
             ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
             x_first = x;
             y_first = y;
+
+            // Set the line colour and width for the boundary of this constellation
+            if (strncmp(constellation, s->constellation_highlight, 3) == 0) {
+                cairo_set_source_rgb(s->cairo_draw, s->star_col.red, s->star_col.grn,
+                                     s->star_col.blu);
+                cairo_set_line_width(s->cairo_draw, 2);
+                was_highlighted = 1;
+            } else if (was_highlighted) {
+                cairo_set_source_rgb(s->cairo_draw, s->constellation_boundary_col.red, s->constellation_boundary_col.grn,
+                                     s->constellation_boundary_col.blu);
+                cairo_set_line_width(s->cairo_draw, 0.8);
+                was_highlighted = 0;
+            }
         }
 
         ld_point(ld, x, y, NULL);

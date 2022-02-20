@@ -99,10 +99,11 @@ void cairo_init(cairo_page *p, chart_config *s) {
     s->line_width_base = 0.5 * s->pt; // standard line width
 
     // Work out the bounding box of the canvas to draw the star chart onto
+    const int have_title = strcmp(s->title, "") != 0;
     s->canvas_offset_x = 1.6;
-    s->canvas_offset_y = 1.4;
+    s->canvas_offset_y = have_title ? 1.4 : 0.7;
     s->canvas_width = (s->width + 2 * s->canvas_offset_x) * s->cm;
-    s->canvas_height = (s->width * s->aspect + 2 * s->canvas_offset_y) * s->cm;
+    s->canvas_height = (s->width * s->aspect + s->canvas_offset_y + 0.7 + (s->ra_dec_lines ? 0.5 : 0)) * s->cm;
 
     // Add space to the bounding box for legend items which go beneath the star chart
     double legend_y_pos_left = 0;
@@ -112,7 +113,7 @@ void cairo_init(cairo_page *p, chart_config *s) {
     // If we're showing a table of the object's magnitude, measure that now
     if (s->ephemeris_table) {
         double ephemeris_table_height = draw_ephemeris_table(s, 0, 0, &legend_right_width);
-        legend_y_pos_right += ephemeris_table_height * s->cm;
+        legend_y_pos_right += (ephemeris_table_height - 1) * s->cm;
     }
 
     // Calculate height of the magnitude key
@@ -136,8 +137,8 @@ void cairo_init(cairo_page *p, chart_config *s) {
         legend_y_pos_left += (s->magnitude_key_rows * 0.8) * s->cm;
     }
 
-    if (s->great_circle_key) legend_y_pos_left += 1.5 * s->cm;
-    if (s->dso_symbol_key) legend_y_pos_left += 1.5 * s->cm;
+    if (s->great_circle_key) legend_y_pos_left += 1.0 * s->cm;
+    if (s->dso_symbol_key) legend_y_pos_left += 1.0 * s->cm;
 
     // Calculate full height of the drawing canvas
     s->canvas_height += gsl_max(legend_y_pos_left, legend_y_pos_right);
@@ -488,6 +489,32 @@ void chart_add_label_exclusion(cairo_page *p, chart_config *s, double x_min, dou
     }
 }
 
+//! chart_check_label_exclusion - Check that a new label does not collide with any previous label
+//! \param p - A structure describing the status of the drawing surface
+//! \param x_min - The left edge of the new label
+//! \param x_max - The right edge of the new label
+//! \param y_min - The top edge of the new label
+//! \param y_max - The bottom edge of the new label
+//! \return - Boolean indicating whether this label collides with any previous label
+
+int chart_check_label_exclusion(const cairo_page *p, double x_min, double x_max, double y_min,
+                                double y_max) {
+    // Do not allow label positions which collide with ones we've already rendered
+    int collision = 0;
+    for (int i = 0; i < p->exclusion_region_counter; i++) {
+        if (
+                (x_max > p->exclusion_regions[i].x_min) &&
+                (x_min < p->exclusion_regions[i].x_max) &&
+                (y_max > p->exclusion_regions[i].y_min) &&
+                (y_min < p->exclusion_regions[i].y_max)
+                ) {
+            collision = 1;
+            break;
+        }
+    }
+    return collision;
+}
+
 //! chart_label - Write a text label onto a cairo page immediately.
 //! \param p - A structure describing the status of the drawing surface
 //! \param s - Settings for the star chart we are drawing
@@ -598,20 +625,8 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
                 continue;
             }
 
-            // Do not allow label positions which collide with ones we've already rendered
-            int collision = 0;
-            for (int i = 0; i < p->exclusion_region_counter; i++) {
-                if (
-                        (x_max > p->exclusion_regions[i].x_min) &&
-                        (x_min < p->exclusion_regions[i].x_max) &&
-                        (y_max > p->exclusion_regions[i].y_min) &&
-                        (y_min < p->exclusion_regions[i].y_max)
-                        ) {
-                    collision = 1;
-                    break;
-                }
-            }
-
+            // Check that this label does not collide with any previous labels
+            const int collision = chart_check_label_exclusion(p, x_min, x_max, y_min, y_max);
             if (collision) continue;
         }
 
@@ -647,12 +662,12 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
 
 //! chart_ticks_draw - Draw labels such as right ascensions and declinations around the edge of the star chart. Each
 //! call to this function handles one edge of the star chart.
+//! \param p - A structure describing the status of the drawing surface
 //! \param s - Settings for the star chart we are drawing
 //! \param labels - The list of labels to write along this edge of the star chart
 //! \param axis - One of ("x", "y", "x2", "y2") indicating whether this is the (bottom, left, top, right) edge
 
-void chart_ticks_draw(chart_config *s, list *labels, char *axis) {
-    int j = 0;
+void chart_ticks_draw(cairo_page *p, chart_config *s, list *labels, char *axis) {
     int N = listLen(labels);
     void *buff;
     cairo_text_extents_t extents;
@@ -662,7 +677,7 @@ void chart_ticks_draw(chart_config *s, list *labels, char *axis) {
 
     // Copy the list of labels into a buffer
     buff = lt_malloc(FNAME_LENGTH * N);
-    for (j = 0; (listiter != NULL); j++, listiter = listIterate(listiter, NULL)) {
+    for (int j = 0; (listiter != NULL); j++, listiter = listIterate(listiter, NULL)) {
         memcpy(buff + j * FNAME_LENGTH, listiter->data, FNAME_LENGTH);
     }
 
@@ -671,17 +686,26 @@ void chart_ticks_draw(chart_config *s, list *labels, char *axis) {
     cairo_set_font_size(s->cairo_draw, 3.2 * s->mm * s->font_size);
 
     // Loop over all the labels on this edge of the plot
-    for (j = 0; j < N; j++) {
+    for (int j = 0; j < N; j++) {
         const char *tic_text = (char *) (buff + j * FNAME_LENGTH + sizeof(double));
         const double tic_pos = *(double *) (buff + j * FNAME_LENGTH);
         double x_canvas, y_canvas;
         cairo_text_extents(s->cairo_draw, tic_text, &extents);
 
         if (strcmp(axis, "x") == 0) {
-            // Write a label on the bottom edge of the chart
+            // Calculate coordinates of this label
             y_canvas = (s->canvas_offset_y + s->width * s->aspect + 0.2) * s->cm;
             x_canvas = (s->canvas_offset_x + s->width * (tic_pos - s->x_min) / (s->x_max - s->x_min)) * s->cm;
 
+            // Check that this label does not collide with previous labels
+            const double x_min = x_canvas-extents.width / 2;
+            const double x_max = x_canvas+extents.width / 2;
+            const double y_min = y_canvas-extents.height/2;
+            const double y_max = y_canvas+extents.height/2;
+            if (chart_check_label_exclusion(p, x_min, x_max, y_min, y_max)) continue;
+            chart_add_label_exclusion(p, s, x_min, x_max, y_min, y_max);
+
+            // Write a label on the bottom edge of the chart
             cairo_save(s->cairo_draw);
             cairo_translate(s->cairo_draw, x_canvas, y_canvas);
             cairo_rotate(s->cairo_draw, s->x_label_slant * M_PI / 180);
@@ -689,10 +713,19 @@ void chart_ticks_draw(chart_config *s, list *labels, char *axis) {
             cairo_show_text(s->cairo_draw, tic_text);
             cairo_restore(s->cairo_draw);
         } else if (strcmp(axis, "x2") == 0) {
-            // Write a label on the top edge of the chart
+            // Calculate coordinates of this label
             y_canvas = (s->canvas_offset_y - 0.2) * s->cm;
             x_canvas = (s->canvas_offset_x + s->width * (tic_pos - s->x_min) / (s->x_max - s->x_min)) * s->cm;
 
+            // Check that this label does not collide with previous labels
+            const double x_min = x_canvas-extents.width / 2;
+            const double x_max = x_canvas+extents.width / 2;
+            const double y_min = y_canvas-extents.height/2;
+            const double y_max = y_canvas+extents.height/2;
+            if (chart_check_label_exclusion(p, x_min, x_max, y_min, y_max)) continue;
+            chart_add_label_exclusion(p, s, x_min, x_max, y_min, y_max);
+
+            // Write a label on the top edge of the chart
             cairo_save(s->cairo_draw);
             cairo_translate(s->cairo_draw, x_canvas, y_canvas);
             cairo_rotate(s->cairo_draw, s->x_label_slant * M_PI / 180);
@@ -700,11 +733,20 @@ void chart_ticks_draw(chart_config *s, list *labels, char *axis) {
             cairo_show_text(s->cairo_draw, tic_text);
             cairo_restore(s->cairo_draw);
         } else if (strcmp(axis, "y") == 0) {
-            // Write a label on the left edge of the chart
+            // Calculate coordinates of this label
             x_canvas = (s->canvas_offset_x - 0.2) * s->cm;
             y_canvas =
                     (s->canvas_offset_y + s->width * s->aspect * (tic_pos - s->y_min) / (s->y_max - s->y_min)) * s->cm;
 
+            // Check that this label does not collide with previous labels
+            const double x_min = x_canvas-extents.width / 2;
+            const double x_max = x_canvas+extents.width / 2;
+            const double y_min = y_canvas-extents.height/2;
+            const double y_max = y_canvas+extents.height/2;
+            if (chart_check_label_exclusion(p, x_min, x_max, y_min, y_max)) continue;
+            chart_add_label_exclusion(p, s, x_min, x_max, y_min, y_max);
+
+            // Write a label on the left edge of the chart
             cairo_save(s->cairo_draw);
             cairo_translate(s->cairo_draw, x_canvas, y_canvas);
             cairo_rotate(s->cairo_draw, s->y_label_slant * M_PI / 180);
@@ -712,11 +754,20 @@ void chart_ticks_draw(chart_config *s, list *labels, char *axis) {
             cairo_show_text(s->cairo_draw, tic_text);
             cairo_restore(s->cairo_draw);
         } else if (strcmp(axis, "y2") == 0) {
-            // Write a label on the right edge of the chart
+            // Calculate coordinates of this label
             x_canvas = (s->canvas_offset_x + s->width + 0.2) * s->cm;
             y_canvas =
                     (s->canvas_offset_y + s->width * s->aspect * (tic_pos - s->y_min) / (s->y_max - s->y_min)) * s->cm;
 
+            // Check that this label does not collide with previous labels
+            const double x_min = x_canvas-extents.width / 2;
+            const double x_max = x_canvas+extents.width / 2;
+            const double y_min = y_canvas-extents.height/2;
+            const double y_max = y_canvas+extents.height/2;
+            if (chart_check_label_exclusion(p, x_min, x_max, y_min, y_max)) continue;
+            chart_add_label_exclusion(p, s, x_min, x_max, y_min, y_max);
+
+            // Write a label on the right edge of the chart
             cairo_save(s->cairo_draw);
             cairo_translate(s->cairo_draw, x_canvas, y_canvas);
             cairo_rotate(s->cairo_draw, s->y_label_slant * M_PI / 180);
@@ -724,8 +775,6 @@ void chart_ticks_draw(chart_config *s, list *labels, char *axis) {
             cairo_show_text(s->cairo_draw, tic_text);
             cairo_restore(s->cairo_draw);
         }
-
-
     }
 }
 
@@ -748,17 +797,17 @@ int chart_finish(cairo_page *p, chart_config *s) {
     cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
     cairo_move_to(s->cairo_draw,
                   (s->canvas_offset_x * 0.5) * s->cm,
-                  (s->canvas_offset_y * 2
-                   + s->width * s->aspect
+                  (s->canvas_offset_y + 0.7 + (s->ra_dec_lines ? 0.5 : 0) +
+                   +s->width * s->aspect
                    + s->copyright_gap - 0.2
                    + s->copyright_gap_2) * s->cm);
     cairo_show_text(s->cairo_draw, s->copyright);
 
     // Write lists of ticks to put on axes
-    chart_ticks_draw(s, p->x_labels, "x");
-    chart_ticks_draw(s, p->y_labels, "y");
-    chart_ticks_draw(s, p->x2_labels, "x2");
-    chart_ticks_draw(s, p->y2_labels, "y2");
+    chart_ticks_draw(p, s, p->x_labels, "x");
+    chart_ticks_draw(p, s, p->y_labels, "y");
+    chart_ticks_draw(p, s, p->x2_labels, "x2");
+    chart_ticks_draw(p, s, p->y2_labels, "y2");
 
     // Close cairo drawing context
     cairo_destroy(s->cairo_draw);
