@@ -151,13 +151,22 @@ int test_if_tile_in_field_of_view(chart_config *s, int level, int ra_index, int 
     // Does centre of field of view fall within this tile?
     if ((s->ra0 >= ra_min) && (s->ra0 <= ra_max) && (s->dec0 >= dec_min) && (s->dec0 <= dec_max)) return 1;
 
-    // Do any of the corners of this tile fall within the field of view?
-    const int steps = 4;
+    // Do any of the corners of the field of view fall within this tile?
+    const int steps = 1;
     for (int i = 0; i <= steps; i++)
         for (int j = 0; j <= steps; j++) {
-            // Only need to consider tile edges
-            if ((i != 0) && (i != steps) && (j != 0) && (j != steps)) continue;
+            double ra, dec;
+            const double x = (i - 0.5) * s->wlin;
+            const double y = (j - 0.5) * s->aspect * s->wlin;
+            inv_plane_project(&ra, &dec, s, x, y);
 
+            // Does this corner fall within this tile?
+            if ((ra >= ra_min) && (ra <= ra_max) && (dec >= dec_min) && (dec <= dec_max)) return 1;
+        }
+
+    // Do any of the corners of this tile fall within the field of view?
+    for (int i = 0; i <= steps; i++)
+        for (int j = 0; j <= steps; j++) {
             // Work out where tile-corner appears on chart
             double x, y;
             const double ra = (ra_min * (steps - i) + ra_max * i) / steps;
