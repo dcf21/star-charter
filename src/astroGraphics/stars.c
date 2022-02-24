@@ -159,8 +159,8 @@ void tweak_magnitude_limits(chart_config *s) {
         // star_total_count counts how many stars we've seen so far
         star_total_count += star_histogram[bin_index];
 
-        // If we've not seen any stars, then reduce the upper brightness limit
-        if (star_total_count == 0) {
+        // If we've not seen fewer than four stars, then reduce the upper brightness used to scale the size of stars
+        if (star_total_count < 4) {
             new_mag_max = bin_mag_brightest + s->mag_step;
         }
 

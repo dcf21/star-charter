@@ -384,7 +384,7 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
             // Plots which cover the whole sky need to be really big...
             s->width *= 1.6;
             s->font_size *= 0.95;
-            s->mag_min = gsl_min(s->mag_min, 5);
+            s->mag_min = gsl_min(s->mag_min, 6);
             s->maximum_star_label_count = 25;
             s->dso_names = 0;
 

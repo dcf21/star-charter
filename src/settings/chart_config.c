@@ -74,7 +74,7 @@ void default_config(chart_config *i) {
     i->must_show_all_ephemeris_labels = 0;
     i->mag_min = 6.0;
     i->mag_min_automatic = 1;
-    i->mag_max = 1.0;
+    i->mag_max = 0.0;
     i->mag_step = 0.5;
     i->mag_alpha = 1.1727932;
     i->mag_size_norm = 0.4;
