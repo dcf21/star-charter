@@ -107,7 +107,7 @@ void default_config(chart_config *i) {
     strcpy(i->galaxy_map_filename, SRCDIR "../data/milkyWay/process/output/galaxymap.dat");
     strcpy(i->photo_filename, "");
     strcpy(i->output_filename, "chart");
-    strcpy(i->copyright, "Produced with StarCharter. https://github.com/dcf21/star-charter");
+    strcpy(i->copyright, "");
     strcpy(i->title, "");
 }
 
