@@ -6,18 +6,20 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wall -fopenmp -std=c99 -I${CMAKE_SOURCE
 set(SOURCE_FILES
         src/astroGraphics/constellations.c
         src/astroGraphics/constellations.h
+        src/astroGraphics/deepSky.c
+        src/astroGraphics/deepSky.h
+        src/astroGraphics/deepSkyOutlines.c
+        src/astroGraphics/deepSkyOutlines.h
         src/astroGraphics/ephemeris.c
         src/astroGraphics/ephemeris.h
         src/astroGraphics/galaxyMap.c
         src/astroGraphics/galaxyMap.h
         src/astroGraphics/greatCircles.c
         src/astroGraphics/greatCircles.h
-        src/astroGraphics/messier.c
-        src/astroGraphics/messier.h
-        src/astroGraphics/ngc.c
-        src/astroGraphics/ngc.h
         src/astroGraphics/raDecLines.c
         src/astroGraphics/raDecLines.h
+        src/astroGraphics/starListReader.c
+        src/astroGraphics/starListReader.h
         src/astroGraphics/stars.c
         src/astroGraphics/stars.h
         src/coreUtils/asciiDouble.c

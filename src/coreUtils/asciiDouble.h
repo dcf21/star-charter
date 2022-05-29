@@ -1,7 +1,7 @@
 // asciiDouble.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -38,7 +38,7 @@ void file_readline(FILE *file, char *output);
 
 void get_word(char *out, const char *in, int max);
 
-char *next_word(char *in);
+const char *next_word(const char *in);
 
 char *friendly_time_string();
 

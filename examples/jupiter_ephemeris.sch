@@ -2,7 +2,7 @@
 # in 2020
 # 
 # -------------------------------------------------
-# Copyright 2015-2019 Dominic Ford
+# Copyright 2015-2022 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -22,10 +22,10 @@
 
 # Default settings which affect all the charts below
 DEFAULTS
-width=18.0
+width=32.0
 aspect=1
 ra_dec_lines=1
-messier_names=0
+dso_names=0
 constellation_boundaries=1
 constellation_sticks=1
 projection=gnomonic
@@ -34,6 +34,7 @@ star_flamsteed_labels=0
 constellation_names=1
 plot_galaxy_map=1
 ephemeris_autoscale=1
+ephemeris_table=1
 draw_ephemeris=jupiter,2458849.5,2459216.5
 
 # Produce a PNG copy of this star chart

@@ -1,7 +1,7 @@
 // constellations.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -61,11 +61,11 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
     double x_first = 0, y_first = 0;
     char line[FNAME_LENGTH], *scan, constellation[6] = "@@@@";
 
-    // Set line colour
+    // This must be set to true initially, to ensure that colour is set when we start tracing the first constellation
+    int was_highlighted = 1;
+
+    // Set up line-drawing class
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
-    cairo_set_source_rgb(s->cairo_draw, s->constellation_boundary_col.red, s->constellation_boundary_col.grn,
-                         s->constellation_boundary_col.blu);
-    cairo_set_line_width(s->cairo_draw, 0.8);
     ld_label(ld, NULL, 1, 1);
 
     // Open file defining the celestial coordinates of the constellation boundaries
@@ -109,6 +109,19 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
             ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
             x_first = x;
             y_first = y;
+
+            // Set the line colour and width for the boundary of this constellation
+            if (strncmp(constellation, s->constellation_highlight, 3) == 0) {
+                cairo_set_source_rgb(s->cairo_draw, s->star_col.red, s->star_col.grn,
+                                     s->star_col.blu);
+                cairo_set_line_width(s->cairo_draw, 2);
+                was_highlighted = 1;
+            } else if (was_highlighted) {
+                cairo_set_source_rgb(s->cairo_draw, s->constellation_boundary_col.red, s->constellation_boundary_col.grn,
+                                     s->constellation_boundary_col.blu);
+                cairo_set_line_width(s->cairo_draw, 0.8);
+                was_highlighted = 0;
+            }
         }
 
         ld_point(ld, x, y, NULL);
@@ -124,13 +137,13 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
 
 void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
     FILE *file;
-    char line[FNAME_LENGTH], *scan;
+    char line[FNAME_LENGTH];
 
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgb(s->cairo_draw, s->constellation_stick_col.red,
                          s->constellation_stick_col.grn, s->constellation_stick_col.blu);
-    cairo_set_line_width(s->cairo_draw, 1.4);
+    cairo_set_line_width(s->cairo_draw, s->constellation_sticks_line_width);
 
     // Open file listing constellation stick figures by celestial coordinates
     const char *stick_definitions = "constellation_lines_simplified_by_RA_Dec.dat";
@@ -149,7 +162,7 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
         double ra0, dec0, ra1, dec1, x0, y0, x1, y1;
         file_readline(file, line);
         if (line[0] == '#') continue; // Comment line
-        scan = line;
+        const char *scan = line;
         while ((scan[0] != '\0') && (scan[0] <= ' ')) scan++;
         if (s->zodiacal_only && (strncmp(scan, "Aqua", 4) != 0) && (strncmp(scan, "Arie", 4) != 0) &&
             (strncmp(scan, "Leo ", 4) != 0) && (strncmp(scan, "Canc", 4) != 0) && (strncmp(scan, "Capr", 4) != 0) &&
@@ -186,7 +199,7 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
 
 void plot_constellation_names(chart_config *s, cairo_page *page) {
     FILE *file;
-    char line[FNAME_LENGTH], *scan, *name;
+    char line[FNAME_LENGTH];
 
     strcpy(line, SRCDIR "../data/constellations/name_places.dat");
     if (s->language == SW_LANG_FR) strcpy(line, SRCDIR "../data/constellations/name_places_fr.dat");
@@ -196,9 +209,9 @@ void plot_constellation_names(chart_config *s, cairo_page *page) {
     while ((!feof(file)) && (!ferror(file))) {
         file_readline(file, line);
         if (line[0] == '#') continue; // Comment line
-        scan = line;
+        const char *scan = line;
         while ((scan[0] > '\0') && (scan[0] <= ' ')) scan++;
-        name = scan;
+        const char *name = scan;
         if (scan[0] == '\0') continue; // Blank line
         scan = next_word(scan);
 
@@ -225,7 +238,8 @@ void plot_constellation_names(chart_config *s, cairo_page *page) {
 
             chart_label_buffer(page, s, s->constellation_label_col, label,
                                &(label_position) {x, y, 0, 0, 0}, 1,
-                               0, 1, 1.4, 0, 1, 0, -1);
+                               0, 1, 1.4 * s->label_font_size_scaling,
+                               0, 1, 0, -1);
             break;
         }
     }

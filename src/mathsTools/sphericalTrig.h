@@ -1,7 +1,7 @@
 // SphericalTrig.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -21,6 +21,8 @@
 
 #ifndef SPHERICALTRIG_H
 #define SPHERICALTRIG_H 1
+
+double angDist_RADec(double ra0, double dec0, double ra1, double dec1);
 
 void rotate_xy(double *out, double *in, double theta);
 

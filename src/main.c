@@ -1,7 +1,7 @@
 // main.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -41,8 +41,8 @@
 #include "astroGraphics/ephemeris.h"
 #include "astroGraphics/galaxyMap.h"
 #include "astroGraphics/greatCircles.h"
-#include "astroGraphics/messier.h"
-#include "astroGraphics/ngc.h"
+#include "astroGraphics/deepSky.h"
+#include "astroGraphics/deepSkyOutlines.h"
 #include "astroGraphics/raDecLines.h"
 #include "astroGraphics/stars.h"
 #include "vectorGraphics/lineDraw.h"
@@ -100,20 +100,24 @@ void render_chart(chart_config *s) {
     // Draw stick figures to represent the constellations
     if (s->constellation_sticks) plot_constellation_sticks(s, &ld);
 
+    // Draw deep sky object outlines
+    if (s->plot_dso) {
+        plot_deep_sky_outlines(s, &page);
+    }
+
+    // Draw deep sky objects
+    if (s->plot_dso) {
+        plot_deep_sky_objects(s, &page, s->messier_only);
+    }
+
     // Draw stars
     if (s->plot_stars) plot_stars(s, &page);
-
-    // Draw NGC objects
-    if (s->plot_ngc) plot_ngc_objects(s, &page);
-
-    // Draw Messier objects
-    if (s->plot_messier) plot_messier_objects(s, &page);
 
     // Write the names of the constellations
     if (s->constellation_names) plot_constellation_names(s, &page);
 
     // If we're plotting ephemerides for solar system objects, draw these now
-    for (i = 0; i < s->ephmeride_count; i++) plot_ephemeris(s, &ld, &page, i);
+    for (i = 0; i < s->ephemeride_count; i++) plot_ephemeris(s, &ld, &page, i);
 
     // Render labels onto the chart while the clipping region is still in force
     chart_label_unbuffer(&page);
@@ -121,11 +125,22 @@ void render_chart(chart_config *s) {
     // Draw axes around the edge of the star chart
     draw_chart_edging(&page, s);
 
-    // If we're to show a key below the chart, indicating the magnitudes of stars, draw this now
-    if (s->magnitude_key) draw_magnitude_key(s);
+    // Vertical position of top of legends at the bottom of the star chart
+    const double legend_y_pos_baseline = s->canvas_offset_y + s->width * s->aspect + 0.7 + (s->ra_dec_lines ? 0.5 : 0);
+    double legend_y_pos_left = legend_y_pos_baseline + 0.8 + s->copyright_gap;
+    double legend_y_pos_right = legend_y_pos_baseline - 0.2;
 
-    // If we're to show a key below the chart, indicating the colours of the lines, draw this now
-    if (s->great_circle_key) draw_great_circle_key(s);
+    // If we're to show a key below the chart indicating the magnitudes of stars, draw this now
+    if (s->magnitude_key) legend_y_pos_left = draw_magnitude_key(s, legend_y_pos_left);
+
+    // If we're to show a key below the chart indicating the colours of the lines, draw this now
+    if (s->great_circle_key) legend_y_pos_left = draw_great_circle_key(s, legend_y_pos_left);
+
+    // If we're to show a key below the chart indicating the deep sky object symbols, draw this now
+    if (s->dso_symbol_key) legend_y_pos_left = draw_dso_symbol_key(s, legend_y_pos_left);
+
+    // If we're showing a table of the object's magnitude, draw that now
+    if (s->ephemeris_table) legend_y_pos_right = draw_ephemeris_table(s, legend_y_pos_right, 1, NULL);
 
     // Finish up and write output
     if (DEBUG) {
@@ -318,12 +333,16 @@ int main(int argc, char **argv) {
         if (strcmp(key, "ra_central") == 0) {
             //! ra_central - The right ascension at the centre of the plot, hours
             CHECK_KEYVALNUM("ra_central")
-            settings_destination->ra0 = key_val_num;
+            settings_destination->ra0 = fmod(key_val_num, 24);
+            while (settings_destination->ra0 < 0) settings_destination->ra0 += 24;
+            while (settings_destination->ra0 >= 24) settings_destination->ra0 -= 24;
             continue;
         } else if (strcmp(key, "dec_central") == 0) {
             //! dec_central - The declination at the centre of the plot, degrees
             CHECK_KEYVALNUM("dec_central")
             settings_destination->dec0 = key_val_num;
+            if (settings_destination->dec0 > 90) settings_destination->dec0 = 90;
+            if (settings_destination->dec0 < -90) settings_destination->dec0 = -90;
             continue;
         } else if (strcmp(key, "axis_ticks_value_only") == 0) {
             //! axis_ticks_value_only - If 1, axis labels will appear as simply "5h" or "30 deg". If 0, these labels
@@ -413,13 +432,25 @@ int main(int argc, char **argv) {
             //! ephemeris_col - Colour to use when drawing ephemerides for solar system objects
             settings_destination->ephemeris_col = colour_from_string(key_val);
             continue;
-        } else if (strcmp(key, "messier_col") == 0) {
-            //! messier_col - Colour to use when drawing Messier objects
-            settings_destination->messier_col = colour_from_string(key_val);
+        } else if (strcmp(key, "dso_cluster_col") == 0) {
+            //! dso_cluster_col - Colour to use when drawing star clusters
+            settings_destination->dso_cluster_col = colour_from_string(key_val);
             continue;
-        } else if (strcmp(key, "ngc_col") == 0) {
-            //! ngc_col - Colour to use when drawing NGC objects
-            settings_destination->ngc_col = colour_from_string(key_val);
+        } else if (strcmp(key, "dso_galaxy_col") == 0) {
+            //! dso_galaxy_col - Colour to use when drawing galaxies
+            settings_destination->dso_galaxy_col = colour_from_string(key_val);
+            continue;
+        } else if (strcmp(key, "dso_nebula_col") == 0) {
+            //! dso_nebula_col - Colour to use when drawing nebulae
+            settings_destination->dso_nebula_col = colour_from_string(key_val);
+            continue;
+        } else if (strcmp(key, "dso_label_col") == 0) {
+            //! dso_label_col - Colour to use when labelling deep sky objects
+            settings_destination->dso_label_col = colour_from_string(key_val);
+            continue;
+        } else if (strcmp(key, "dso_outline_col") == 0) {
+            //! dso_outline_col - Colour to use when drawing the outline of deep sky objects
+            settings_destination->dso_outline_col = colour_from_string(key_val);
             continue;
         } else if (strcmp(key, "constellation_label_col") == 0) {
             //! constellation_label_col - Colour to use when writing constellation names
@@ -519,20 +550,26 @@ int main(int argc, char **argv) {
                 return 1;
             }
             continue;
+        } else if (strcmp(key, "constellation_highlight") == 0) {
+            //! constellation_highlight - Optionally highlight the boundary of a particular constellation, referenced
+            //! by its three-letter abbreviation
+            strncpy(settings_destination->constellation_highlight, key_val, 6);
+            settings_destination->constellation_highlight[6] = '\0';
+            continue;
         } else if (strcmp(key, "plot_stars") == 0) {
             //! plot_stars - Boolean (0 or 1) indicating whether we plot any stars
             CHECK_KEYVALNUM("plot_stars")
             settings_destination->plot_stars = (int) key_val_num;
             continue;
-        } else if (strcmp(key, "plot_messier") == 0) {
-            //! plot_messier - Boolean (0 or 1) indicating whether we plot any Messier objects
-            CHECK_KEYVALNUM("plot_messier")
-            settings_destination->plot_messier = (int) key_val_num;
+        } else if (strcmp(key, "messier_only") == 0) {
+            //! messier_only - Boolean (0 or 1) indicating whether we plot only Messier objects and not other DSOs
+            CHECK_KEYVALNUM("messier_only")
+            settings_destination->messier_only = (int) key_val_num;
             continue;
-        } else if (strcmp(key, "plot_ngc") == 0) {
-            //! plot_ngc - Boolean (0 or 1) indicating whether we plot any NGC objects
-            CHECK_KEYVALNUM("plot_ngc")
-            settings_destination->plot_ngc = (int) key_val_num;
+        } else if (strcmp(key, "plot_dso") == 0) {
+            //! plot_dso - Boolean (0 or 1) indicating whether we plot any deep sky objects
+            CHECK_KEYVALNUM("plot_dso")
+            settings_destination->plot_dso = (int) key_val_num;
             continue;
         } else if (strcmp(key, "constellation_names") == 0) {
             //! constellation_names - Boolean (0 or 1) indicating whether we label the names of constellations
@@ -559,6 +596,16 @@ int main(int argc, char **argv) {
             CHECK_KEYVALNUM("star_flamsteed_labels")
             settings_destination->star_flamsteed_labels = (int) key_val_num;
             continue;
+        } else if (strcmp(key, "star_variable_labels") == 0) {
+            //! star_variable_labels - Boolean (0 or 1) indicating whether we label the variable-star designations of stars
+            CHECK_KEYVALNUM("star_variable_labels")
+            settings_destination->star_variable_labels = (int) key_val_num;
+            continue;
+        } else if (strcmp(key, "star_allow_multiple_labels") == 0) {
+            //! star_allow_multiple_labels - Boolean (0 or 1) indicating whether we allow multiple labels next to a single star
+            CHECK_KEYVALNUM("star_allow_multiple_labels")
+            settings_destination->star_allow_multiple_labels = (int) key_val_num;
+            continue;
         } else if (strcmp(key, "star_catalogue") == 0) {
             //! star_catalogue - Select the star catalogue to use when showing the catalogue numbers of stars. Set to
             //! 'hipparcos', 'ybsc' or 'hd'.
@@ -582,35 +629,31 @@ int main(int argc, char **argv) {
             CHECK_KEYVALNUM("star_label_mag_min")
             settings_destination->star_label_mag_min = key_val_num;
             continue;
-        } else if (strcmp(key, "messier_names") == 0) {
-            //! messier_names - Boolean (0 or 1) indicating whether we label the names of Messier objects
-            CHECK_KEYVALNUM("messier_names")
-            settings_destination->messier_names = (int) key_val_num;
+        } else if (strcmp(key, "dso_label_mag_min") == 0) {
+            //! dso_label_mag_min - Do not label DSOs fainter than this magnitude limit
+            CHECK_KEYVALNUM("dso_label_mag_min")
+            settings_destination->dso_label_mag_min = key_val_num;
             continue;
-        } else if (strcmp(key, "messier_mag_labels") == 0) {
-            //! messier_mag_labels - Boolean (0 or 1) indicating whether we label the magnitudes of Messier objects
-            CHECK_KEYVALNUM("messier_mag_labels")
-            settings_destination->messier_mag_labels = (int) key_val_num;
+        } else if (strcmp(key, "dso_names") == 0) {
+            //! dso_names - Boolean (0 or 1) indicating whether we label the names of deep sky objects
+            CHECK_KEYVALNUM("dso_names")
+            settings_destination->dso_names = (int) key_val_num;
             continue;
-        } else if (strcmp(key, "ngc_names") == 0) {
-            //! ngc_names - Boolean (0 or 1) indicating whether we label the names of NGC objects
-            CHECK_KEYVALNUM("ngc_names")
-            settings_destination->ngc_names = (int) key_val_num;
+        } else if (strcmp(key, "dso_mags") == 0) {
+            //! dso_mags - Boolean (0 or 1) indicating whether we label the magnitudes of deep sky objects
+            CHECK_KEYVALNUM("dso_mags")
+            settings_destination->dso_mags = (int) key_val_num;
             continue;
-        } else if (strcmp(key, "ngc_mags") == 0) {
-            //! ngc_mags - Boolean (0 or 1) indicating whether we label the magnitudes of NGC objects
-            CHECK_KEYVALNUM("ngc_mags")
-            settings_destination->ngc_mags = (int) key_val_num;
-            continue;
-        } else if (strcmp(key, "ngc_mag_min") == 0) {
-            //! ngc_mag_min - Only show NGC objects down to this faintest magnitude
-            CHECK_KEYVALNUM("ngc_mag_min")
-            settings_destination->ngc_mag_min = key_val_num;
+        } else if (strcmp(key, "dso_mag_min") == 0) {
+            //! dso_mag_min - Only show deep sky objects down to this faintest magnitude
+            CHECK_KEYVALNUM("dso_mag_min")
+            settings_destination->dso_mag_min = key_val_num;
             continue;
         } else if (strcmp(key, "mag_min") == 0) {
             //! mag_min - The faintest magnitude of star which we draw
             CHECK_KEYVALNUM("mag_min")
             settings_destination->mag_min = key_val_num;
+            settings_destination->mag_min_automatic = 0;
             continue;
         } else if (strcmp(key, "mag_max") == 0) {
             //! mag_max - Used to regulate the size of stars. A star of this magnitude is drawn with size mag_size_norm.
@@ -644,6 +687,17 @@ int main(int argc, char **argv) {
             //! maximum_star_label_count - The maximum number of stars which may be labelled
             CHECK_KEYVALNUM("maximum_star_label_count")
             settings_destination->maximum_star_label_count = (int) key_val_num;
+            continue;
+        } else if (strcmp(key, "maximum_dso_count") == 0) {
+            //! maximum_dso_count - The maximum number of DSOs to draw. If this is exceeded, only the brightest objects
+            //! are shown.
+            CHECK_KEYVALNUM("maximum_dso_count")
+            settings_destination->maximum_dso_count = (int) key_val_num;
+            continue;
+        } else if (strcmp(key, "maximum_dso_label_count") == 0) {
+            //! maximum_dso_label_count - The maximum number of DSOs which may be labelled
+            CHECK_KEYVALNUM("maximum_dso_label_count")
+            settings_destination->maximum_dso_label_count = (int) key_val_num;
             continue;
         } else if (strcmp(key, "plot_ecliptic") == 0) {
             //! plot_ecliptic - Boolean (0 or 1) indicating whether to draw a line along the ecliptic
@@ -717,33 +771,43 @@ int main(int argc, char **argv) {
             CHECK_KEYVALNUM("great_circle_key")
             settings_destination->great_circle_key = (int) key_val_num;
             continue;
+        } else if (strcmp(key, "dso_symbol_key") == 0) {
+            //! dso_symbol_key - Boolean (0 or 1) indicating whether to draw a key to the deep sky object symbols
+            CHECK_KEYVALNUM("dso_symbol_key")
+            settings_destination->dso_symbol_key = (int) key_val_num;
+            continue;
         } else if (strcmp(key, "cardinals") == 0) {
             //! cardinals - Boolean (0 or 1) indicating whether to write the cardinal points around the edge of
             //! alt/az star charts
             CHECK_KEYVALNUM("cardinals")
             settings_destination->cardinals = (int) key_val_num;
             continue;
-        } else if (strcmp(key, "ra_line_count") == 0) {
-            //! ra_line_count - The number of RA lines to draw. If set to 24, then one line of RA every hour.
-            CHECK_KEYVALNUM("ra_line_count")
-            settings_destination->ra_line_count = (int) key_val_num;
-            continue;
-        } else if (strcmp(key, "dec_line_count") == 0) {
-            //! dec_line_count - The number of declination lines to draw. If set to 18, then one line of RA every
-            //! 10 degrees
-            CHECK_KEYVALNUM("dec_line_count")
-            settings_destination->dec_line_count = (int) key_val_num;
+        } else if (strcmp(key, "label_font_size_scaling") == 0) {
+            //! label_font_size_scaling - Scaling factor to be applied to the font size of all star and DSO labels
+            CHECK_KEYVALNUM("label_font_size_scaling")
+            settings_destination->label_font_size_scaling = key_val_num;
             continue;
         } else if (strcmp(key, "draw_ephemeris") == 0) {
             //! draw_ephemeris - Definitions of ephemerides to draw
-            strcpy(settings_destination->ephemeris_definitions[settings_destination->ephmeride_count], key_val);
-            settings_destination->ephmeride_count++;
+            strcpy(settings_destination->ephemeris_definitions[settings_destination->ephemeride_count], key_val);
+            settings_destination->ephemeride_count++;
             continue;
         } else if (strcmp(key, "ephemeris_autoscale") == 0) {
             //! ephemeris_autoscale - Boolean (0 or 1) indicating whether to auto-scale the star chart to contain the
             //! requested ephemerides. This overrides settings for ra_central, dec_central and angular_width.
             CHECK_KEYVALNUM("ephemeris_autoscale")
             settings_destination->ephemeris_autoscale = (int) key_val_num;
+            continue;
+        } else if (strcmp(key, "ephemeris_table") == 0) {
+            //! ephemeris_table - Boolean (0 or 1) indicating whether to include a table of the object's magnitude
+            CHECK_KEYVALNUM("ephemeris_table")
+            settings_destination->ephemeris_table = (int) key_val_num;
+            continue;
+        } else if (strcmp(key, "must_show_all_ephemeris_labels") == 0) {
+            //! ephemeris_autoscale - Boolean (0 or 1) indicating whether we must show all ephemeris text labels,
+            //! even if they collide with other text.
+            CHECK_KEYVALNUM("must_show_all_ephemeris_labels")
+            settings_destination->must_show_all_ephemeris_labels = (int) key_val_num;
             continue;
         } else if (strcmp(key, "ephemeris_compute_path") == 0) {
             //! ephemeris_compute_path - The path to the tool <ephemerisCompute>, used to compute paths for solar

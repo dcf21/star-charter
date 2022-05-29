@@ -1,7 +1,7 @@
 // settings.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -59,6 +59,9 @@
 //! The maximum number of text labels we can buffer
 #define MAX_LABELS 65536
 
+//! The maximum number of exclusion regions we can buffer
+#define MAX_EXCLUSION_REGIONS 65536
+
 //! The maximum number of objects we're allowed to draw ephemeris lines for on a single chart
 #define N_TRACES_MAX 32
 
@@ -69,14 +72,19 @@ typedef struct colour {
 
 //! A structure defining a point in an ephemeris
 typedef struct ephemeris_point {
+    double jd;
     double ra, dec; // radians, J2000
+    double mag;
+    double phase; // 0-1
+    double angular_size; // arcseconds
     char *text_label;
-    int day, month, year, sub_month_label;
+    int sub_month_label;
 } ephemeris_point;
 
 //! A structure defining an ephemeris of a solar system object
 typedef struct ephemeris {
     double jd_start, jd_end, jd_step; // Julian day numbers
+    double maximum_angular_size, minimum_phase, brightest_magnitude;
     int point_count;
     ephemeris_point *data;
 } ephemeris;
@@ -120,6 +128,9 @@ typedef struct chart_config {
     //! Either SW_STICKS_SIMPLIFIED or SW_STICKS_REY
     int constellation_stick_design;
 
+    //! Optionally select a constellation to highlight
+    char constellation_highlight[8];
+
     //! Boolean indicating whether we label the English names of stars
     int star_names;
 
@@ -132,6 +143,12 @@ typedef struct chart_config {
     //! Boolean indicating whether we label the Flamsteed designations of stars
     int star_flamsteed_labels;
 
+    //! Boolean indicating whether we label the variable-star designations of stars
+    int star_variable_labels;
+
+    //! Boolean indicating whether we allow multiple labels next to a single star
+    int star_allow_multiple_labels;
+
     //! Select the star catalogue to use when showing the catalogue numbers of stars
     //! Either SW_CAT_HIP, SW_CAT_YBSC or SW_CAT_HD.
     int star_catalogue;
@@ -139,17 +156,11 @@ typedef struct chart_config {
     //! Boolean indicating whether we label the magnitudes of stars
     int star_mag_labels;
 
-    //! Boolean indicating whether we label the names of Messier objects
-    int messier_names;
-
-    //! Boolean indicating whether we label the magnitudes of Messier objects
-    int messier_mag_labels;
-
     //! Boolean indicating whether we label the names of NGC objects
-    int ngc_names;
+    int dso_names;
 
     //! Boolean indicating whether we label the magnitudes of NGC objects
-    int ngc_mags;
+    int dso_mags;
 
     //! Boolean indicating whether we label the names of constellations
     int constellation_names;
@@ -157,11 +168,11 @@ typedef struct chart_config {
     //! Boolean indicating whether we plot any stars
     int plot_stars;
 
-    //! Boolean indicating whether we plot any Messier objects
-    int plot_messier;
+    //! Boolean indicating whether we plot only Messier objects and no other deep sky objects
+    int messier_only;
 
-    //! Boolean indicating whether we plot any NGC objects
-    int plot_ngc;
+    //! Boolean indicating whether we plot any deep sky objects
+    int plot_dso;
 
     //! Boolean indicating whether we plot only the zodiacal constellations
     int zodiacal_only;
@@ -190,17 +201,23 @@ typedef struct chart_config {
     //! The aspect ratio of the star chart: i.e. the ratio height/width
     double aspect;
 
-    //! The number of RA lines to draw. If set to 24, then one line of RA every hour.
-    int ra_line_count;
-
-    //! The number of declination lines to draw. If set to 18, then one line of RA every 10 degrees
-    int dec_line_count;
-
     //! The maximum number of stars to draw. If this is exceeded, only the brightest stars are shown.
     int maximum_star_count;
 
+    //! The minimum number of stars to draw. If there are fewer stars, then tweak magnitude limits to fainter stars.
+    int minimum_star_count;
+
     //! The maximum number of stars which may be labelled
     int maximum_star_label_count;
+
+    //! The maximum number of DSOs to draw. If this is exceeded, only the brightest objects are shown.
+    int maximum_dso_count;
+
+    //! The maximum number of DSOs which may be labelled
+    int maximum_dso_label_count;
+
+    //! Boolean flag which we set false if the user manually sets a desired <mag_min> value.
+    int mag_min_automatic;
 
     //! The faintest magnitude of star which we draw
     double mag_min;
@@ -220,26 +237,35 @@ typedef struct chart_config {
     //! The radius of a star of magnitude <mag_max>
     double mag_size_norm;
 
-    //! Only show NGC objects down to this faintest magnitude
-    double ngc_mag_min;
+    //! Only show deep sky objects down to this faintest magnitude
+    double dso_mag_min;
 
     //! Do not label stars fainter than this magnitude limit
     double star_label_mag_min;
+
+    //! Do not label DSOs fainter than this magnitude limit
+    double dso_label_mag_min;
 
     //! Computed quantity: the number of rows of star magnitudes we can fit under the chart
     int magnitude_key_rows;
 
     //! The number of ephemeris lines to draw for solar system objects
-    int ephmeride_count;
+    int ephemeride_count;
 
     //! Boolean indicating whether we auto-scale the star chart to the requested ephemerides
     int ephemeris_autoscale;
+
+    //! Boolean indicating whether to include a table of the object's magnitude
+    int ephemeris_table;
+
+    //! Boolean indicating whether we must show all ephemeris text labels, even if they collide with other text
+    int must_show_all_ephemeris_labels;
 
     //! The definitions supplied on the command line for the ephemerides to draw
     char ephemeris_definitions[N_TRACES_MAX][FNAME_LENGTH];
 
     //! The path to the binary tool `ephemeris_compute`, used to compute paths for solar system objects.
-    //! See <https://github.com/dcf21/ephemeris-compute>
+    //! See <https://github.com/dcf21/ephemeris-compute-de430>
     char ephemeris_compute_path[FNAME_LENGTH];
 
     //! The target filename for the star chart. The file type (svg, png, eps or pdf) is inferred from the file extension.
@@ -266,11 +292,20 @@ typedef struct chart_config {
     //! Colour to use when writing constellation names
     colour constellation_label_col;
 
-    //! Colour to use when drawing Messier objects
-    colour messier_col;
+    //! Colour to use when drawing star clusters
+    colour dso_cluster_col;
 
-    //! Colour to use when drawing NGC objects
-    colour ngc_col;
+    //! Colour to use when drawing galaxies
+    colour dso_galaxy_col;
+
+    //! Colour to use when drawing nebulae
+    colour dso_nebula_col;
+
+    //! Colour to use when writing the labels for deep sky objects
+    colour dso_label_col;
+
+    //! Colour to use when drawing the outlines of deep sky objects
+    colour dso_outline_col;
 
     //! Colour to use when drawing stars
     colour star_col;
@@ -323,8 +358,36 @@ typedef struct chart_config {
     //! Boolean indicating whether to draw a key to the great circles under the star chart
     int great_circle_key;
 
+    //! Boolean indicating whether to draw a key to the deep sky symbols under the star chart
+    int dso_symbol_key;
+
     //! Boolean indicating whether to write the cardinal points around the edge of alt/az star charts
     int cardinals;
+
+    //! Scaling factor to be applied to the font size of all star and DSO labels
+    double label_font_size_scaling;
+
+    // ----------------------------------------
+    // Settings which we don't currently expose
+    // ----------------------------------------
+
+    //! The font family we should use for text output
+    char font_family[64];
+
+    //! The line width to use when tracing great circles
+    double great_circle_line_width;
+
+    //! The line width to use when plotting the coordinate grid in the background of the star chart
+    double coordinate_grid_line_width;
+
+    //! Scaling factor to apply to the point size used to represent deep sky objects
+    double dso_point_size_scaling;
+
+    //! Line width to use for constellation stick figures
+    double constellation_sticks_line_width;
+
+    //! Line width to use for the edge of the star chart
+    double chart_edge_line_width;
 
     // ---------------
     // Calculated data
@@ -338,6 +401,9 @@ typedef struct chart_config {
 
     double canvas_width, canvas_height, canvas_offset_x, canvas_offset_y, dpi, pt, cm, mm, line_width_base;
     double wlin, x_min, x_max, y_min, y_max;
+
+    //! Width of the right-hand column of the legend under the finder chart
+    double legend_right_column_width;
 
     //! Cairo surface for drawing star chart onto
     cairo_surface_t *cairo_surface;

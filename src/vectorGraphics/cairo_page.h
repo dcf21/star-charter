@@ -1,7 +1,7 @@
 // cairo_page.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -28,14 +28,6 @@
 #include "listTools/ltList.h"
 
 #include "settings/chart_config.h"
-
-//! Return the maximum of two values
-
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
-
-//! Return the minimum of two values
-
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 typedef struct {
     // The (x, y) position to label (star chart angular coordinates)
@@ -98,6 +90,8 @@ void chart_label_buffer(cairo_page *p, chart_config *s, colour colour, const cha
                         double priority);
 
 void chart_label_unbuffer(cairo_page *p);
+
+void chart_add_label_exclusion(cairo_page *p, chart_config *s, double x_min, double x_max, double y_min, double y_max);
 
 int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label,
                 const label_position *possible_positions, int possible_position_count, int multiple_labels,

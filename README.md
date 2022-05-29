@@ -8,19 +8,23 @@ solar system objects, such as planets and comets, across the sky if the tool
 [ephemerisCompute](https://github.com/dcf21/ephemeris-compute-de430) is also
 installed.
 
-`StarCharter` was written to produce all of the star charts on the website
+`StarCharter` was written to produce all the star charts on the website
 <https://in-the-sky.org>, which is maintained by the author.
 
 ### Supported operating systems
 
-`ephemerisCompute` is written in C and runs in Linux, MacOS, and other
-Unix-like operating systems.  The installation scripts require python3.
-`StarCharter` uses `libcairo` to produce its graphical output.
+`StarCharter` is written in C and runs in Linux, MacOS, and other Unix-like
+operating systems.  The installation scripts require python3.  `StarCharter`
+uses `libcairo` to produce its graphical output.
+
+The build process requires a minimum of 4GB RAM. Note that Docker Desktop for
+Mac imposes a default memory limit of 2GB, which needs to be increased to build
+`StarCharter` successfully.
 
 ### License
 
 This code is distributed under the Gnu General Public License. It is (C)
-Dominic Ford 2015 - 2020.
+Dominic Ford 2015 - 2022.
 
 ### Set up
 
@@ -30,6 +34,24 @@ Milky Way to use to shade the background of star charts.
 
 This can be done with the shell script `setup.sh`. The total download size will
 be around 500 MB.
+
+### Docker container
+
+A `Dockerfile` is provided to build `StarCharter`. A `docker compose` script is
+provided to build a selection of example starcharts:
+
+```
+docker compose build
+docker compose run star-charter
+```
+
+This builds some example starcharts, which are written to the directory
+`examples/output`. To make other star charts, open a shell within the Docker
+container as follows:
+
+```
+docker run -it star-charter:v1 /bin/bash
+```
 
 ## Generating a star chart
 
@@ -52,12 +74,12 @@ The file `orion.sch` reads as follows:
 ```
 DEFAULTS
 ra_central=5.5
-dec_central=0.0
-angular_width=25.0
-width=12.0
+dec_central=4.0
+angular_width=29.0
+mag_min=7
+width=15.0
 aspect=1.41421356
 ra_dec_lines=1
-messier_names=0
 constellation_boundaries=1
 constellation_sticks=1
 coords=ra_dec
@@ -66,6 +88,10 @@ star_names=1
 star_flamsteed_labels=0
 constellation_names=1
 plot_galaxy_map=1
+plot_equator=0
+plot_ecliptic=0
+plot_galactic_plane=1
+font_size=1.2
 
 CHART
 output_filename=output/orion.png
@@ -139,13 +165,14 @@ ephemerides.
 
 The following settings can be included in a `StarCharter` configuration file:
 
-* `angular_width` - The angular width of the star chart on the sky, degrees
+* `angular_width` - The angular width of the star chart on the sky; degrees
 * `aspect` - The aspect ratio of the star chart: i.e. the ratio height/width
 * `axis_label` - Boolean (0 or 1) indicating whether to write "Right ascension" and "Declination" on the vertical/horizontal axes
 * `axis_ticks_value_only` - If 1, axis labels will appear as simply "5h" or "30 deg". If 0, these labels will be preceded by alpha= or delta=
 * `cardinals` - Boolean (0 or 1) indicating whether to write the cardinal points around the edge of alt/az star charts
 * `constellation_boundaries` - Boolean (0 or 1) indicating whether we draw constellation boundaries
 * `constellation_boundary_col` - Colour to use when drawing constellation boundaries
+* `constellation_highlight` - Optionally, highlight the boundary of one particular constellation, identified by a three-letter abbreviation.
 * `constellation_label_col` - Colour to use when writing constellation names
 * `constellation_names` - Boolean (0 or 1) indicating whether we label the names of constellations
 * `constellation_stick_col` - Colour to use when drawing constellation stick figures
@@ -155,13 +182,22 @@ The following settings can be included in a `StarCharter` configuration file:
 * `copyright_gap_2` - Spacing of the copyright text beneath the plot
 * `copyright_gap` - Spacing of the copyright text beneath the plot
 * `copyright` - The copyright string to write under the star chart
-* `dec_central` - The declination at the centre of the plot, degrees
-* `dec_line_count` - The number of declination lines to draw. If set to 18, then one line of RA every 10 degrees
+* `dec_central` - The declination at the centre of the plot; degrees
 * `draw_ephemeris` - Definitions of ephemerides to draw
+* `dso_cluster_col` - Colour to use when drawing star clusters
+* `dso_galaxy_col` - Colour to use when drawing galaxies
+* `dso_label_col` - Colour to use when writing the labels for deep sky objects
+* `dso_label_mag_min` - Do not label stars fainter than this magnitude limit (default: unlimited)
+* `dso_mag_min` - Only show NGC objects down to this faintest magnitude
+* `dso_mags` - Boolean (0 or 1) indicating whether we label the magnitudes of NGC objects
+* `dso_names` - Boolean (0 or 1) indicating whether we label the names of NGC objects
+* `dso_nebula_col` - Colour to use when drawing nebulae
+* `dso_outline_col` - Colour to use when drawing the outline of deep sky objects
+* `dso_symbol_key` - Boolean (0 or 1) indicating whether we include a key to the symbols used to represent deep sky objects
 * `ecliptic_col` - Colour to use when drawing a line along the ecliptic
 * `ephemeris_autoscale` - Boolean (0 or 1) indicating whether to auto-scale the star chart to contain the requested ephemerides. This overrides settings for ra_central, dec_central and angular_width.
 * `ephemeris_col` - Colour to use when drawing ephemerides for solar system objects
-* `ephemeris_compute_path` - The path to the tool <ephemerisCompute>, used to compute paths for solar system objects. See <https://github.com/dcf21/ephemeris-compute-de430>. If this tool is installed in the same directory as StarCharter, the default value should be <../ephemeris-compute-de430/bin/ephem.bin>.
+* `ephemeris_compute_path` - The path to the tool <ephemerisCompute>, used to compute paths for solar system objects. See <https://github.com/dcf21/ephemeris-compute-de430>. If this tool is installed in the same directory as StarCharter, the default value should be <../ephemerisCompute/bin/ephem.bin>.
 * `equator_col` - Colour to use when drawing a line along the equator
 * `font_size` - A normalisation factor to apply to the font size of all text (default 1.0)
 * `galactic_plane_col` - Colour to use when drawing a line along the galactic plane
@@ -172,6 +208,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `great_circle_key` - Boolean (0 or 1) indicating whether to draw a key to the great circles under the star chart
 * `grid_col` - Colour to use when drawing grid of RA/Dec lines
 * `label_ecliptic` - Boolean (0 or 1) indicating whether to label the months along the ecliptic, showing the Sun's annual progress
+* `label_font_size_scaling` - Scaling factor to be applied to the font size of all star and DSO labels (default 1.0)
 * `language` - The language used for the constellation names. Either "english" or "french".
 * `mag_alpha` - The multiplicative scaling factor to apply to the radii of stars differing in magnitude by one <mag_step>
 * `mag_max` - Used to regulate the size of stars. A star of this magnitude is drawn with size mag_size_norm. Also, this is the brightest magnitude of star which is shown in the magnitude key below the chart.
@@ -179,37 +216,34 @@ The following settings can be included in a `StarCharter` configuration file:
 * `magnitude_key` - Boolean (0 or 1) indicating whether to draw a key to the magnitudes of stars under the star chart
 * `mag_size_norm` - The radius of a star of magnitude <mag_max> (default 1.0)
 * `mag_step` - The magnitude interval between the samples shown on the magnitude key under the chart
+* `maximum_dso_count` - The maximum number of deep sky objects to draw. If this is exceeded, only the brightest objects are shown.
+* `maximum_dso_label_count` - The maximum number of deep sky objects which may be labelled
 * `maximum_star_count` - The maximum number of stars to draw. If this is exceeded, only the brightest stars are shown.
 * `maximum_star_label_count` - The maximum number of stars which may be labelled
-* `messier_col` - Colour to use when drawing Messier objects
-* `messier_mag_labels` - Boolean (0 or 1) indicating whether we label the magnitudes of Messier objects
-* `messier_names` - Boolean (0 or 1) indicating whether we label the names of Messier objects
-* `ngc_col` - Colour to use when drawing NGC objects
-* `ngc_mag_min` - Only show NGC objects down to this faintest magnitude
-* `ngc_mags` - Boolean (0 or 1) indicating whether we label the magnitudes of NGC objects
-* `ngc_names` - Boolean (0 or 1) indicating whether we label the names of NGC objects
+* `messier_only` - Boolean (0 or 1) indicating whether we plot only Messier objects, and no other deep sky objects
+* `must_show_all_ephemeris_labels` - Boolean (0 or 1) indicating whether we show all ephemeris text labels, even if they collide with other text.
 * `output_filename` - The target filename for the star chart. The file type (svg, png, eps or pdf) is inferred from the file extension.
 * `photo_filename` - The filename of a PNG image to render behind the star chart. Leave blank to show no image.
+* `plot_dso` - Boolean (0 or 1) indicating whether we plot any deep-sky objects
 * `plot_ecliptic` - Boolean (0 or 1) indicating whether to draw a line along the ecliptic
 * `plot_equator` - Boolean (0 or 1) indicating whether to draw a line along the equator
 * `plot_galactic_plane` - Boolean (0 or 1) indicating whether to draw a line along the galactic plane
 * `plot_galaxy_map` - Boolean (0 or 1) indicating whether to draw a shaded map of the Milky Way behind the star chart
-* `plot_messier` - Boolean (0 or 1) indicating whether we plot any Messier objects
-* `plot_ngc` - Boolean (0 or 1) indicating whether we plot any NGC objects
 * `plot_stars` - Boolean (0 or 1) indicating whether we plot any stars
 * `position_angle` - The position angle of the plot - i.e. the tilt of north, counter-clockwise from up, at the centre of the plot
 * `projection` - Select projection to use. Set to either flat, peters, gnomonic, sphere or alt_az
-* `ra_central` - The right ascension at the centre of the plot, hours
+* `ra_central` - The right ascension at the centre of the plot; hours, J2000.0
 * `ra_dec_lines` - Boolean (0 or 1) indicating whether we draw a grid of RA/Dec lines in background of star chart
-* `ra_line_count` - The number of RA lines to draw. If set to 24, then one line of RA every hour.
+* `star_allow_multiple_labels` - Boolean (0 or 1) indicating whether we allow multiple labels next to a single star. If false, we only include the highest-priority label for each object.
 * `star_bayer_labels` - Boolean (0 or 1) indicating whether we label the Bayer numbers of stars
 * `star_catalogue_numbers` - Boolean (0 or 1) indicating whether we label the catalogue numbers of stars
 * `star_catalogue` - Select the star catalogue to use when showing the catalogue numbers of stars. Set to 'hipparcos', 'ybsc' or 'hd'.
 * `star_col` - Colour to use when drawing stars
 * `star_flamsteed_labels` - Boolean (0 or 1) indicating whether we label the Flamsteed designations of stars
-* `star_label_mag_min` - Do not label stars fainter than this magnitude limit
+* `star_label_mag_min` - Do not label stars fainter than this magnitude limit (default: unlimited)
 * `star_mag_labels` - Boolean (0 or 1) indicating whether we label the magnitudes of stars
 * `star_names` - Boolean (0 or 1) indicating whether we label the English names of stars
+* `star_variable_labels` - Boolean (0 or 1) indicating whether we label the variable-star designations of stars, e.g. V337_Car
 * `title` - The heading to write at the top of the star chart
 * `width` - The width of the star chart, in cm
 * `x_label_slant` - A slant to apply to all labels on the horizontal axes

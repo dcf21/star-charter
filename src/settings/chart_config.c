@@ -1,7 +1,7 @@
 // settings.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -49,39 +49,47 @@ void default_config(chart_config *i) {
     i->constellation_stick_design = SW_STICKS_SIMPLIFIED;
     i->constellation_names = 1;
     i->plot_stars = 1;
-    i->plot_messier = 1;
-    i->plot_ngc = 0;
+    i->messier_only = 0;
+    i->plot_dso = 1;
     i->zodiacal_only = 0;
     i->star_names = 1;
     i->star_catalogue_numbers = 0;
     i->star_catalogue = SW_CAT_HIP;
     i->star_bayer_labels = 0;
     i->star_flamsteed_labels = 0;
+    i->star_variable_labels = 0;
+    i->star_allow_multiple_labels = 0;
     i->star_mag_labels = 0;
     i->star_label_mag_min = 9999;
-    i->messier_names = 1;
-    i->messier_mag_labels = 0;
-    i->ngc_names = 0;
-    i->ngc_mags = 0;
-    i->ngc_mag_min = 999;
+    i->dso_label_mag_min = 9999;
+    i->dso_names = 1;
+    i->dso_mags = 0;
+    i->dso_mag_min = 14;
     i->angular_width = 25.0;
     i->width = 16.5;
     i->aspect = 1.41421356;
-    i->ephmeride_count = 0;
+    i->ephemeride_count = 0;
     i->ephemeris_autoscale = 0;
+    i->ephemeris_table = 0;
+    i->must_show_all_ephemeris_labels = 0;
     i->mag_min = 6.0;
+    i->mag_min_automatic = 1;
     i->mag_max = 0.0;
     i->mag_step = 0.5;
     i->mag_alpha = 1.1727932;
     i->mag_size_norm = 0.4;
     i->maximum_star_count = 1693;
+    i->minimum_star_count = 0;
     i->maximum_star_label_count = 1000;
-    i->ra_line_count = 24;
-    i->dec_line_count = 18;
+    i->maximum_dso_count = 500;
+    i->maximum_dso_label_count = 100;
     i->copyright_gap = 0;
     i->copyright_gap_2 = 0;
-    i->messier_col = (colour) {0.1, 0.6, 0.25};
-    i->ngc_col = (colour) {0, 0.5, 0};
+    i->dso_cluster_col = (colour) {0.8, 0.8, 0.25};
+    i->dso_galaxy_col = (colour) {0.75, 0.15, 0.15};
+    i->dso_nebula_col = (colour) {0.25, 0.75, 0.25};
+    i->dso_label_col = (colour) {0, 0, 0};
+    i->dso_outline_col = (colour) {0.25, 0.25, 0.25};
     i->plot_ecliptic = 1;
     i->label_ecliptic = 0;
     i->plot_galactic_plane = 1;
@@ -102,13 +110,27 @@ void default_config(chart_config *i) {
     i->star_label_col = (colour) {0, 0, 0};
     i->magnitude_key = 1;
     i->great_circle_key = 1;
+    i->dso_symbol_key = 1;
     i->cardinals = 1;
+    i->label_font_size_scaling = 1;
+    strcpy(i->constellation_highlight, "---");
     strcpy(i->ephemeris_compute_path, SRCDIR "../../ephemeris-compute-de430/bin/ephem.bin");
     strcpy(i->galaxy_map_filename, SRCDIR "../data/milkyWay/process/output/galaxymap.dat");
     strcpy(i->photo_filename, "");
     strcpy(i->output_filename, "chart");
     strcpy(i->copyright, "");
     strcpy(i->title, "");
+
+    // ----------------------------------------
+    // Settings which we don't currently expose
+    // ----------------------------------------
+
+    strcpy(i->font_family, "Roboto");
+    i->great_circle_line_width = 1.75;
+    i->coordinate_grid_line_width = 1.3;
+    i->dso_point_size_scaling = 1;
+    i->constellation_sticks_line_width = 1.4;
+    i->chart_edge_line_width = 2.5;
 }
 
 void config_init(chart_config *i) {

@@ -1,7 +1,7 @@
 // greatCircles.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -35,7 +35,7 @@ void plot_galactic_plane(chart_config *s, line_drawer *ld, cairo_page *page);
 
 void plot_ecliptic(chart_config *s, line_drawer *ld, cairo_page *page);
 
-void draw_great_circle_key(chart_config *s);
+double draw_great_circle_key(chart_config *s, double legend_y_pos);
 
 #endif
 

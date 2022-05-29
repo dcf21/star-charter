@@ -1,7 +1,7 @@
 // ephemeris.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -106,7 +106,7 @@ void plot_equator(chart_config *s, line_drawer *ld, cairo_page *page) {
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgb(s->cairo_draw, s->equator_col.red, s->equator_col.grn, s->equator_col.blu);
-    cairo_set_line_width(s->cairo_draw, 1.75);
+    cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
 
     plot_great_circle(0, 90, s, ld, page, 0, NULL, s->equator_col);
 }
@@ -121,7 +121,7 @@ void plot_galactic_plane(chart_config *s, line_drawer *ld, cairo_page *page) {
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgb(s->cairo_draw, s->galactic_plane_col.red, s->galactic_plane_col.grn,
                          s->galactic_plane_col.blu);
-    cairo_set_line_width(s->cairo_draw, 1.75);
+    cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
 
     plot_great_circle((12. + 51. / 60 + 26.282 / 3600.) / 24. * 360., (27. + 7.0 / 60. + 42.01 / 3600.), s,
                       ld, page, 0, NULL, s->galaxy_col);
@@ -149,7 +149,7 @@ void plot_ecliptic(chart_config *s, line_drawer *ld, cairo_page *page) {
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgb(s->cairo_draw, s->ecliptic_col.red, s->ecliptic_col.grn, s->ecliptic_col.blu);
-    cairo_set_line_width(s->cairo_draw, 1.75);
+    cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
 
     plot_great_circle(18. / 24. * 360., 90. - 23.4, s, ld, page, s->label_ecliptic ? 12 : 0, labels,
                       s->ecliptic_col);
@@ -158,19 +158,19 @@ void plot_ecliptic(chart_config *s, line_drawer *ld, cairo_page *page) {
 //! draw_great_circle_key - Draw a legend below the star chart indicating the colours of the lines representing great
 //! circles.
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param legend_y_pos - The vertical pixel position of the top of the next legend to go under the star chart.
 
-void draw_great_circle_key(chart_config *s) {
+double draw_great_circle_key(chart_config *s, double legend_y_pos) {
     const int N = (s->plot_equator != 0) + (s->plot_ecliptic != 0) + (s->plot_galactic_plane != 0);
     const double w_left = 0.4; // The left margin
     const double w_item = 4.2 * s->font_size; // The width of each legend item (cm)
 
     // The top (y0) and bottom (y1) of the legend
-    const double y0 = s->canvas_offset_y * 2 + s->width * s->aspect
-                      + 0.9 + (s->magnitude_key ? (0.4 + 0.8 * s->magnitude_key_rows) : 0) + s->copyright_gap;
+    const double y0 = legend_y_pos;
     const double y1 = y0 - 0.4;
 
     // The horizontal position of the centre of the legend
-    const double x1 = s->canvas_offset_x + s->width / 2;
+    const double x1 = s->canvas_offset_x + (s->width - s->legend_right_column_width) / 2;
 
     // The width of the legend
     const double xw = w_left * 1.5 + w_item * N;
@@ -186,7 +186,7 @@ void draw_great_circle_key(chart_config *s) {
     x += w_left;
 
     // Reset font weight
-    cairo_select_font_face(s->cairo_draw, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_select_font_face(s->cairo_draw, s->font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
     // Draw item on legend showing the colour of the equator
     if (s->plot_equator != 0) {
@@ -260,4 +260,7 @@ void draw_great_circle_key(chart_config *s) {
         // Advance horizontally to draw the next item in the legend
         //x += w_item;
     }
+
+    const double new_bottom_to_legend_items = y0 + 1.0;
+    return new_bottom_to_legend_items;
 }

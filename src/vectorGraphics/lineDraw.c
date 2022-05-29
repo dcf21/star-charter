@@ -1,7 +1,7 @@
 // lineDraw.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -20,7 +20,6 @@
 // -------------------------------------------------
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
 #include <string.h>
 
@@ -33,20 +32,6 @@
 
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
-
-//! min - Return the minimum of two values
-//! \param a - First value
-//! \param b - Second value
-//! \return - The minimum of the two values
-
-static double min(double a, double b) { return (a < b) ? a : b; }
-
-//! max - Return the maximum of two values
-//! \param a - First value
-//! \param b - Second value
-//! \return - The maximum of the two values
-
-static double max(double a, double b) { return (a > b) ? a : b; }
 
 //! list_add_tick - Add a label to one of the axes of a star chart, indicating a particular RA or Dec
 //! \param l - The list of labels to go along a particular axis of a chart
@@ -92,7 +77,9 @@ void truncate_at_axis(double *xout, double *yout, double x0, double y0, double x
     if (x1 != x0) {
         // Look for intersection with left edge of chart
         y = (xmin - x0) * (y1 - y0) / (x1 - x0) + y0;
-        if ((y <= max(y0, y1)) && (y >= min(y0, y1)) && (xmin <= max(x1, x0)) && (xmin >= min(x1, x0))) {
+        if (
+                (y <= gsl_max(y0, y1)) && (y >= gsl_min(y0, y1)) &&
+                (xmin <= gsl_max(x1, x0)) && (xmin >= gsl_min(x1, x0))) {
             list_add_tick(ylabels, y, label);
             *xout = xmin;
             *yout = y;
@@ -100,7 +87,9 @@ void truncate_at_axis(double *xout, double *yout, double x0, double y0, double x
         }
         // Look for intersection with right edge of chart
         y = (xmax - x0) * (y1 - y0) / (x1 - x0) + y0;
-        if ((y <= max(y0, y1)) && (y >= min(y0, y1)) && (xmax <= max(x1, x0)) && (xmax >= min(x1, x0))) {
+        if (
+                (y <= gsl_max(y0, y1)) && (y >= gsl_min(y0, y1)) &&
+                (xmax <= gsl_max(x1, x0)) && (xmax >= gsl_min(x1, x0))) {
             list_add_tick(y2labels, y, label);
             *xout = xmax;
             *yout = y;
@@ -111,7 +100,9 @@ void truncate_at_axis(double *xout, double *yout, double x0, double y0, double x
     if (y1 != y0) {
         // Look for intersection with top edge of chart
         x = (ymin - y0) * (x1 - x0) / (y1 - y0) + x0;
-        if ((x <= max(x0, x1)) && (x >= min(x0, x1)) && (ymin <= max(y1, y0)) && (ymin >= min(y1, y0))) {
+        if (
+                (x <= gsl_max(x0, x1)) && (x >= gsl_min(x0, x1)) &&
+                (ymin <= gsl_max(y1, y0)) && (ymin >= gsl_min(y1, y0))) {
             list_add_tick(xlabels, x, label);
             *xout = x;
             *yout = ymin;
@@ -119,7 +110,9 @@ void truncate_at_axis(double *xout, double *yout, double x0, double y0, double x
         }
         // Look for intersection with bottom edge of chart
         x = (ymax - y0) * (x1 - x0) / (y1 - y0) + x0;
-        if ((x <= max(x0, x1)) && (x >= min(x0, x1)) && (ymax <= max(y1, y0)) && (ymax >= min(y1, y0))) {
+        if (
+                (x <= gsl_max(x0, x1)) && (x >= gsl_min(x0, x1)) &&
+                (ymax <= gsl_max(y1, y0)) && (ymax >= gsl_min(y1, y0))) {
             list_add_tick(x2labels, x, label);
             *xout = x;
             *yout = ymax;
@@ -262,16 +255,14 @@ void ld_point_plot(line_drawer *self, double x, double y, const char *name) {
             if (!self->haddata) {
                 cairo_new_path(self->s->cairo_draw);
                 cairo_move_to(self->s->cairo_draw, x_canvas, y_canvas);
-            }
-            else cairo_line_to(self->s->cairo_draw, x_canvas, y_canvas);
+            } else cairo_line_to(self->s->cairo_draw, x_canvas, y_canvas);
             self->haddata = 1;
         }
         fetch_canvas_coordinates(&x_canvas, &y_canvas, x, y, self->s);
         if (!self->haddata) {
             cairo_new_path(self->s->cairo_draw);
             cairo_move_to(self->s->cairo_draw, x_canvas, y_canvas);
-        }
-        else cairo_line_to(self->s->cairo_draw, x_canvas, y_canvas);
+        } else cairo_line_to(self->s->cairo_draw, x_canvas, y_canvas);
         self->haddata = 1;
         self->penup = 0;
     } else {
@@ -288,8 +279,7 @@ void ld_point_plot(line_drawer *self, double x, double y, const char *name) {
             if (!self->haddata) {
                 cairo_new_path(self->s->cairo_draw);
                 cairo_move_to(self->s->cairo_draw, x_canvas, y_canvas);
-            }
-            else cairo_line_to(self->s->cairo_draw, x_canvas, y_canvas);
+            } else cairo_line_to(self->s->cairo_draw, x_canvas, y_canvas);
             self->haddata = 1;
         }
         ld_pen_up(self, GSL_NAN, GSL_NAN, NULL, 0);

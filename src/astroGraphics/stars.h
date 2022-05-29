@@ -1,7 +1,7 @@
 // stars.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2020 Dominic Ford
+// Copyright 2015-2022 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -33,7 +33,7 @@ void tweak_magnitude_limits(chart_config *s);
 
 void plot_stars(chart_config *s, cairo_page *page);
 
-void draw_magnitude_key(chart_config *s);
+double draw_magnitude_key(chart_config *s, double legend_y_pos);
 
 #endif
 
