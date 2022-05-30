@@ -97,6 +97,51 @@ static void plot_great_circle(double ra0, double dec0, chart_config *s, line_dra
         }
 }
 
+//small modification to print half circle, useful for meridians.
+
+static void plot_great_half_circle(double ra0, double dec0, chart_config *s, line_drawer *ld,
+                              cairo_page *page, int n_labels, gc_label *labels, colour colour) {
+    int i;
+    ra0 = ra0 * M_PI / 180;
+    dec0 = dec0 * M_PI / 180;
+    ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
+    for (i = 0; i <= N_SAMPLES; i++) {
+        const double l = M_PI * ((double) i) / N_SAMPLES;
+        double a[3] = {cos(l), sin(l), 0.};
+        double ra, dec, x, y;
+
+        rotate_xz(a, a, dec0 - (M_PI / 2));
+        rotate_xy(a, a, ra0);
+
+        dec = asin(a[2]);
+        ra = atan2(a[1], a[0]);
+        plane_project(&x, &y, s, ra, dec, 0);
+        ld_point(ld, x, y, NULL);
+    }
+    ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
+
+    if (n_labels)
+        for (i = 0; i < n_labels; i++) {
+            const double l = 2 * M_PI * (labels[i].xpos) / 365.2524;
+            double a[3] = {cos(l), sin(l), 0.};
+            double ra, dec, x, y;
+
+            rotate_xz(a, a, dec0 - (M_PI / 2));
+            rotate_xy(a, a, ra0);
+
+            dec = asin(a[2]);
+            ra = atan2(a[1], a[0]);
+            plane_project(&x, &y, s, ra, dec, 0);
+            ld_point(ld, x, y + 0.035, NULL);
+            ld_point(ld, x, y - 0.035, NULL);
+            ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
+
+            chart_label_buffer(page, s, colour, labels[i].label,
+                               &(label_position) {x, y + 0.045, 0, 0, -1}, 1,
+                               0, 1, 2.0, 1, 0, 0, -0.5);
+        }
+}
+
 //! plot_equator - Draw a line along the celestial equator
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 //! \param ld - A <line_drawer> structure used to draw lines on a cairo surface.
@@ -109,6 +154,15 @@ void plot_equator(chart_config *s, line_drawer *ld, cairo_page *page) {
     cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
 
     plot_great_circle(0, 90, s, ld, page, 0, NULL, s->equator_col);
+//}
+//when we plot the equator, we also plot RA=0 meridian
+//void plot_meridian(chart_config *s, line_drawer *ld, cairo_page *page) {
+    // Set line colour
+    ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
+    cairo_set_source_rgb(s->cairo_draw, s->equator_col.red, s->equator_col.grn, s->equator_col.blu);
+    cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
+
+    plot_great_half_circle(-90, 0, s, ld, page, 0, NULL, s->equator_col);
 }
 
 //! plot_galactic_plane - Draw a line along the plane of the Milky Way
