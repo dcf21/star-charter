@@ -64,7 +64,7 @@ typedef struct {
 } exclusion_region;
 
 typedef struct {
-    list *x_labels, *x2_labels, *y_labels, *y2_labels;
+    list *x_labels, *x2_labels, *y_labels, *y2_labels, *r_labels;
 
     label_buffer_item *labels_buffer;
     int labels_buffer_counter;

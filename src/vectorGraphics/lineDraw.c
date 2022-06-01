@@ -48,6 +48,19 @@ static void list_add_tick(list *l, double x, const char *label) {
     listAppendPtr(l, buff, FNAME_LENGTH, 0, DATATYPE_VOID);
 }
 
+//Solve second degree equation
+void solve2deg(double *sol1, double *sol2, double a, double b, double c){
+	double delta= b*b-4*a*c;
+	if(delta >= 0){
+		*sol1=(-b+sqrt(delta))/(2*a);
+		*sol2=(-b-sqrt(delta))/(2*a);
+	}
+	else{
+		*sol1=*sol2=GSL_NAN;
+	}
+
+}
+
 //! truncate_at_axis - Take a line segment which passes outside the boundary of the star chart, and truncate it at the
 //! edge of the chart. Also, if this line has a text label associated with it, then place a label on the axis where
 //! this line meets it, typically denoting the RA or the Dec being traced by this line.
@@ -125,6 +138,69 @@ void truncate_at_axis(double *xout, double *yout, double x0, double y0, double x
     *yout = y0;
 }
 
+//truncate_at_round_edge: looks for intersection with the edge of the chart in Alt_Az charts
+
+void truncate_at_round_edge(double *xout, double *yout, double x0, double y0, double x1, 
+			double y1, char *label, list *rlabels) {
+    //printf("truncate_at_round_edge was called, lineDraw.c\n");
+    double x=GSL_NAN, y=GSL_NAN, s1, s2, theta=GSL_NAN;
+
+    if (x1 != x0) {
+	//printf("case x1=%f, x0=%f\nnorms: old=%f, new=%f\n", x1, x0, x1*x1+y1*y1, x0*x0+y0*y0);
+        // Look for intersection with round edge of chart
+        double m = (y1 - y0) / (x1 - x0);
+	solve2deg(&s1, &s2, 1+m*m, 2*m*(y0-m*x0), m*m*x0*x0+y0*y0-2*m*x0*y0-1);
+	//printf("solutions:s1=%f, s2=%f\n", s1, s2);
+        if ((s1 <= gsl_max(x0, x1)) && (s1 >= gsl_min(x0, x1))){
+	    x=s1;
+	    //printf("s1 accepted");
+	} else if ((s2 <= gsl_max(x0, x1)) && (s2 >= gsl_min(x0, x1))){
+	    x=s2;
+	    //printf("s2 accepted");
+	}
+	y=m*(x-x0)+y0;
+	//printf("x=%f\ny=%f\n", x, y);
+	/*if (x >= 0) {
+	    theta=asin(y);
+	} else if (y>=0){
+	    theta=acos(x);
+	} else if (x<0 && y<0) {
+		theta=M_PI+acos(-x);
+	}
+	if (theta != GSL_NAN){
+            list_add_tick(rlabels, theta, label);
+            *xout = x;
+            *yout = y;
+            return;
+        }*/
+    } else if (y1 != y0) {
+	    x=x0;
+	    if (sqrt(1-x0*x0)>gsl_min(y0, y1)&& sqrt(1-x0*x0)<gsl_max(y0, y1)) {
+		    y=sqrt(1-x0*x0);
+	    } else if (-sqrt(1-x0*x0)>gsl_min(y0, y1)&& -sqrt(1-x0*x0)<gsl_max(y0, y1)) {
+		    y=-sqrt(1-x0*x0);
+	    }
+    }
+    if (x >= 0) {
+            theta=asin(y);
+        } else if (y>=0){
+            theta=acos(x);
+        } else if (x<0 && y<0) {
+                theta=M_PI+acos(-x);
+    }
+    if (theta != GSL_NAN){
+        list_add_tick(rlabels, theta, label);
+	//printf("theta=%f\n", theta);
+	*xout = x;
+        *yout = y;
+        return;
+    }
+    // If no intersection found, then simply return the position of the start of the line
+    *xout = x0;
+    *yout = y0;
+}
+
+
 //! ld_init - Initialise this module for drawing lines on star charts
 //! \param self - The <line_drawer> structure used to hold data about this line drawing module instance.
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
@@ -133,7 +209,7 @@ void truncate_at_axis(double *xout, double *yout, double x0, double y0, double x
 //! \param ylabels - The list of labels to place on the left edge of the chart
 //! \param y2labels - The list of labels to place on the right edge of the chart
 
-void ld_init(line_drawer *self, chart_config *s, list *xlabels, list *x2labels, list *ylabels, list *y2labels) {
+void ld_init(line_drawer *self, chart_config *s, list *xlabels, list *x2labels, list *ylabels, list *y2labels, list *rlabels) {
     self->label = NULL;
     self->label_on_x = 1;
     self->label_on_y = 1;
@@ -147,6 +223,7 @@ void ld_init(line_drawer *self, chart_config *s, list *xlabels, list *x2labels, 
     self->x2labels = x2labels;
     self->ylabels = ylabels;
     self->y2labels = y2labels;
+    self->rlabels = rlabels;
     self->s = s;
     self->wlin = s->wlin;
     self->xold = GSL_NAN;
@@ -180,6 +257,7 @@ void ld_pen_up(line_drawer *self, double x, double y, const char *name, int new_
         cairo_stroke(self->s->cairo_draw);
     }
     self->penup = 1;
+    //printf("penup set to 1\n");
     if (new_line) { self->xold = self->yold = GSL_NAN; }
 }
 
@@ -227,9 +305,17 @@ void ld_point(line_drawer *self, double x, double y, const char *name) {
         yp[0] = y;
         Nitems = 1;
     }
-    for (i = 0; i < Nitems; i++) {
-        if (!gsl_finite(xp[i])) ld_pen_up(self, GSL_NAN, GSL_NAN, NULL, 1);
-        else ld_point_plot(self, xp[i], yp[i], name);
+    if (self->s->projection == SW_PROJECTION_ALTAZ) {
+	    //printf("printing lines in the alt_az way, lineDraw.c, ld_point\n");
+	for (i = 0; i < Nitems; i++) {
+            if (!gsl_finite(xp[i])) ld_pen_up(self, GSL_NAN, GSL_NAN, NULL, 1);
+            else ld_point_plot_round(self, xp[i], yp[i], name);    
+        }
+    } else {
+    	for (i = 0; i < Nitems; i++) {
+            if (!gsl_finite(xp[i])) ld_pen_up(self, GSL_NAN, GSL_NAN, NULL, 1);
+            else ld_point_plot(self, xp[i], yp[i], name);
+    	}
     }
 }
 
@@ -274,6 +360,59 @@ void ld_point_plot(line_drawer *self, double x, double y, const char *name) {
                              self->label_on_x ? self->x2labels : NULL,
                              self->label_on_y ? self->ylabels : NULL,
                              self->label_on_y ? self->y2labels : NULL);
+
+            fetch_canvas_coordinates(&x_canvas, &y_canvas, xo, yo, self->s);
+            if (!self->haddata) {
+                cairo_new_path(self->s->cairo_draw);
+                cairo_move_to(self->s->cairo_draw, x_canvas, y_canvas);
+            } else cairo_line_to(self->s->cairo_draw, x_canvas, y_canvas);
+            self->haddata = 1;
+        }
+        ld_pen_up(self, GSL_NAN, GSL_NAN, NULL, 0);
+    }
+    self->xold = x;
+    self->yold = y;
+}
+
+//variant for round edge
+
+void ld_point_plot_round(line_drawer *self, double x, double y, const char *name) {
+    double x_canvas, y_canvas;
+    //printf("ld_point_plot_round, lineDraw.c is running \n");
+    //if ((x < self->xmax) && (x > self->xmin) && (y < self->ymax) && (y > self->ymin)) {
+    if(x*x+y*y<1){
+	//printf("point in plot area\n");
+	//printf("self->penup=%d\n", self->penup);
+	//printf("gsl_finite=%d\n", gsl_finite(self->xold));
+        if ((gsl_finite(self->xold)) && self->penup) {
+            double xo, yo;
+	    //printf("calling truncate_at_round_edge\n");
+            truncate_at_round_edge(&xo, &yo, self->xold, self->yold, x, y,
+                             self->label,
+                             self->label_on_r ? self->rlabels : NULL);
+
+            fetch_canvas_coordinates(&x_canvas, &y_canvas, xo, yo, self->s);
+            if (!self->haddata) {
+                cairo_new_path(self->s->cairo_draw);
+                cairo_move_to(self->s->cairo_draw, x_canvas, y_canvas);
+            } else cairo_line_to(self->s->cairo_draw, x_canvas, y_canvas);
+            self->haddata = 1;
+        }
+        fetch_canvas_coordinates(&x_canvas, &y_canvas, x, y, self->s);
+        if (!self->haddata) {
+            cairo_new_path(self->s->cairo_draw);
+            cairo_move_to(self->s->cairo_draw, x_canvas, y_canvas);
+        } else cairo_line_to(self->s->cairo_draw, x_canvas, y_canvas);
+        self->haddata = 1;
+        self->penup = 0;
+    } else {
+	//printf("point outside plot area\n");
+        if ((gsl_finite(self->xold)) && (!self->penup)) {
+            double xo, yo;
+	    //printf("calling truncate_at_round_edge\n");
+	    truncate_at_round_edge(&xo, &yo, self->xold, self->yold, x, y,
+                             self->label,
+                             self->label_on_r ? self->rlabels : NULL);
 
             fetch_canvas_coordinates(&x_canvas, &y_canvas, xo, yo, self->s);
             if (!self->haddata) {

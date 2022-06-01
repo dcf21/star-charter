@@ -31,8 +31,8 @@
 
 typedef struct ld_handle {
     char *label;
-    int label_on_x, label_on_y;
-    list *xlabels, *x2labels, *ylabels, *y2labels;
+    int label_on_x, label_on_y, label_on_r;
+    list *xlabels, *x2labels, *ylabels, *y2labels, *rlabels;
     int penup, haddata;
     double xmin, xmax, ymin, ymax, wlin;
     chart_config *s;
@@ -43,7 +43,10 @@ void truncate_at_axis(double *xout, double *yout, double x0, double y0, double x
                       double ymin, double ymax, char *label, list *xlabels, list *x2labels, list *ylabels,
                       list *y2labels);
 
-void ld_init(line_drawer *self, chart_config *s, list *xlabels, list *x2labels, list *ylabels, list *y2labels);
+void truncate_at_round_edge(double *xout, double *yout, double x0, double y0, double x1, double y1,
+		char *label, list *rlabels);
+
+void ld_init(line_drawer *self, chart_config *s, list *xlabels, list *x2labels, list *ylabels, list *y2labels, list *rlabels);
 
 void ld_label(line_drawer *self, char *l, int label_on_x, int label_on_y);
 
@@ -54,6 +57,8 @@ void ld_close(line_drawer *self);
 void ld_point(line_drawer *self, double x, double y, const char *name);
 
 void ld_point_plot(line_drawer *self, double x, double y, const char *name);
+
+void ld_point_plot_round(line_drawer *self, double x, double y, const char *name);
 
 #endif
 

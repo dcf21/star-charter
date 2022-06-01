@@ -106,7 +106,8 @@ void plane_project(double *x, double *y, chart_config *s, double lng, double lat
     azimuth -= s->position_angle * M_PI / 180;
     //if (zenith_angle > M_PI / alpha) {
     if(s->projection == SW_PROJECTION_ALTAZ){
-	if (zenith_angle > s->angular_width/2) {   
+	if (zenith_angle > s->angular_width/2+0.01) { //does this make intersections happen?
+	//if (zenith_angle>M_PI/2){
 	// Opposite side of sphere!
                 *x = *y = GSL_NAN;
                 return;

@@ -154,16 +154,16 @@ void plot_equator(chart_config *s, line_drawer *ld, cairo_page *page) {
     cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
 
     plot_great_circle(0, 90, s, ld, page, 0, NULL, s->equator_col);
-//}
+}
 //when we plot the equator, we also plot RA=0 meridian
-//void plot_meridian(chart_config *s, line_drawer *ld, cairo_page *page) {
+/*void plot_meridian(chart_config *s, line_drawer *ld, cairo_page *page) {
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgb(s->cairo_draw, s->equator_col.red, s->equator_col.grn, s->equator_col.blu);
     cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
 
     plot_great_half_circle(-90, 0, s, ld, page, 0, NULL, s->equator_col);
-}
+}*/
 
 //! plot_galactic_plane - Draw a line along the plane of the Milky Way
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.

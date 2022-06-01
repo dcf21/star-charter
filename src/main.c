@@ -80,7 +80,7 @@ void render_chart(chart_config *s) {
     plot_background_image(s);
 
     // Initialise module for tracing lines on the star chart
-    ld_init(&ld, s, page.x_labels, page.x2_labels, page.y_labels, page.y2_labels);
+    ld_init(&ld, s, page.x_labels, page.x2_labels, page.y_labels, page.y2_labels, page.r_labels);
 
     // Draw the line of the equator
     if (s->plot_equator) plot_equator(s, &ld, &page);

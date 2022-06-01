@@ -1,5 +1,8 @@
 *.pyc
 
+#input files
+*.sch
+
 # Distribution / packaging
 develop-eggs/
 dist/
