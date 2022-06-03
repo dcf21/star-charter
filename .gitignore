@@ -1,7 +1,7 @@
 *.pyc
 
-#input files
-*.sch
+#chart configurations I use to debug
+test/
 
 # Distribution / packaging
 develop-eggs/
