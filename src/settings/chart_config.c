@@ -94,9 +94,11 @@ void default_config(chart_config *i) {
     i->label_ecliptic = 0;
     i->plot_galactic_plane = 1;
     i->plot_equator = 1;
+    i->plot_meridian = 0;
     i->ecliptic_col = (colour) {0.8, 0.65, 0};
     i->galactic_plane_col = (colour) {0, 0, 0.75};
     i->equator_col = (colour) {0.65, 0, 0.65};
+    i->meridian_col = (colour) {0.65, 0, 0.65};
     i->constellation_stick_col = (colour) {0, 0.6, 0};
     i->grid_col = (colour) {0.7, 0.7, 0.7};
     i->constellation_boundary_col = (colour) {0.5, 0.5, 0.5};

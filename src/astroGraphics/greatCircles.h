@@ -31,6 +31,8 @@
 
 void plot_equator(chart_config *s, line_drawer *ld, cairo_page *page);
 
+void plot_meridian(chart_config *s, line_drawer *ld, cairo_page *page);
+
 void plot_galactic_plane(chart_config *s, line_drawer *ld, cairo_page *page);
 
 void plot_ecliptic(chart_config *s, line_drawer *ld, cairo_page *page);

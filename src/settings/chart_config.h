@@ -322,6 +322,9 @@ typedef struct chart_config {
     //! Colour to use when drawing a line along the equator
     colour equator_col;
 
+    //! Colour to use when drawing a line along the vernal meridian
+    colour meridian_col;
+
     //! Boolean indicating whether to draw a line along the ecliptic
     int plot_ecliptic;
 
@@ -330,6 +333,12 @@ typedef struct chart_config {
 
     //! Boolean indicating whether to draw a line along the equator
     int plot_equator;
+
+    //! Boolean indicating whether to draw a line along the vernal meridian
+    int plot_meridian;
+
+    //! Boolean indicating whether to label Dec lines along the vernal meridian
+    int label_meridian;
 
     //! Boolean indicating whether to label the months along the ecliptic, showing the Sun's annual progress
     int label_ecliptic;

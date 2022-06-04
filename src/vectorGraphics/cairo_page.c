@@ -787,8 +787,8 @@ void chart_ticks_draw(cairo_page *p, chart_config *s, list *labels, char *axis) 
             //y_canvas = (s->canvas_offset_y + s->width * s->aspect + 0.2) * s->cm;
             //x_canvas = (s->canvas_offset_x + s->width * (tic_pos - s->x_min) / (s->x_max - s->x_min)) * s->cm;
 	    //printf("Calculating cohordinates of r type label\n");
-	    x_canvas = (s-> canvas_offset_x + (s-> width*(1+cos(tic_pos)))/2) *s->cm;
-	    y_canvas = (s-> canvas_offset_y + (s-> width*(1+sin(tic_pos)))/2) *s->cm;
+	    x_canvas = (s-> canvas_offset_x + (s-> width*(1+cos(tic_pos)/s->marg))/2) *s->cm;
+	    y_canvas = (s-> canvas_offset_y + (s-> width*(1+sin(tic_pos)/s->marg))/2) *s->cm;
 	    //printf("angle=%f\n", tic_pos*180/M_PI);
 
             // Check that this label does not collide with previous labels
@@ -803,8 +803,9 @@ void chart_ticks_draw(cairo_page *p, chart_config *s, list *labels, char *axis) 
 	    //printf("label position accepted\n");
             cairo_save(s->cairo_draw);
             cairo_translate(s->cairo_draw, x_canvas, y_canvas);
-            cairo_rotate(s->cairo_draw, s->x_label_slant * M_PI / 180);
-            cairo_move_to(s->cairo_draw, -extents.width / 2 - extents.x_bearing, -extents.y_bearing);
+            //cairo_rotate(s->cairo_draw, s->x_label_slant * M_PI / 180);
+            cairo_move_to(s->cairo_draw, -extents.width / 2 -extents.x_bearing +(extents.width+0.5*s->cm)/2*cos(tic_pos),
+			    -extents.height/2 -extents.y_bearing +(extents.height+0.5*s->cm)/2*sin(tic_pos)); //radial align with 0.5cm margin on each side
             cairo_show_text(s->cairo_draw, tic_text);
 	    //printf("tic text= %s\n", tic_text);
             cairo_restore(s->cairo_draw);
