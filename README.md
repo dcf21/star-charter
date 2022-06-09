@@ -209,6 +209,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `grid_col` - Colour to use when drawing grid of RA/Dec lines
 * `label_ecliptic` - Boolean (0 or 1) indicating whether to label the months along the ecliptic, showing the Sun's annual progress
 * `label_font_size_scaling` - Scaling factor to be applied to the font size of all star and DSO labels (default 1.0)
+* `label_meridian` Boolean (0 or 1) indicating whether to label declination lines multiple of 10 degrees along the vernal meridian 
 * `language` - The language used for the constellation names. Either "english" or "french".
 * `mag_alpha` - The multiplicative scaling factor to apply to the radii of stars differing in magnitude by one <mag_step>
 * `mag_max` - Used to regulate the size of stars. A star of this magnitude is drawn with size mag_size_norm. Also, this is the brightest magnitude of star which is shown in the magnitude key below the chart.
@@ -220,6 +221,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `maximum_dso_label_count` - The maximum number of deep sky objects which may be labelled
 * `maximum_star_count` - The maximum number of stars to draw. If this is exceeded, only the brightest stars are shown.
 * `maximum_star_label_count` - The maximum number of stars which may be labelled
+* `meridian_col` - Colour to use when drawing a line along the vernal meridian
 * `messier_only` - Boolean (0 or 1) indicating whether we plot only Messier objects, and no other deep sky objects
 * `must_show_all_ephemeris_labels` - Boolean (0 or 1) indicating whether we show all ephemeris text labels, even if they collide with other text.
 * `output_filename` - The target filename for the star chart. The file type (svg, png, eps or pdf) is inferred from the file extension.
@@ -229,6 +231,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `plot_equator` - Boolean (0 or 1) indicating whether to draw a line along the equator
 * `plot_galactic_plane` - Boolean (0 or 1) indicating whether to draw a line along the galactic plane
 * `plot_galaxy_map` - Boolean (0 or 1) indicating whether to draw a shaded map of the Milky Way behind the star chart
+* `plot_meridian` - Boolean (0 or 1) indicating whether we plot the vernal meridian
 * `plot_stars` - Boolean (0 or 1) indicating whether we plot any stars
 * `position_angle` - The position angle of the plot - i.e. the tilt of north, counter-clockwise from up, at the centre of the plot
 * `projection` - Select projection to use. Set to either flat, peters, gnomonic, sphere or alt_az
@@ -244,8 +247,26 @@ The following settings can be included in a `StarCharter` configuration file:
 * `star_mag_labels` - Boolean (0 or 1) indicating whether we label the magnitudes of stars
 * `star_names` - Boolean (0 or 1) indicating whether we label the English names of stars
 * `star_variable_labels` - Boolean (0 or 1) indicating whether we label the variable-star designations of stars, e.g. V337_Car
+* `dec_ticks_on_round_edge` - Boolean (o or 1) indicating whether lines of constant declination (or galactic latitude) put a tick on the round edge of an Alt_Az chart
+* `ra_ticks_on_round_edge` - Boolean (o or 1) indicating whether lines of constant right ascension (or galactic longitude) put a tick on the round edge of an Alt_Az chart
 * `title` - The heading to write at the top of the star chart
 * `width` - The width of the star chart, in cm
 * `x_label_slant` - A slant to apply to all labels on the horizontal axes
 * `y_label_slant` - A slant to apply to all labels on the vertical axes
 * `zodiacal_only` - Boolean (0 or 1) indicating whether we plot only the zodiacal constellations
+
+# Changelog
+
+## Functionalities
+
+* Extended `alt_az` plotting to draw charts of arbitrary (<360°) angular width. E.G., this is useful to plot a chart of all stars you can see throughout the year
+* Implemented ticks on round edge of the chart in `alt_az` mode, with the possibility to choose whether RA, Dec or both lines put ticks on it
+* Possibility to plot the vernal meridian, with the option to put a tick on it every 10° of declination
+
+## New configuration parameters
+
+* `label_meridian`
+* `meridian_col`
+* `plot_meridian`
+* `dec_ticks_on_round_edge`
+* `ra_ticks_on_round_edge`
