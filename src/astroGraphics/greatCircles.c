@@ -61,7 +61,7 @@ static void plot_great_circle(double ra0, double dec0, chart_config *s, line_dra
     dec0 = dec0 * M_PI / 180;
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     for (i = 0; i <= N_SAMPLES; i++) {
-        const double l = 2 * M_PI * ((double) i) / N_SAMPLES;
+        const double l = 2 * M_PI * ((double) i) / (N_SAMPLES-1);
         double a[3] = {cos(l), sin(l), 0.};
         double ra, dec, x, y;
 
