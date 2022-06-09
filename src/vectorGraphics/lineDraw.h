@@ -48,7 +48,7 @@ void truncate_at_round_edge(double *xout, double *yout, double x0, double y0, do
 
 void ld_init(line_drawer *self, chart_config *s, list *xlabels, list *x2labels, list *ylabels, list *y2labels, list *rlabels);
 
-void ld_label(line_drawer *self, char *l, int label_on_x, int label_on_y);
+void ld_label(line_drawer *self, char *l, int label_on_x, int label_on_y, int label_on_r);
 
 void ld_pen_up(line_drawer *self, double x, double y, const char *name, int new_line);
 

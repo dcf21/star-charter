@@ -353,7 +353,19 @@ int main(int argc, char **argv) {
             CHECK_KEYVALNUM("axis_ticks_value_only")
             settings_destination->axis_ticks_value_only = (int) key_val_num;
             continue;
-        } else if (strcmp(key, "axis_label") == 0) {
+        } else if (strcmp(key, "ra_ticks_on_round_edge") == 0) {
+            //! ra_ticks_on_round_edge - If 1, constant RA labels will place ticks on the round edge in Alt_Az mode. 
+	    //! If 0, they won't
+            CHECK_KEYVALNUM("ra_ticks_on_round_edge")
+            settings_destination->ra_ticks_on_round_edge = (int) key_val_num;
+            continue;
+	} else if (strcmp(key, "dec_ticks_on_round_edge") == 0) {
+//! dec_ticks_on_round_edge - If 1, constant Dec labels will place ticks on the round edge in Alt_Az mode.                   
+            //! If 0, they won't		
+	    CHECK_KEYVALNUM("dec_ticks_on_round_edge")
+            settings_destination->dec_ticks_on_round_edge = (int) key_val_num;
+            continue;
+	} else if (strcmp(key, "axis_label") == 0) {
             //! axis_label - Boolean (0 or 1) indicating whether to write "Right ascension" and "Declination" on the
             //! vertical/horizontal axes
             CHECK_KEYVALNUM("axis_label")

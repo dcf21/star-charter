@@ -142,37 +142,18 @@ void truncate_at_axis(double *xout, double *yout, double x0, double y0, double x
 
 void truncate_at_round_edge(double *xout, double *yout, double x0, double y0, double x1, 
 			double y1, char *label, list *rlabels) {
-    //printf("truncate_at_round_edge was called, lineDraw.c\n");
     double x=GSL_NAN, y=GSL_NAN, s1, s2, theta=GSL_NAN;
 
     if (x1 != x0) {
-	//printf("case x1=%f, x0=%f\nnorms: old=%f, new=%f\n", x1, x0, x1*x1+y1*y1, x0*x0+y0*y0);
         // Look for intersection with round edge of chart
         double m = (y1 - y0) / (x1 - x0);
 	solve2deg(&s1, &s2, 1+m*m, 2*m*(y0-m*x0), m*m*x0*x0+y0*y0-2*m*x0*y0-1);
-	//printf("solutions:s1=%f, s2=%f\n", s1, s2);
         if ((s1 <= gsl_max(x0, x1)) && (s1 >= gsl_min(x0, x1))){
 	    x=s1;
-	    //printf("s1 accepted");
 	} else if ((s2 <= gsl_max(x0, x1)) && (s2 >= gsl_min(x0, x1))){
 	    x=s2;
-	    //printf("s2 accepted");
 	}
 	y=m*(x-x0)+y0;
-	//printf("x=%f\ny=%f\n", x, y);
-	/*if (x >= 0) {
-	    theta=asin(y);
-	} else if (y>=0){
-	    theta=acos(x);
-	} else if (x<0 && y<0) {
-		theta=M_PI+acos(-x);
-	}
-	if (theta != GSL_NAN){
-            list_add_tick(rlabels, theta, label);
-            *xout = x;
-            *yout = y;
-            return;
-        }*/
     } else if (y1 != y0) {
 	    x=x0;
 	    if (sqrt(1-x0*x0)>gsl_min(y0, y1)&& sqrt(1-x0*x0)<gsl_max(y0, y1)) {
@@ -190,7 +171,6 @@ void truncate_at_round_edge(double *xout, double *yout, double x0, double y0, do
     }
     if (theta != GSL_NAN){
         list_add_tick(rlabels, theta, label);
-	//printf("theta=%f\n", theta);
 	*xout = x;
         *yout = y;
         return;
@@ -208,11 +188,13 @@ void truncate_at_round_edge(double *xout, double *yout, double x0, double y0, do
 //! \param x2labels - The list of labels to place on the top edge of the chart
 //! \param ylabels - The list of labels to place on the left edge of the chart
 //! \param y2labels - The list of labels to place on the right edge of the chart
+//! \param rlabels - The list of labels to place on the round edge of the chart
 
 void ld_init(line_drawer *self, chart_config *s, list *xlabels, list *x2labels, list *ylabels, list *y2labels, list *rlabels) {
     self->label = NULL;
     self->label_on_x = 1;
     self->label_on_y = 1;
+    self->label_on_r =1;
     self->penup = 1;
     self->haddata = 0;
     self->xmin = s->x_min;
@@ -237,11 +219,14 @@ void ld_init(line_drawer *self, chart_config *s, list *xlabels, list *x2labels, 
 //! \param l - The text label to be associated with the next line we draw
 //! \param label_on_x - Boolean indicating whether this label is allowed to be written on horizontal axes
 //! \param label_on_y - Boolean indicating whether this label is allowed to be written on vertical axes
+//! \param label_on_r - Boolean indicating whether this label is allowed to be written on round edge
 
-void ld_label(line_drawer *self, char *l, int label_on_x, int label_on_y) {
+void ld_label(line_drawer *self, char *l, int label_on_x, int label_on_y, int label_on_r) {
     self->label = l;
     self->label_on_x = label_on_x;
     self->label_on_y = label_on_y;
+    self->label_on_r = label_on_r;
+
 }
 
 //! ld_pen_up - Lift the pen and start drawing a new line
@@ -257,7 +242,6 @@ void ld_pen_up(line_drawer *self, double x, double y, const char *name, int new_
         cairo_stroke(self->s->cairo_draw);
     }
     self->penup = 1;
-    //printf("penup set to 1\n");
     if (new_line) { self->xold = self->yold = GSL_NAN; }
 }
 
@@ -306,7 +290,6 @@ void ld_point(line_drawer *self, double x, double y, const char *name) {
         Nitems = 1;
     }
     if (self->s->projection == SW_PROJECTION_ALTAZ) {
-	    //printf("printing lines in the alt_az way, lineDraw.c, ld_point\n");
 	for (i = 0; i < Nitems; i++) {
             if (!gsl_finite(xp[i])) ld_pen_up(self, GSL_NAN, GSL_NAN, NULL, 1);
             else ld_point_plot_round(self, xp[i], yp[i], name);    
@@ -378,15 +361,9 @@ void ld_point_plot(line_drawer *self, double x, double y, const char *name) {
 
 void ld_point_plot_round(line_drawer *self, double x, double y, const char *name) {
     double x_canvas, y_canvas;
-    //printf("ld_point_plot_round, lineDraw.c is running \n");
-    //if ((x < self->xmax) && (x > self->xmin) && (y < self->ymax) && (y > self->ymin)) {
     if(x*x+y*y<1){
-	//printf("point in plot area\n");
-	//printf("self->penup=%d\n", self->penup);
-	//printf("gsl_finite=%d\n", gsl_finite(self->xold));
         if ((gsl_finite(self->xold)) && self->penup) {
             double xo, yo;
-	    //printf("calling truncate_at_round_edge\n");
             truncate_at_round_edge(&xo, &yo, self->xold, self->yold, x, y,
                              self->label,
                              self->label_on_r ? self->rlabels : NULL);
@@ -406,10 +383,8 @@ void ld_point_plot_round(line_drawer *self, double x, double y, const char *name
         self->haddata = 1;
         self->penup = 0;
     } else {
-	//printf("point outside plot area\n");
         if ((gsl_finite(self->xold)) && (!self->penup)) {
             double xo, yo;
-	    //printf("calling truncate_at_round_edge\n");
 	    truncate_at_round_edge(&xo, &yo, self->xold, self->yold, x, y,
                              self->label,
                              self->label_on_r ? self->rlabels : NULL);

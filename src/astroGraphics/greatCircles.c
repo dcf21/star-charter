@@ -132,11 +132,11 @@ static void plot_great_half_circle(double ra0, double dec0, chart_config *s, lin
             dec = asin(a[2]);
             ra = atan2(a[1], a[0]);
             plane_project(&x, &y, s, ra, dec, 0);
-	    plane_project(&xtemp, &ytemp, s, ra-0.05/(dec-M_PI/2), dec, 0);
-	    //very, VERY brute 2nd order approximation
+	    plane_project(&xtemp, &ytemp, s, ra-0.0000000001/(dec-M_PI/2), dec, 0);
+	    //very, VERY brutal 1st order approximation
             ld_point(ld, x+(xtemp-x)/sqrt((x-xtemp)*(x-xtemp)+(y-ytemp)*(y-ytemp))/50, y+(ytemp-y)/sqrt(((x-xtemp)*(x-xtemp))+((y-ytemp)*(y-ytemp)))/50, NULL);
             ld_point(ld, x, y, NULL);
-	    plane_project(&xtemp, &ytemp, s, ra+0.05/(dec-M_PI/2), dec, 0);
+	    plane_project(&xtemp, &ytemp, s, ra+0.000000001/(dec-M_PI/2), dec, 0);
 	    ld_point(ld, x+(xtemp-x)/sqrt((x-xtemp)*(x-xtemp)+(y-ytemp)*(y-ytemp))/50, y+(ytemp-y)/sqrt(((x-xtemp)*(x-xtemp))+((y-ytemp)*(y-ytemp)))/50, NULL);
             ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
 	    plane_project(&xtemp, &ytemp, s, ra+0.1/(dec-M_PI/2), dec, 0);
@@ -239,7 +239,7 @@ void plot_ecliptic(chart_config *s, line_drawer *ld, cairo_page *page) {
 //! \param legend_y_pos - The vertical pixel position of the top of the next legend to go under the star chart.
 
 double draw_great_circle_key(chart_config *s, double legend_y_pos) {
-    const int N = (s->plot_equator != 0) + (s->plot_ecliptic != 0) + (s->plot_galactic_plane != 0);
+    const int N = (s->plot_meridian != 0) + (s->plot_equator != 0) + (s->plot_ecliptic != 0) + (s->plot_galactic_plane != 0);
     const double w_left = 0.4; // The left margin
     const double w_item = 4.2 * s->font_size; // The width of each legend item (cm)
 
@@ -266,7 +266,35 @@ double draw_great_circle_key(chart_config *s, double legend_y_pos) {
     // Reset font weight
     cairo_select_font_face(s->cairo_draw, s->font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
-    // Draw item on legend showing the colour of the equator
+     // Draw item on legend showing the colour of the meridian
+    if (s->plot_equator != 0) {
+        const char *label = "Vernal Meridian";
+
+        // Draw a line in the right colour
+        cairo_set_source_rgb(s->cairo_draw, s->meridian_col.red, s->meridian_col.grn, s->meridian_col.blu);
+        cairo_new_path(s->cairo_draw);
+        cairo_move_to(s->cairo_draw, x * s->cm, y1 * s->cm);
+        cairo_line_to(s->cairo_draw, (x + size) * s->cm, y1 * s->cm);
+        cairo_stroke(s->cairo_draw);
+
+        // Write a text label next to it
+        cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+        cairo_text_extents(s->cairo_draw, label, &extents);
+        cairo_move_to(s->cairo_draw,
+                      (x + 0.1 + size * 1.25) * s->cm - extents.x_bearing,
+                      y1 * s->cm - extents.height / 2 - extents.y_bearing
+        );
+        cairo_show_text(s->cairo_draw, label);
+
+        // Advance horizontally to draw the next item in the legend
+        x += w_item;
+    }
+
+    // Draw item on legend showing the colour of the ecliptic
+    if (s->plot_ecliptic != 0) {
+        const char *label = "Ecliptic Plane";
+
+   // Draw item on legend showing the colour of the equator
     if (s->plot_equator != 0) {
         const char *label = "The Equator";
 
@@ -289,10 +317,6 @@ double draw_great_circle_key(chart_config *s, double legend_y_pos) {
         // Advance horizontally to draw the next item in the legend
         x += w_item;
     }
-
-    // Draw item on legend showing the colour of the ecliptic
-    if (s->plot_ecliptic != 0) {
-        const char *label = "Ecliptic Plane";
 
         // Draw a line in the right colour
         cairo_set_source_rgb(s->cairo_draw, s->ecliptic_col.red, s->ecliptic_col.grn, s->ecliptic_col.blu);

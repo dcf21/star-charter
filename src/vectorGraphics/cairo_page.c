@@ -303,11 +303,6 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
             chart_label(p, s, black, "W",
                         &(label_position) {-dh * sin(a + DEG270), -dv * cos(a + DEG270), 0, 0, 1}, 1,
                         0, 0, 2.5, 1, 0, 0, -1);
-	    //Still to be implemented: show intersection of vernal meridian and chart boundary.
-	    //Lots of calculations.
-	    /*chart_label(p, s, black, "V",
-                        &(label_position) {-dh * sin(0), -dv * cos(0), 0, 0, 1}, 1,
-                        0, 0, 2.5, 1, 0, 0, -1);*/
         }
 
     } else {
@@ -673,7 +668,7 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
 //! \param p - A structure describing the status of the drawing surface
 //! \param s - Settings for the star chart we are drawing
 //! \param labels - The list of labels to write along this edge of the star chart
-//! \param axis - One of ("x", "y", "x2", "y2") indicating whether this is the (bottom, left, top, right) edge
+//! \param axis - One of ("x", "y", "x2", "y2", "r") indicating whether this is the (bottom, left, top, right, or round) edge
 
 void chart_ticks_draw(cairo_page *p, chart_config *s, list *labels, char *axis) {
     int N = listLen(labels);
@@ -784,12 +779,8 @@ void chart_ticks_draw(cairo_page *p, chart_config *s, list *labels, char *axis) 
             cairo_restore(s->cairo_draw);
         } else if (strcmp(axis, "r") == 0) {
             // Calculate coordinates of this label
-            //y_canvas = (s->canvas_offset_y + s->width * s->aspect + 0.2) * s->cm;
-            //x_canvas = (s->canvas_offset_x + s->width * (tic_pos - s->x_min) / (s->x_max - s->x_min)) * s->cm;
-	    //printf("Calculating cohordinates of r type label\n");
 	    x_canvas = (s-> canvas_offset_x + (s-> width*(1+cos(tic_pos)/s->marg))/2) *s->cm;
 	    y_canvas = (s-> canvas_offset_y + (s-> width*(1+sin(tic_pos)/s->marg))/2) *s->cm;
-	    //printf("angle=%f\n", tic_pos*180/M_PI);
 
             // Check that this label does not collide with previous labels
             const double x_min = x_canvas-extents.width / 2;
@@ -800,14 +791,11 @@ void chart_ticks_draw(cairo_page *p, chart_config *s, list *labels, char *axis) 
             chart_add_label_exclusion(p, s, x_min, x_max, y_min, y_max);
 
             // Write a label on the round edge of the chart
-	    //printf("label position accepted\n");
             cairo_save(s->cairo_draw);
             cairo_translate(s->cairo_draw, x_canvas, y_canvas);
-            //cairo_rotate(s->cairo_draw, s->x_label_slant * M_PI / 180);
             cairo_move_to(s->cairo_draw, -extents.width / 2 -extents.x_bearing +(extents.width+0.5*s->cm)/2*cos(tic_pos),
 			    -extents.height/2 -extents.y_bearing +(extents.height+0.5*s->cm)/2*sin(tic_pos)); //radial align with 0.5cm margin on each side
             cairo_show_text(s->cairo_draw, tic_text);
-	    //printf("tic text= %s\n", tic_text);
             cairo_restore(s->cairo_draw);
 	}
     }

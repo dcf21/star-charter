@@ -115,6 +115,12 @@ typedef struct chart_config {
     //! If true, axis labels appear as "5h" or "30 deg". If false, preceded by alpha= or delta=
     int axis_ticks_value_only;
 
+    //! If true, constant RA lines make ticks on round edge in alt_az mode
+    int ra_ticks_on_round_edge;
+
+    //! If true, constant Dec lines make ticks on round edge in alt_az mode
+    int dec_ticks_on_round_edge;
+
     //! Boolean indicating whether we draw a grid of RA/Dec lines in the background of the star chart
     int ra_dec_lines;
 

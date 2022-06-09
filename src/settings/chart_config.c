@@ -41,6 +41,8 @@ void default_config(chart_config *i) {
     i->position_angle = 0.0;
     i->font_size = 1.0;
     i->axis_ticks_value_only = 1;
+    i->ra_ticks_on_round_edge = 1;
+    i->dec_ticks_on_round_edge = 1;
     i->ra_dec_lines = 1;
     i->x_label_slant = 0;
     i->y_label_slant = 0;
@@ -98,7 +100,7 @@ void default_config(chart_config *i) {
     i->ecliptic_col = (colour) {0.8, 0.65, 0};
     i->galactic_plane_col = (colour) {0, 0, 0.75};
     i->equator_col = (colour) {0.65, 0, 0.65};
-    i->meridian_col = (colour) {0.65, 0, 0.65};
+    i->meridian_col = (colour) {0.1, 0.8, 1};
     i->constellation_stick_col = (colour) {0, 0.6, 0};
     i->grid_col = (colour) {0.7, 0.7, 0.7};
     i->constellation_boundary_col = (colour) {0.5, 0.5, 0.5};
