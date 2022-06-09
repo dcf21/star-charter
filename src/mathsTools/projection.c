@@ -67,7 +67,14 @@ void galactic_project(double ra, double dec, double *l_out, double *b_out) {
 //! to be converted into galactic coordinates.
 
 void plane_project(double *x, double *y, chart_config *s, double lng, double lat, int grid_line) {
-    double azimuth, radius = 0, zenith_angle, alpha=1.5;
+    double azimuth, radius = 0, zenith_angle, cap_angle;
+    
+    cap_angle=M_PI/2;
+    if (s->angular_width/2>cap_angle) {
+	    cap_angle=(s->angular_width)/2;
+    }
+    //cap_angle=(s->angular_width)/2;
+    //printf("angular_width = %f", s->angular_width);
 
     if ((s->coords == SW_COORDS_GAL) && (!grid_line))
     {
@@ -97,15 +104,18 @@ void plane_project(double *x, double *y, chart_config *s, double lng, double lat
     }
     make_zenithal(&zenith_angle, &azimuth, lng, lat, s->ra0, s->dec0);
     azimuth -= s->position_angle * M_PI / 180;
-    if (zenith_angle > M_PI / alpha) {
-    //    // Opposite side of sphere! (edited: that is true with alpha=2)
+    //if (zenith_angle > M_PI / alpha) {
+    if (zenith_angle > cap_angle) {
+    // Opposite side of sphere! (edited: that is true with alpha=2)
         *x = *y = GSL_NAN;
         return;
     }
 
     if (s->projection == SW_PROJECTION_GNOM) radius = tan(zenith_angle);
     else if (s->projection == SW_PROJECTION_SPH) radius = sin(zenith_angle);
-    else if (s->projection == SW_PROJECTION_ALTAZ) radius = zenith_angle /(M_PI/alpha);
+    //else if (s->projection == SW_PROJECTION_ALTAZ) radius = zenith_angle /(M_PI/alpha);
+    else if (s->projection == SW_PROJECTION_ALTAZ) radius = zenith_angle /cap_angle;
+
 
     *y = radius * cos(azimuth);
     *x = radius * -sin(azimuth);
@@ -120,10 +130,12 @@ void plane_project(double *x, double *y, chart_config *s, double lng, double lat
 
 void inv_plane_project(double *ra, double *dec, chart_config *s, double x, double y) {
     double za = 0.0;
+    double cap_angle=(s->angular_width)/2;
 
     if (s->projection == SW_PROJECTION_GNOM) za = atan(hypot(x, y));
     else if (s->projection == SW_PROJECTION_SPH) za = asin(hypot(x, y));
-    else if (s->projection == SW_PROJECTION_ALTAZ) za = hypot(x, y) * (M_PI / 2);
+    //else if (s->projection == SW_PROJECTION_ALTAZ) za = hypot(x, y) * (M_PI / 2);
+    else if (s->projection == SW_PROJECTION_ALTAZ) za = hypot(x, y) * cap_angle;
 
     if (s->projection == SW_PROJECTION_FLAT) {
         double pa = s->position_angle * M_PI / 180.;
@@ -141,11 +153,13 @@ void inv_plane_project(double *ra, double *dec, chart_config *s, double x, doubl
         double az = atan2(-x, y) + s->position_angle * M_PI / 180.;
 
         double altitude = M_PI / 2 - za;
+	//double altitude = cap_angle - za;
         double a[3] = {cos(altitude) * cos(az), cos(altitude) * sin(az), sin(altitude)};
 
-        if (altitude < 0) {
+        //if (altitude < 0) {
 	//! Voglio disegnare solo le cose sopra la soglia che imposto, non sopra l'orizzonte
 	//!if (altitude < 1.4) {
+	if(altitude<(M_PI/2-cap_angle)) {
             *ra = *dec = GSL_NAN;
             return;
         }

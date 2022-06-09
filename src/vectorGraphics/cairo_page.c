@@ -202,6 +202,7 @@ void cairo_init(cairo_page *p, chart_config *s) {
                   (s->canvas_offset_x + s->width / 2) * s->cm,
                   (s->canvas_offset_y + s->width / 2 * s->aspect) * s->cm,
                   s->width * s->cm / s->wlin,
+		  //s->width * s-> cm /2/s->marg,
                   0, 2 * M_PI);
 
     } else {
@@ -280,6 +281,7 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
                   (s->canvas_offset_x + s->width / 2) * s->cm,
                   (s->canvas_offset_y + s->width / 2 * s->aspect) * s->cm,
                   s->width * s->cm / s->wlin,
+		  //s->width * s->cm /2/s->marg,
                   0, 2 * M_PI);
         cairo_stroke(s->cairo_draw);
 
@@ -300,6 +302,11 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
             chart_label(p, s, black, "W",
                         &(label_position) {-dh * sin(a + DEG270), -dv * cos(a + DEG270), 0, 0, 1}, 1,
                         0, 0, 2.5, 1, 0, 0, -1);
+	    //Still to be implemented: show intersection of vernal meridian and chart boundary.
+	    //Lots of calculations.
+	    /*chart_label(p, s, black, "V",
+                        &(label_position) {-dh * sin(0), -dv * cos(0), 0, 0, 1}, 1,
+                        0, 0, 2.5, 1, 0, 0, -1);*/
         }
 
     } else {

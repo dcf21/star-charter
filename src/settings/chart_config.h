@@ -400,7 +400,7 @@ typedef struct chart_config {
     int output_format;
 
     double canvas_width, canvas_height, canvas_offset_x, canvas_offset_y, dpi, pt, cm, mm, line_width_base;
-    double wlin, x_min, x_max, y_min, y_max;
+    double wlin, marg, x_min, x_max, y_min, y_max;
 
     //! Width of the right-hand column of the legend under the finder chart
     double legend_right_column_width;

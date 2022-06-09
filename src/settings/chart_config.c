@@ -134,6 +134,7 @@ void default_config(chart_config *i) {
 }
 
 void config_init(chart_config *i) {
+    i->marg=1.12; //margin specified here
     if (i->coords == SW_COORDS_GAL) i->ra0 *= M_PI / 180; // Specify galactic longitude in degrees
     else i->ra0 *= M_PI / 12;  // Specify RA in hours
     i->dec0 *= M_PI / 180; // Specify declination and galactic latitude in degrees
@@ -142,9 +143,11 @@ void config_init(chart_config *i) {
     else if (i->projection == SW_PROJECTION_PETERS) i->wlin = i->angular_width;
     else if (i->projection == SW_PROJECTION_GNOM) i->wlin = 2 * tan(i->angular_width / 2);
     else if (i->projection == SW_PROJECTION_SPH)
-        i->wlin = 2 * sin(i->angular_width / 2) * 1.12; // margin specified here
+        i->wlin = 2 * sin(i->angular_width / 2) * i->marg;
     else if (i->projection == SW_PROJECTION_ALTAZ)
-        i->wlin = i->angular_width / (M_PI / 2) * 1.12; // margin specified here
+        i->wlin = 2*i->marg;
+	//i->wlin = i->angular_width / (M_PI / 2) * i->marg;
+	//i->wlin = M_PI / (M_PI / 2) * 1.12; // margin specified here
     i->x_min = -i->wlin / 2;
     i->x_max = i->wlin / 2;
     i->y_min = -i->wlin / 2 * i->aspect;

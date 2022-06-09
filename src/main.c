@@ -476,7 +476,7 @@ int main(int argc, char **argv) {
             } else if (strcmp(key_val, "alt_az") == 0) {
                 settings_destination->projection = SW_PROJECTION_ALTAZ;
                 settings_destination->aspect = 1.;
-                settings_destination->angular_width = 180.;
+		//settings_destination->angular_width = 180.;
             } else {
                 snprintf(temp_err_string, FNAME_LENGTH,
                          "Bad input file. projection should equal 'flat', 'gnomonic', 'sphere' or 'alt_az'.");
