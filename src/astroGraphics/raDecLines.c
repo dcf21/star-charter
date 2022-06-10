@@ -144,7 +144,8 @@ void plot_ra_dec_lines(chart_config *s, line_drawer *ld) {
 
         // Tell the line drawing class what label should be placed on the edge of the star chart when we cross it
         // Lines of constant RA only create tick labels on the horizontal axes, not the vertical axes
-        ld_label(ld, label, 1, 0);
+	// Lines of constant declination create a tick on the round edge of the chart in Alt_Az mode if and only if ordered to do so
+        ld_label(ld, label, 1, 0, s->ra_ticks_on_round_edge);
 
         // Trace the path of this line across chart
         for (j = 0; j < N_POINTS; j++) {
@@ -214,7 +215,8 @@ void plot_ra_dec_lines(chart_config *s, line_drawer *ld) {
 
         // Tell the line drawing class what label should be placed on the edge of the star chart when we cross it
         // Lines of constant declination only create tick labels on the vertical axes, not the horizontal axes
-        ld_label(ld, label, 0, 1);
+	// Lines of constant declination create a tick on the round edge of the chart in Alt_Az mode if and only if ordered to do so
+        ld_label(ld, label, 0, 1, s->dec_ticks_on_round_edge);
 
         // Trace the path of this line across chart
         for (j = 0; j < N_POINTS; j++) {

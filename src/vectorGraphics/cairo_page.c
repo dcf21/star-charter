@@ -177,6 +177,7 @@ void cairo_init(cairo_page *p, chart_config *s) {
     p->x2_labels = listInit();
     p->y_labels = listInit();
     p->y2_labels = listInit();
+    p->r_labels = listInit();
 
     // Create a buffer into which we write all the text labels we are to write
     // We buffer them in order that we can plot them in order of priority, not the order in which they are added to
@@ -202,6 +203,7 @@ void cairo_init(cairo_page *p, chart_config *s) {
                   (s->canvas_offset_x + s->width / 2) * s->cm,
                   (s->canvas_offset_y + s->width / 2 * s->aspect) * s->cm,
                   s->width * s->cm / s->wlin,
+		  //s->width * s-> cm /2/s->marg,
                   0, 2 * M_PI);
 
     } else {
@@ -280,6 +282,7 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
                   (s->canvas_offset_x + s->width / 2) * s->cm,
                   (s->canvas_offset_y + s->width / 2 * s->aspect) * s->cm,
                   s->width * s->cm / s->wlin,
+		  //s->width * s->cm /2/s->marg,
                   0, 2 * M_PI);
         cairo_stroke(s->cairo_draw);
 
@@ -665,7 +668,7 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
 //! \param p - A structure describing the status of the drawing surface
 //! \param s - Settings for the star chart we are drawing
 //! \param labels - The list of labels to write along this edge of the star chart
-//! \param axis - One of ("x", "y", "x2", "y2") indicating whether this is the (bottom, left, top, right) edge
+//! \param axis - One of ("x", "y", "x2", "y2", "r") indicating whether this is the (bottom, left, top, right, or round) edge
 
 void chart_ticks_draw(cairo_page *p, chart_config *s, list *labels, char *axis) {
     int N = listLen(labels);
@@ -774,7 +777,27 @@ void chart_ticks_draw(cairo_page *p, chart_config *s, list *labels, char *axis) 
             cairo_move_to(s->cairo_draw, -extents.x_bearing, -extents.height / 2 - extents.y_bearing);
             cairo_show_text(s->cairo_draw, tic_text);
             cairo_restore(s->cairo_draw);
-        }
+        } else if (strcmp(axis, "r") == 0) {
+            // Calculate coordinates of this label
+	    x_canvas = (s-> canvas_offset_x + (s-> width*(1+cos(tic_pos)/s->marg))/2) *s->cm;
+	    y_canvas = (s-> canvas_offset_y + (s-> width*(1+sin(tic_pos)/s->marg))/2) *s->cm;
+
+            // Check that this label does not collide with previous labels
+            const double x_min = x_canvas-extents.width / 2;
+            const double x_max = x_canvas+extents.width / 2;
+            const double y_min = y_canvas-extents.height/2;
+            const double y_max = y_canvas+extents.height/2;
+            if (chart_check_label_exclusion(p, x_min, x_max, y_min, y_max)) continue;
+            chart_add_label_exclusion(p, s, x_min, x_max, y_min, y_max);
+
+            // Write a label on the round edge of the chart
+            cairo_save(s->cairo_draw);
+            cairo_translate(s->cairo_draw, x_canvas, y_canvas);
+            cairo_move_to(s->cairo_draw, -extents.width / 2 -extents.x_bearing +(extents.width+0.5*s->cm)/2*cos(tic_pos),
+			    -extents.height/2 -extents.y_bearing +(extents.height+0.5*s->cm)/2*sin(tic_pos)); //radial align with 0.5cm margin on each side
+            cairo_show_text(s->cairo_draw, tic_text);
+            cairo_restore(s->cairo_draw);
+	}
     }
 }
 
@@ -808,6 +831,9 @@ int chart_finish(cairo_page *p, chart_config *s) {
     chart_ticks_draw(p, s, p->y_labels, "y");
     chart_ticks_draw(p, s, p->x2_labels, "x2");
     chart_ticks_draw(p, s, p->y2_labels, "y2");
+    if (s->projection == SW_PROJECTION_ALTAZ) {
+	    chart_ticks_draw(p, s, p->r_labels, "r");
+    }
 
     // Close cairo drawing context
     cairo_destroy(s->cairo_draw);

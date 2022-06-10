@@ -61,7 +61,7 @@ static void plot_great_circle(double ra0, double dec0, chart_config *s, line_dra
     dec0 = dec0 * M_PI / 180;
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     for (i = 0; i <= N_SAMPLES; i++) {
-        const double l = 2 * M_PI * ((double) i) / N_SAMPLES;
+        const double l = 2 * M_PI * ((double) i) / (N_SAMPLES-1);
         double a[3] = {cos(l), sin(l), 0.};
         double ra, dec, x, y;
 
@@ -97,6 +97,56 @@ static void plot_great_circle(double ra0, double dec0, chart_config *s, line_dra
         }
 }
 
+//small modification to print half circle, useful for meridians.
+
+static void plot_great_half_circle(double ra0, double dec0, chart_config *s, line_drawer *ld,
+                              cairo_page *page, int n_labels, gc_label *labels, colour colour) {
+    int i;
+    ra0 = ra0 * M_PI / 180;
+    dec0 = dec0 * M_PI / 180;
+    ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
+    for (i = 0; i <= N_SAMPLES; i++) {
+        const double l = M_PI * ((double) i) / (N_SAMPLES-1);
+        double a[3] = {cos(l), sin(l), 0.};
+        double ra, dec, x, y;
+
+        rotate_xz(a, a, dec0 - (M_PI / 2));
+        rotate_xy(a, a, ra0);
+
+        dec = asin(a[2]);
+        ra = atan2(a[1], a[0]);
+        plane_project(&x, &y, s, ra, dec, 0);
+        ld_point(ld, x, y, NULL);
+    }
+    ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
+
+    if (n_labels)
+        for (i = 0; i < n_labels; i++) {
+            const double l = M_PI*(labels[i].xpos) / 180;
+            double a[3] = {cos(l), sin(l), 0.};
+            double ra, dec, x, y, xtemp, ytemp;
+
+            rotate_xz(a, a, dec0 - (M_PI / 2));
+            rotate_xy(a, a, ra0);
+
+            dec = asin(a[2]);
+            ra = atan2(a[1], a[0]);
+            plane_project(&x, &y, s, ra, dec, 0);
+	    plane_project(&xtemp, &ytemp, s, ra-0.0000000001/(dec-M_PI/2), dec, 0);
+	    //very, VERY brutal 1st order approximation
+            ld_point(ld, x+(xtemp-x)/sqrt((x-xtemp)*(x-xtemp)+(y-ytemp)*(y-ytemp))/50, y+(ytemp-y)/sqrt(((x-xtemp)*(x-xtemp))+((y-ytemp)*(y-ytemp)))/50, NULL);
+            ld_point(ld, x, y, NULL);
+	    plane_project(&xtemp, &ytemp, s, ra+0.000000001/(dec-M_PI/2), dec, 0);
+	    ld_point(ld, x+(xtemp-x)/sqrt((x-xtemp)*(x-xtemp)+(y-ytemp)*(y-ytemp))/50, y+(ytemp-y)/sqrt(((x-xtemp)*(x-xtemp))+((y-ytemp)*(y-ytemp)))/50, NULL);
+            ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
+	    plane_project(&xtemp, &ytemp, s, ra+0.1/(dec-M_PI/2), dec, 0);
+
+            chart_label_buffer(page, s, colour, labels[i].label,
+                               &(label_position) {x+(xtemp-x)/sqrt(((x-xtemp)*(x-xtemp))+((y-ytemp)*(y-ytemp)))/25, y+(ytemp-y)/sqrt(((x-xtemp)*(x-xtemp))+((y-ytemp)*(y-ytemp)))/25, 0, 0, -1}, 1,
+                               0, 1, 2.0, 1, 0, 0, -0.5);
+        }
+}
+
 //! plot_equator - Draw a line along the celestial equator
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 //! \param ld - A <line_drawer> structure used to draw lines on a cairo surface.
@@ -109,6 +159,34 @@ void plot_equator(chart_config *s, line_drawer *ld, cairo_page *page) {
     cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
 
     plot_great_circle(0, 90, s, ld, page, 0, NULL, s->equator_col);
+}
+// plots RA=0 meridian
+void plot_meridian(chart_config *s, line_drawer *ld, cairo_page *page) {
+    gc_label labels[17] = {{"-80", 10},
+                           {"-70", 20},
+                           {"-60", 30},
+                           {"-50", 40},
+                           {"-40", 50},
+                           {"-30", 60},
+                           {"-20", 70},
+                           {"-10", 80},
+                           {"0", 90},
+                           {"10", 100},
+                           {"20", 110},
+                           {"30", 120},
+			   {"40", 130},
+			   {"50", 140},
+			   {"60", 150},
+			   {"70", 160},
+			   {"80", 170},
+    };
+    // Set line colour
+    ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
+    cairo_set_source_rgb(s->cairo_draw, s->meridian_col.red, s->meridian_col.grn, s->meridian_col.blu);
+    cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
+
+    plot_great_half_circle(-90, 0, s, ld, page, s->label_meridian ? 17 : 0, labels,
+                      s->meridian_col);
 }
 
 //! plot_galactic_plane - Draw a line along the plane of the Milky Way
@@ -161,7 +239,7 @@ void plot_ecliptic(chart_config *s, line_drawer *ld, cairo_page *page) {
 //! \param legend_y_pos - The vertical pixel position of the top of the next legend to go under the star chart.
 
 double draw_great_circle_key(chart_config *s, double legend_y_pos) {
-    const int N = (s->plot_equator != 0) + (s->plot_ecliptic != 0) + (s->plot_galactic_plane != 0);
+    const int N = (s->plot_meridian != 0) + (s->plot_equator != 0) + (s->plot_ecliptic != 0) + (s->plot_galactic_plane != 0);
     const double w_left = 0.4; // The left margin
     const double w_item = 4.2 * s->font_size; // The width of each legend item (cm)
 
@@ -188,7 +266,35 @@ double draw_great_circle_key(chart_config *s, double legend_y_pos) {
     // Reset font weight
     cairo_select_font_face(s->cairo_draw, s->font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
 
-    // Draw item on legend showing the colour of the equator
+     // Draw item on legend showing the colour of the meridian
+    if (s->plot_equator != 0) {
+        const char *label = "Vernal Meridian";
+
+        // Draw a line in the right colour
+        cairo_set_source_rgb(s->cairo_draw, s->meridian_col.red, s->meridian_col.grn, s->meridian_col.blu);
+        cairo_new_path(s->cairo_draw);
+        cairo_move_to(s->cairo_draw, x * s->cm, y1 * s->cm);
+        cairo_line_to(s->cairo_draw, (x + size) * s->cm, y1 * s->cm);
+        cairo_stroke(s->cairo_draw);
+
+        // Write a text label next to it
+        cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+        cairo_text_extents(s->cairo_draw, label, &extents);
+        cairo_move_to(s->cairo_draw,
+                      (x + 0.1 + size * 1.25) * s->cm - extents.x_bearing,
+                      y1 * s->cm - extents.height / 2 - extents.y_bearing
+        );
+        cairo_show_text(s->cairo_draw, label);
+
+        // Advance horizontally to draw the next item in the legend
+        x += w_item;
+    }
+
+    // Draw item on legend showing the colour of the ecliptic
+    if (s->plot_ecliptic != 0) {
+        const char *label = "Ecliptic Plane";
+
+   // Draw item on legend showing the colour of the equator
     if (s->plot_equator != 0) {
         const char *label = "The Equator";
 
@@ -211,10 +317,6 @@ double draw_great_circle_key(chart_config *s, double legend_y_pos) {
         // Advance horizontally to draw the next item in the legend
         x += w_item;
     }
-
-    // Draw item on legend showing the colour of the ecliptic
-    if (s->plot_ecliptic != 0) {
-        const char *label = "Ecliptic Plane";
 
         // Draw a line in the right colour
         cairo_set_source_rgb(s->cairo_draw, s->ecliptic_col.red, s->ecliptic_col.grn, s->ecliptic_col.blu);

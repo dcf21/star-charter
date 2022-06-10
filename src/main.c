@@ -80,10 +80,13 @@ void render_chart(chart_config *s) {
     plot_background_image(s);
 
     // Initialise module for tracing lines on the star chart
-    ld_init(&ld, s, page.x_labels, page.x2_labels, page.y_labels, page.y2_labels);
+    ld_init(&ld, s, page.x_labels, page.x2_labels, page.y_labels, page.y2_labels, page.r_labels);
 
     // Draw the line of the equator
     if (s->plot_equator) plot_equator(s, &ld, &page);
+
+    // Draw the line of the vernal meridian
+    if (s->plot_meridian) plot_meridian(s, &ld, &page);
 
     // Draw the line of the galactic plane
     if (s->plot_galactic_plane) plot_galactic_plane(s, &ld, &page);
@@ -350,7 +353,19 @@ int main(int argc, char **argv) {
             CHECK_KEYVALNUM("axis_ticks_value_only")
             settings_destination->axis_ticks_value_only = (int) key_val_num;
             continue;
-        } else if (strcmp(key, "axis_label") == 0) {
+        } else if (strcmp(key, "ra_ticks_on_round_edge") == 0) {
+            //! ra_ticks_on_round_edge - If 1, constant RA labels will place ticks on the round edge in Alt_Az mode. 
+	    //! If 0, they won't
+            CHECK_KEYVALNUM("ra_ticks_on_round_edge")
+            settings_destination->ra_ticks_on_round_edge = (int) key_val_num;
+            continue;
+	} else if (strcmp(key, "dec_ticks_on_round_edge") == 0) {
+//! dec_ticks_on_round_edge - If 1, constant Dec labels will place ticks on the round edge in Alt_Az mode.                   
+            //! If 0, they won't		
+	    CHECK_KEYVALNUM("dec_ticks_on_round_edge")
+            settings_destination->dec_ticks_on_round_edge = (int) key_val_num;
+            continue;
+	} else if (strcmp(key, "axis_label") == 0) {
             //! axis_label - Boolean (0 or 1) indicating whether to write "Right ascension" and "Declination" on the
             //! vertical/horizontal axes
             CHECK_KEYVALNUM("axis_label")
@@ -476,7 +491,7 @@ int main(int argc, char **argv) {
             } else if (strcmp(key_val, "alt_az") == 0) {
                 settings_destination->projection = SW_PROJECTION_ALTAZ;
                 settings_destination->aspect = 1.;
-                settings_destination->angular_width = 180.;
+		//settings_destination->angular_width = 180.;
             } else {
                 snprintf(temp_err_string, FNAME_LENGTH,
                          "Bad input file. projection should equal 'flat', 'gnomonic', 'sphere' or 'alt_az'.");
@@ -720,7 +735,18 @@ int main(int argc, char **argv) {
             CHECK_KEYVALNUM("plot_equator")
             settings_destination->plot_equator = (int) key_val_num;
             continue;
-        } else if (strcmp(key, "ecliptic_col") == 0) {
+	}else if (strcmp(key, "plot_meridian") == 0) {
+            //! plot_meridian - Boolean (0 or 1) indicating whether to draw a line along the vernal meridian
+            CHECK_KEYVALNUM("plot_meridian")
+            settings_destination->plot_meridian = (int) key_val_num;
+            continue;
+	} else if (strcmp(key, "label_meridian") == 0) {
+            //! label_meridian - Boolean (0 or 1) indicating whether to label Dec degrees along the
+            //! vernal meridian, useful to label Dec lines in Alt_Az charts
+            CHECK_KEYVALNUM("label_meridian")
+            settings_destination->label_meridian = (int) key_val_num;
+            continue;
+	} else if (strcmp(key, "ecliptic_col") == 0) {
             //! ecliptic_col - Colour to use when drawing a line along the ecliptic
             settings_destination->ecliptic_col = colour_from_string(key_val);
             continue;
@@ -731,6 +757,10 @@ int main(int argc, char **argv) {
         } else if (strcmp(key, "equator_col") == 0) {
             //! equator_col - Colour to use when drawing a line along the equator
             settings_destination->equator_col = colour_from_string(key_val);
+            continue;
+	} else if (strcmp(key, "meridian_col") == 0) {
+            //! meridian_col - Colour to use when drawing a line along the equator
+            settings_destination->meridian_col = colour_from_string(key_val);
             continue;
         } else if (strcmp(key, "plot_galaxy_map") == 0) {
             //! plot_galaxy_map - Boolean (0 or 1) indicating whether to draw a shaded map of the Milky Way behind

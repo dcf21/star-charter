@@ -518,7 +518,7 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgb(s->cairo_draw, s->ephemeris_col.red, s->ephemeris_col.grn, s->ephemeris_col.blu);
-    ld_label(ld, NULL, 1, 1);
+    ld_label(ld, NULL, 1, 1, 1);
 
     // Loop over the points in the ephemeris, and draw a line across the star chart
     const ephemeris *e = &s->ephemeris_data[trace_num];
@@ -591,7 +591,7 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
 
             // Draw tick mark
             ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
-            ld_label(ld, NULL, 1, 1);
+            ld_label(ld, NULL, 1, 1, 1);
             ld_point(ld, x + graph_coords_tick_len * sin(theta), y - graph_coords_tick_len * cos(theta), NULL);
             ld_point(ld, x - graph_coords_tick_len * sin(theta), y + graph_coords_tick_len * cos(theta), NULL);
             ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);

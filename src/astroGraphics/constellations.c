@@ -66,7 +66,7 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
 
     // Set up line-drawing class
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
-    ld_label(ld, NULL, 1, 1);
+    ld_label(ld, NULL, 1, 1, 1);
 
     // Open file defining the celestial coordinates of the constellation boundaries
     file = fopen(SRCDIR "../data/constellations/downloads/boundaries.dat", "r");

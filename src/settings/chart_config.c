@@ -41,6 +41,8 @@ void default_config(chart_config *i) {
     i->position_angle = 0.0;
     i->font_size = 1.0;
     i->axis_ticks_value_only = 1;
+    i->ra_ticks_on_round_edge = 1;
+    i->dec_ticks_on_round_edge = 1;
     i->ra_dec_lines = 1;
     i->x_label_slant = 0;
     i->y_label_slant = 0;
@@ -94,9 +96,11 @@ void default_config(chart_config *i) {
     i->label_ecliptic = 0;
     i->plot_galactic_plane = 1;
     i->plot_equator = 1;
+    i->plot_meridian = 0;
     i->ecliptic_col = (colour) {0.8, 0.65, 0};
     i->galactic_plane_col = (colour) {0, 0, 0.75};
     i->equator_col = (colour) {0.65, 0, 0.65};
+    i->meridian_col = (colour) {0.1, 0.8, 1};
     i->constellation_stick_col = (colour) {0, 0.6, 0};
     i->grid_col = (colour) {0.7, 0.7, 0.7};
     i->constellation_boundary_col = (colour) {0.5, 0.5, 0.5};
@@ -118,7 +122,7 @@ void default_config(chart_config *i) {
     strcpy(i->galaxy_map_filename, SRCDIR "../data/milkyWay/process/output/galaxymap.dat");
     strcpy(i->photo_filename, "");
     strcpy(i->output_filename, "chart");
-    strcpy(i->copyright, "Produced with StarCharter. https://github.com/dcf21/star-charter");
+    strcpy(i->copyright, "");
     strcpy(i->title, "");
 
     // ----------------------------------------
@@ -134,6 +138,7 @@ void default_config(chart_config *i) {
 }
 
 void config_init(chart_config *i) {
+    i->marg=1.12; //margin specified here
     if (i->coords == SW_COORDS_GAL) i->ra0 *= M_PI / 180; // Specify galactic longitude in degrees
     else i->ra0 *= M_PI / 12;  // Specify RA in hours
     i->dec0 *= M_PI / 180; // Specify declination and galactic latitude in degrees
@@ -142,9 +147,11 @@ void config_init(chart_config *i) {
     else if (i->projection == SW_PROJECTION_PETERS) i->wlin = i->angular_width;
     else if (i->projection == SW_PROJECTION_GNOM) i->wlin = 2 * tan(i->angular_width / 2);
     else if (i->projection == SW_PROJECTION_SPH)
-        i->wlin = 2 * sin(i->angular_width / 2) * 1.12; // margin specified here
+        i->wlin = 2 * sin(i->angular_width / 2) * i->marg;
     else if (i->projection == SW_PROJECTION_ALTAZ)
-        i->wlin = i->angular_width / (M_PI / 2) * 1.12; // margin specified here
+        i->wlin = 2*i->marg;
+	//i->wlin = i->angular_width / (M_PI / 2) * i->marg;
+	//i->wlin = M_PI / (M_PI / 2) * 1.12; // margin specified here
     i->x_min = -i->wlin / 2;
     i->x_max = i->wlin / 2;
     i->y_min = -i->wlin / 2 * i->aspect;

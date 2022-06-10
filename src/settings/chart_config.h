@@ -115,6 +115,12 @@ typedef struct chart_config {
     //! If true, axis labels appear as "5h" or "30 deg". If false, preceded by alpha= or delta=
     int axis_ticks_value_only;
 
+    //! If true, constant RA lines make ticks on round edge in alt_az mode
+    int ra_ticks_on_round_edge;
+
+    //! If true, constant Dec lines make ticks on round edge in alt_az mode
+    int dec_ticks_on_round_edge;
+
     //! Boolean indicating whether we draw a grid of RA/Dec lines in the background of the star chart
     int ra_dec_lines;
 
@@ -322,6 +328,9 @@ typedef struct chart_config {
     //! Colour to use when drawing a line along the equator
     colour equator_col;
 
+    //! Colour to use when drawing a line along the vernal meridian
+    colour meridian_col;
+
     //! Boolean indicating whether to draw a line along the ecliptic
     int plot_ecliptic;
 
@@ -330,6 +339,12 @@ typedef struct chart_config {
 
     //! Boolean indicating whether to draw a line along the equator
     int plot_equator;
+
+    //! Boolean indicating whether to draw a line along the vernal meridian
+    int plot_meridian;
+
+    //! Boolean indicating whether to label Dec lines along the vernal meridian
+    int label_meridian;
 
     //! Boolean indicating whether to label the months along the ecliptic, showing the Sun's annual progress
     int label_ecliptic;
@@ -400,7 +415,7 @@ typedef struct chart_config {
     int output_format;
 
     double canvas_width, canvas_height, canvas_offset_x, canvas_offset_y, dpi, pt, cm, mm, line_width_base;
-    double wlin, x_min, x_max, y_min, y_max;
+    double wlin, marg, x_min, x_max, y_min, y_max;
 
     //! Width of the right-hand column of the legend under the finder chart
     double legend_right_column_width;
