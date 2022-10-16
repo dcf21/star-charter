@@ -249,3 +249,8 @@ The following settings can be included in a `StarCharter` configuration file:
 * `x_label_slant` - A slant to apply to all labels on the horizontal axes
 * `y_label_slant` - A slant to apply to all labels on the vertical axes
 * `zodiacal_only` - Boolean (0 or 1) indicating whether we plot only the zodiacal constellations
+
+## Author
+
+This code was developed by Dominic Ford <https://dcford.org.uk>. It is distributed under the Gnu General Public License V3.
+
