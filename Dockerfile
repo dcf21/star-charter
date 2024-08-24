@@ -9,12 +9,6 @@ RUN apt-get install -y apt-utils dialog file git vim python3 python3-dev \
                        pkg-config libcairo2-dev python3-numpy imagemagick \
                        ; apt-get clean
 
-# Install ephemeris software
-WORKDIR /
-RUN git clone https://github.com/dcf21/ephemeris-compute-de430.git
-WORKDIR /ephemeris-compute-de430
-RUN /ephemeris-compute-de430/setup.sh
-
 # Copy code into container
 WORKDIR /
 ADD . star-charter
