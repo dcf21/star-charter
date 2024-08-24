@@ -41,6 +41,15 @@ set(SOURCE_FILES
         src/coreUtils/makeRasters.c
         src/coreUtils/makeRasters.h
         src/coreUtils/strConstants.h
+        src/ephemCalc/alias.h
+        src/ephemCalc/constellations.c
+        src/ephemCalc/constellations.h
+        src/ephemCalc/jpl.c
+        src/ephemCalc/jpl.h
+        src/ephemCalc/magnitudeEstimate.c
+        src/ephemCalc/magnitudeEstimate.h
+        src/ephemCalc/orbitalElements.c
+        src/ephemCalc/orbitalElements.h
         src/listTools/ltDict.c
         src/listTools/ltDict.h
         src/listTools/ltList.c

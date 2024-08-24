@@ -21,8 +21,8 @@
 
 CWD=$(shell pwd)
 
-VERSION = 5.0
-DATE    = 16/08/2024
+VERSION = 6.0
+DATE    = 26/08/2024
 PATHLINK= /
 
 WARNINGS= -Wall -Wno-format-truncation -Wno-unused-result
@@ -44,7 +44,8 @@ CORE_FILES = astroGraphics/constellations.c astroGraphics/deepSky.c astroGraphic
              astroGraphics/gridLines.c astroGraphics/horizon.c astroGraphics/meteorShower.c \
              astroGraphics/solarSystem.c astroGraphics/starListReader.c astroGraphics/scaleBars.c \
              astroGraphics/stars.c astroGraphics/textAnnotations.c astroGraphics/zenith.c coreUtils/asciiDouble.c \
-             coreUtils/errorReport.c coreUtils/makeRasters.c listTools/ltDict.c listTools/ltList.c \
+             coreUtils/errorReport.c coreUtils/makeRasters.c ephemCalc/constellations.c ephemCalc/magnitudeEstimate.c \
+             ephemCalc/jpl.c ephemCalc/orbitalElements.c listTools/ltDict.c listTools/ltList.c \
              listTools/ltMemory.c listTools/ltStringProc.c mathsTools/julianDate.c mathsTools/projection.c \
              mathsTools/sphericalTrig.c settings/chart_config.c settings/read_config.c settings/render_chart.c \
              vectorGraphics/arrowDraw.c vectorGraphics/lineDraw.c vectorGraphics/cairo_page.c
@@ -54,10 +55,12 @@ CORE_HEADERS = astroGraphics/constellations.h astroGraphics/deepSky.h astroGraph
                astroGraphics/gridLines.h astroGraphics/horizon.h astroGraphics/meteorShower.h \
                astroGraphics/solarSystem.h astroGraphics/starListReader.h astroGraphics/scaleBars.h \
                astroGraphics/stars.h astroGraphics/textAnnotations.h astroGraphics/zenith.h coreUtils/asciiDouble.h \
-               coreUtils/errorReport.h coreUtils/makeRasters.h coreUtils/strConstants.h listTools/ltDict.h \
-               listTools/ltList.h listTools/ltMemory.h listTools/ltStringProc.h mathsTools/julianDate.h \
-               mathsTools/projection.h mathsTools/sphericalTrig.h settings/chart_config.h settings/read_config.h \
-               settings/render_chart.h vectorGraphics/arrowDraw.h vectorGraphics/lineDraw.h vectorGraphics/cairo_page.h
+               coreUtils/errorReport.h coreUtils/makeRasters.h coreUtils/strConstants.h ephemCalc/alias.h \
+               ephemCalc/constellations.h ephemCalc/magnitudeEstimate.h ephemCalc/jpl.h ephemCalc/orbitalElements.h \
+               listTools/ltDict.h listTools/ltList.h listTools/ltMemory.h listTools/ltStringProc.h \
+               mathsTools/julianDate.h mathsTools/projection.h mathsTools/sphericalTrig.h settings/chart_config.h \
+               settings/read_config.h settings/render_chart.h vectorGraphics/arrowDraw.h vectorGraphics/lineDraw.h \
+               vectorGraphics/cairo_page.h
 
 STARCHART_FILES = main.c
 
@@ -84,11 +87,11 @@ all: $(LOCAL_BINDIR)/starchart.bin $(LOCAL_BINDIR)/debug/starchart.bin
 #
 
 $(LOCAL_OBJDIR)/%.o:         $(LOCAL_SRCDIR)/%.c $(ALL_HFILES)
-	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
+	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/ephemCalc $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
 	$(COMPILE) $(OPTIMISATION) $(NODEBUG) $(SWITCHES) $< -o $@
 
 $(LOCAL_OBJDIR)/%.debug.o:   $(LOCAL_SRCDIR)/%.c $(ALL_HFILES)
-	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
+	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/ephemCalc $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
 	$(COMPILE) $(OPTIMISATION) $(DEBUG)   $(SWITCHES) $< -o $@
 
 #

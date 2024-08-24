@@ -1,4 +1,4 @@
-// SphericalTrig.h
+// magnitudeEstimate.h
 // 
 // -------------------------------------------------
 // Copyright 2015-2024 Dominic Ford
@@ -19,23 +19,21 @@
 // along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------
 
-#ifndef SPHERICALTRIG_H
-#define SPHERICALTRIG_H 1
+#ifndef MAGNITUDEESTIMATE_H
+#define MAGNITUDEESTIMATE_H 1
 
-double angDist_ABC(double xa, double ya, double za, double xb, double yb, double zb, double xc, double yc, double zc);
+#ifndef MAGNITUDEESTIMATE_C
+extern double *albedo_array;
+extern double *phy_size_array;
+#endif
 
-double angDist_RADec(double ra0, double dec0, double ra1, double dec1);
+void magnitudeEstimate_init();
 
-double position_angle(double ra1, double dec1, double ra2, double dec2);
-
-void rotate_xy(double *out, const double *in, double theta);
-
-void rotate_xz(double *out, const double *in, double theta);
-
-void make_zenithal(double *zenith_angle, double *azimuth, double ra, double dec, double ra0, double dec0);
-
-void find_mean_position(double *ra_out, double *dec_out, const double *ra_list, const double *dec_list,
-                        int point_count);
+void magnitudeEstimate(int body_id, double xo, double yo, double zo, double xe, double ye, double ze, double xs,
+                       double ys, double zs, double *ra, double *dec, double *mag, double *phase, double *angSize,
+                       double *phySize, double *albedoOut, double *sunDist, double *earthDist, double *sunAngDist,
+                       double *theta_eso, double *eclipticLongitude, double *eclipticLatitude,
+                       double *eclipticDistance);
 
 #endif
 

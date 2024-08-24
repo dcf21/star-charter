@@ -72,7 +72,7 @@ double get_float(const char *str, int *Nchars) {
 
     if (negative == 1) accumulator *= -1;                         /* Deals with negatives */
 
-    if ((str[pos] == 'e') || (str[pos] == 'E'))
+    if ((str[pos] == 'e') || (str[pos] == 'E') || (str[pos] == 'd') || (str[pos] == 'D'))
         accumulator *= pow(10.0, get_float(str + pos + 1, &pos2)); /* Deals with exponents */
 
     if (pos2 > 0) pos += (1 + pos2); // Add on characters taken up by exponent, including one for the 'e' character.

@@ -28,6 +28,8 @@
 
 #include "astroGraphics/ephemeris.h"
 #include "astroGraphics/solarSystem.h"
+#include "ephemCalc/jpl.h"
+#include "ephemCalc/orbitalElements.h"
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
 #include "mathsTools/julianDate.h"
@@ -37,6 +39,75 @@
 #include "vectorGraphics/arrowDraw.h"
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
+
+//! convert_body_name_to_int_id - Convert a string name for an object into an integer ID we can pass to ephemCalc
+//! \param object_name - String name for a solar system body
+//! \return Integer ID
+
+int convert_body_name_to_int_id(const char *object_name) {
+    char name[FNAME_LENGTH];
+    int output_body_id = -1;
+
+    // Convert the name of the requested objects into numeric object IDs
+    strncpy(name, object_name, FNAME_LENGTH);
+    name[FNAME_LENGTH - 1] = '\0';
+    str_strip(name, name);
+    str_lower(name, name);
+    if ((strcmp(name, "mercury") == 0) || (strcmp(name, "pmercury") == 0) || (strcmp(name, "p1") == 0))
+        output_body_id = 0;
+    else if ((strcmp(name, "venus") == 0) || (strcmp(name, "pvenus") == 0) || (strcmp(name, "p2") == 0))
+        output_body_id = 1;
+    else if ((strcmp(name, "earth") == 0) || (strcmp(name, "pearth") == 0) || (strcmp(name, "p3") == 0))
+        output_body_id = 19;
+    else if ((strcmp(name, "mars") == 0) || (strcmp(name, "pmars") == 0) || (strcmp(name, "p4") == 0))
+        output_body_id = 3;
+    else if ((strcmp(name, "jupiter") == 0) || (strcmp(name, "pjupiter") == 0) || (strcmp(name, "p5") == 0))
+        output_body_id = 4;
+    else if ((strcmp(name, "saturn") == 0) || (strcmp(name, "psaturn") == 0) || (strcmp(name, "p6") == 0))
+        output_body_id = 5;
+    else if ((strcmp(name, "uranus") == 0) || (strcmp(name, "puranus") == 0) || (strcmp(name, "p7") == 0))
+        output_body_id = 6;
+    else if ((strcmp(name, "neptune") == 0) || (strcmp(name, "pneptune") == 0) || (strcmp(name, "p8") == 0))
+        output_body_id = 7;
+    else if ((strcmp(name, "pluto") == 0) || (strcmp(name, "ppluto") == 0) || (strcmp(name, "p9") == 0))
+        output_body_id = 8;
+    else if ((strcmp(name, "moon") == 0) || (strcmp(name, "pmoon") == 0) || (strcmp(name, "p301") == 0))
+        output_body_id = 9;
+    else if (strcmp(name, "sun") == 0)
+        output_body_id = 10;
+    else if (((name[0] == 'a') || (name[0] == 'A')) && valid_float(name + 1, NULL)) {
+        // Asteroid, e.g. A1
+        output_body_id = 1000000 + (int) get_float(name + 1, NULL);
+    } else if (((name[0] == 'c') || (name[0] == 'C')) && valid_float(name + 1, NULL)) {
+        // Comet, e.g. C1 (first in datafile)
+        output_body_id = 2000000 + (int) get_float(name + 1, NULL);
+    } else {
+        // Search for comets with matching names
+
+        // Open comet database
+        orbitalElements_comets_init();
+
+        // Loop over comets seeing if names match
+        int index;
+        for (index = 0; index < comet_count; index++) {
+            // Fetch comet information
+            orbitalElements *item = orbitalElements_comets_fetch(index);
+
+            if ((str_cmp_no_case(name, item->name) == 0) || (str_cmp_no_case(name, item->name2) == 0)) {
+                output_body_id = 2000000 + index;
+                break;
+            }
+        }
+    }
+
+    if (output_body_id < 0) {
+        snprintf(temp_err_string, FNAME_LENGTH, "Unrecognised object name <%s>", name);
+        stch_fatal(__FILE__, __LINE__, temp_err_string);
+        exit(1);
+    }
+
+    return output_body_id;
+}
 
 //! ephemerides_fetch - Fetch the ephemeris data for solar system objects to be plotted on a star chart
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
@@ -62,24 +133,27 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, int ephemeris_count,
         // Read object name into <object_id>
         str_comma_separated_list_scan(&in_scan, object_id);
         snprintf((*ephemeris_data_out)[i].obj_id, FNAME_LENGTH, "%s", object_id);
+        const int body_id = convert_body_name_to_int_id(object_id);
 
         // Read starting Julian day number into (*ephemeris_data_out)[i].jd_start
         str_comma_separated_list_scan(&in_scan, buffer);
-        (*ephemeris_data_out)[i].jd_start = get_float(buffer, NULL);
+        const double jd_start = get_float(buffer, NULL);
+        (*ephemeris_data_out)[i].jd_start = jd_start;
 
         // Read ending Julian day number into (*ephemeris_data_out)[i].jd_end
         str_comma_separated_list_scan(&in_scan, buffer);
-        (*ephemeris_data_out)[i].jd_end = get_float(buffer, NULL);
+        const double jd_end = get_float(buffer, NULL);
+        (*ephemeris_data_out)[i].jd_end = jd_end;
 
         // Sample planet's movement every 12 hours
-        (*ephemeris_data_out)[i].jd_step = 0.5;
+        const double jd_step = 0.5;
+        (*ephemeris_data_out)[i].jd_step = jd_step;
 
-        const double ephemeris_duration = (*ephemeris_data_out)[i].jd_end - (*ephemeris_data_out)[i].jd_start; // days
+        const double ephemeris_duration = jd_end - jd_start; // days
 
         // Generous estimate of how many lines we expect ephemerisCompute to return
-        (*ephemeris_data_out)[i].point_count = (int) (20 +
-                                                      ephemeris_duration / (*ephemeris_data_out)[i].jd_step
-        );
+        const int point_count = (int) (2 + ephemeris_duration / jd_step);
+        (*ephemeris_data_out)[i].point_count = point_count;
 
         // Keep track of the brightest magnitude and largest angular size of the object
         (*ephemeris_data_out)[i].brightest_magnitude = 999;
@@ -91,60 +165,32 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, int ephemeris_count,
                 (*ephemeris_data_out)[i].point_count * sizeof(ephemeris_point)
         );
 
-        // Use ephemeris-compute-de430 to track the path of this object
-        char ephemeris_compute_command[FNAME_LENGTH];
+        // Loop over points in the ephemeris
+        for (int line_counter = 0; line_counter < point_count; line_counter++) {
+            const double jd = jd_start + line_counter * jd_step;
+            if (jd > jd_end) {
+                // Throw an error if we got no data
+                if (line_counter == 0) {
+                    stch_fatal(__FILE__, __LINE__, "ephemeris-compute-de430 returned no data");
+                    exit(1);
+                }
 
-        // Construct a command-line to run the ephemeris generation tool
-        snprintf(ephemeris_compute_command, FNAME_LENGTH, "%.2048s "
-                                                          "--jd_min %.15f "
-                                                          "--jd_max %.15f "
-                                                          "--jd_step %.15f "
-                                                          "--output_format 2 "
-                                                          "--output_constellations 0 "
-                                                          "--output_binary 0 "
-                                                          "--objects \"%.256s\" ",
-                 ephemeris_compute_path,
-                 (*ephemeris_data_out)[i].jd_start, (*ephemeris_data_out)[i].jd_end, (*ephemeris_data_out)[i].jd_step,
-                 object_id);
+                // Record how many lines of data were returned from ephemeris-compute-de430
+                (*ephemeris_data_out)[i].point_count = line_counter;
 
-        // Run ephemeris generator
-        FILE *ephemeris_data = popen(ephemeris_compute_command, "r");
-        // printf("%s\n", ephemeris_compute_command);
+                // Ended
+                break;
+            }
 
-        // Loop over the lines returned by ephemeris-compute-de430
-        int line_counter = 0;
-        while ((!feof(ephemeris_data)) && (!ferror(ephemeris_data))) {
-            char line[FNAME_LENGTH];
+            double x, y, z, ra, dec, magnitude, phase, angular_size, physical_size, albedo;
+            double sun_distance, earth_distance, theta_oes, theta_eso;
+            double ecliptic_longitude_j2000, ecliptic_latitude_j2000, longitude_diff;
 
-            // Read line of output text
-            file_readline(ephemeris_data, line);
-            // printf("%s\n", line);
-
-            // Filter whitespace from the beginning of the line
-            const char *scan = line;
-            while ((*scan > '\0') && (*scan <= ' ')) scan++;
-
-            // Ignore blank lines
-            if (scan[0] == '\0') continue;
-
-            // Ignore comment lines
-            if (scan[0] == '#') continue;
-
-            // Read columns of data output from the ephemeris generator
-            double jd = get_float(scan, NULL); // Julian day number
-            scan = next_word(scan);
-            scan = next_word(scan);
-            scan = next_word(scan);
-            scan = next_word(scan);
-            double ra = get_float(scan, NULL); // radians
-            scan = next_word(scan);
-            double dec = get_float(scan, NULL); // radians
-            scan = next_word(scan);
-            double magnitude = get_float(scan, NULL);
-            scan = next_word(scan);
-            double phase = get_float(scan, NULL); // 0-1
-            scan = next_word(scan);
-            double angular_size = get_float(scan, NULL); // arcseconds
+            jpl_computeEphemeris(body_id, jd, &x, &y, &z,
+                                 &ra, &dec, &magnitude, &phase, &angular_size, &physical_size,
+                                 &albedo, &sun_distance, &earth_distance, &theta_oes, &theta_eso,
+                                 &ecliptic_longitude_j2000, &ecliptic_latitude_j2000,
+                                 &longitude_diff);
 
             // Store this data point into (*ephemeris_data_out)
             (*ephemeris_data_out)[i].data[line_counter].jd = jd;
@@ -169,18 +215,7 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, int ephemeris_count,
                 (*ephemeris_data_out)[i].maximum_angular_size = angular_size;
             }
 
-            // Increment data point counter
-            line_counter++;
         }
-
-        // Throw an error if we got no data
-        if (line_counter == 0) {
-            stch_fatal(__FILE__, __LINE__, "ephemeris-compute-de430 returned no data");
-            exit(1);
-        }
-
-        // Record how many lines of data were returned from ephemeris-compute-de430
-        (*ephemeris_data_out)[i].point_count = line_counter;
 
         // Keep tally of the sum total number of points in all ephemerides
         total_ephemeris_points += (*ephemeris_data_out)[i].point_count;

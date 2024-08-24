@@ -125,6 +125,22 @@ def fetch_required_files(refresh: bool) -> None:
     """
     # List of the files we require
     required_files: List[Dict[str, Union[str, bool]]] = [
+        {
+            'url': 'https://ftp.lowell.edu/pub/elgb/astorb.dat.gz',
+            'destination': 'data/astorb.dat',
+            'force_refresh': True
+        },
+        {
+            'url': 'https://www.minorplanetcenter.net/iau/MPCORB/CometEls.txt',
+            'destination': 'data/Soft00Cmt.txt',
+            'force_refresh': True
+        },
+        {
+            'url': 'https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de430/header.430_572',
+            'destination': 'data/header.430',
+            'force_refresh': refresh
+        },
+
         # Definitions of constellation boundaries
 #       {
 #           'url': 'https://cdsarc.u-strasbg.fr/ftp/VI/49/bound_20.dat.gz',
@@ -237,6 +253,14 @@ def fetch_required_files(refresh: bool) -> None:
         required_files.append({
             'url': 'https://cdsarc.u-strasbg.fr/ftp/I/259/tyc2.dat.{:02d}.gz'.format(file_number),
             'destination': 'data/stars/tycho2/tyc2.dat.{:02d}.gz'.format(file_number),
+            'force_refresh': refresh
+        })
+
+    # Fetch the JPL DE430 ephemeris
+    for year in range(1550, 2551, 100):
+        required_files.append({
+            'url': 'https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de430/ascp{:04d}.430'.format(year),
+            'destination': 'data/ascp{:04d}.430'.format(year),
             'force_refresh': refresh
         })
 

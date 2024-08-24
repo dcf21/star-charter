@@ -7,10 +7,9 @@ in equatorial or galactic coordinates.  A large array of configuration options
 are available to allow the charts to be fully customised.
 
 `StarCharter` can depict the positions of solar system objects - planets,
-asteroids and comets - if the tool
-[ephemerisCompute](https://github.com/dcf21/ephemeris-compute-de430) is also
-installed. The paths of these objects across the sky over a specified time
-period can also be shown.
+asteroids and comets - retrieving their positions from NASA's DE430 ephemeris,
+and the paths of these objects across the sky over a specified time period can
+also be shown.
 
 Charts can be generated in either PNG (bitmap graphics) format for quick
 viewing and use online, or in PDF/SVG/EPS (vector graphics) formats for
@@ -74,23 +73,14 @@ First make a clone of the code in this GitHub repository:
 git clone https://github.com/dcf21/star-charter.git
 ```
 
-If you intend to show solar system objects on star charts, then you should also
-clone `ephemeris-compute`, to fetch the positions of these objects from the
-DE430 ephemeris:
-
-```
-git clone https://github.com/dcf21/ephemeris-compute-de430.git
-```
-
 If you wish to run `StarCharter` locally (not within a Docker container), then
-you must run the shell scripts `setup.sh` in each repository to download the
-data required by each tool and to compile the software. Run the
-`ephemeris-compute-de430` setup script first, and then the `star-charter` setup
-script. These scripts download various data from the internet, including the
-DE430 solar system ephemeris, star catalogues, deep sky catalogues, and an
-image of the Milky Way to use to shade the background of star charts.
+you must run the shell script `setup.sh` to download the data required by each
+tool and to compile the software.  This script downloads various data from the
+internet, including the DE430 solar system ephemeris, star catalogues, deep sky
+catalogues, and an image of the Milky Way to use to shade the background of
+star charts.
 
-The total download size will be around 500 MB, and it will take around 15-20
+The total download size will be around 500 MB, and it will take around 10-15
 minutes to process the downloaded files.
 
 ### Docker container
@@ -118,7 +108,7 @@ docker compose run star-charter
 To make other star charts, open a shell within the Docker container as follows:
 
 ```
-docker run -it star-charter:v5 /bin/bash
+docker run -it star-charter:v6 /bin/bash
 ```
 
 ## Generating your own star charts
@@ -335,11 +325,7 @@ The following settings can be included in a `StarCharter` configuration file:
 ## Paths of solar system objects
 
 The `draw_ephemeris` option in a configuration file can be used to draw the
-path of a solar system object across the sky.  As described above, requires the
-tool [ephemerisCompute](https://github.com/dcf21/ephemeris-compute-de430) to be
-installed.
-
-The syntax is as follows:
+path of a solar system object across the sky. The syntax is as follows:
 
 ```
 draw_ephemeris = <body>,<jd_start>,<jd_end>

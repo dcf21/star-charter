@@ -27,6 +27,29 @@
 
 #include "mathsTools/sphericalTrig.h"
 
+//! angDist_ABC - Calculate the angle between the lines BA and BC, measured at B
+//! \param xa - Cartesian coordinates of point A
+//! \param ya - Cartesian coordinates of point A
+//! \param za - Cartesian coordinates of point A
+//! \param xb - Cartesian coordinates of point B
+//! \param yb - Cartesian coordinates of point B
+//! \param zb - Cartesian coordinates of point B
+//! \param xc - Cartesian coordinates of point C
+//! \param yc - Cartesian coordinates of point C
+//! \param zc - Cartesian coordinates of point C
+//! \return Angle ABC (radians)
+
+double angDist_ABC(double xa, double ya, double za, double xb, double yb, double zb, double xc, double yc, double zc) {
+    double AB2 = gsl_pow_2(xa - xb) + gsl_pow_2(ya - yb) + gsl_pow_2(za - zb);
+    double BC2 = gsl_pow_2(xb - xc) + gsl_pow_2(yb - yc) + gsl_pow_2(zb - zc);
+    double CA2 = gsl_pow_2(xc - xa) + gsl_pow_2(yc - ya) + gsl_pow_2(zc - za);
+
+    double cosine = (AB2 + BC2 - CA2) / (2 * sqrt(AB2) * sqrt(BC2));
+    if (cosine >= 1) return 0;
+
+    return acos(cosine);
+}
+
 //! angDist_RADec - Calculate the angular distance between (RA0, Dec0) and (RA1, Dec1)
 //! \param ra0 - Right ascension of the first point (radians)
 //! \param dec0 - Declination of the first point (radians)

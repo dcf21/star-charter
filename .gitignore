@@ -17,6 +17,23 @@ eggs/
 /examples/starchart.log
 
 # Input data files
+/data/Soft00Cmt.txt
+/data/ascp1550.430
+/data/ascp1650.430
+/data/ascp1750.430
+/data/ascp1850.430
+/data/ascp1950.430
+/data/ascp2050.430
+/data/ascp2150.430
+/data/ascp2250.430
+/data/ascp2350.430
+/data/ascp2450.430
+/data/ascp2550.430
+/data/astorb.dat
+/data/header.430
+
+/data/dcfbinary*
+
 /data/constellations/downloads/hip_main.dat.gz
 /data/constellations/downloads/ybsc.gz
 /data/constellations/process_stick_figures/output/
