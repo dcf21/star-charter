@@ -1,7 +1,7 @@
 // stars.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -149,7 +149,10 @@ int test_if_tile_in_field_of_view(chart_config *s, int level, int ra_index, int 
     const double dec_max = dec_min + M_PI / object_tilings[level].dec_bins;
 
     // Does centre of field of view fall within this tile?
-    if ((s->ra0 >= ra_min) && (s->ra0 <= ra_max) && (s->dec0 >= dec_min) && (s->dec0 <= dec_max)) return 1;
+    if ((s->ra0_final >= ra_min) && (s->ra0_final <= ra_max) &&
+        (s->dec0_final >= dec_min) && (s->dec0_final <= dec_max)) {
+        return 1;
+    }
 
     // Do any of the corners of the field of view fall within this tile?
     const int steps = 1;
@@ -171,7 +174,7 @@ int test_if_tile_in_field_of_view(chart_config *s, int level, int ra_index, int 
             double x, y;
             const double ra = (ra_min * (steps - i) + ra_max * i) / steps;
             const double dec = (dec_min * (steps - i) + dec_max * i) / steps;
-            plane_project(&x, &y, s, ra, dec, 0);
+            plane_project(&x, &y, s, ra, dec);
 
             // Include this tile if this corner falls inside the plot area
             if (gsl_finite(x) && gsl_finite(y) &&
@@ -312,7 +315,7 @@ void star_list_to_binary() {
         }
 
         // Close input ASCII file
-        fclose(in);
+        pclose(in);
     }
 
     // Now work out the position within the file where each tile will get written
@@ -377,7 +380,7 @@ void star_list_to_binary() {
         }
 
         // Close input ASCII file
-        fclose(in);
+        pclose(in);
     }
 
     // Close output binary data file

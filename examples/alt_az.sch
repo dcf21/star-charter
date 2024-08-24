@@ -1,7 +1,7 @@
 # Demonstration configuration file to produce an alt/az projection
 # 
 # -------------------------------------------------
-# Copyright 2015-2022 Dominic Ford
+# Copyright 2015-2024 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -18,7 +18,6 @@
 # You should have received a copy of the GNU General Public License
 # along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 # -------------------------------------------------
-
 
 # Default chart settings
 DEFAULTS

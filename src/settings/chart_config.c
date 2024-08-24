@@ -1,7 +1,7 @@
 // settings.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -23,25 +23,80 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include <unistd.h>
 
 #include <gsl/gsl_math.h>
+
+#include "coreUtils/errorReport.h"
 
 #include "chart_config.h"
 
 #include "astroGraphics/stars.h"
+#include "mathsTools/julianDate.h"
+#include "mathsTools/projection.h"
+#include "mathsTools/sphericalTrig.h"
+
+//! default_config - Populate a chart configuration data structure with a set of default configuration values
+//! \param i - The data structure to be populated
 
 void default_config(chart_config *i) {
-    i->language = SW_LANG_EN;
-    i->projection = SW_PROJECTION_GNOM;
+    i->language = SW_LANG_ENGLISH;
+    i->projection = SW_PROJECTION_STEREOGRAPHIC;
     i->coords = SW_COORDS_RADEC;
+    i->grid_coords = SW_COORDS_RADEC;
     i->axis_label = 0;
     i->ra0 = 0.0;
     i->dec0 = 0.0;
+    i->l0 = 0.0;
+    i->b0 = 0.0;
+    i->alt0 = 0.0;
+    i->az0 = 0.0;
     i->position_angle = 0.0;
+    i->text_labels_default_count = 0;
+    i->text_labels_custom_count = 0;
+    i->text_labels_final_count = 0;
+    i->show_horizon = 0;
+    i->horizon_latitude = 0;
+    i->horizon_longitude = 0;
+    i->horizon_cardinal_points_marker_colour = (colour) {0, 0, 0};
+    i->horizon_cardinal_points_labels_colour = (colour) {0, 0, 0};
+    i->horizon_cardinal_points_marker_size = 1;
+    i->horizon_cardinal_points_marker_count = 8;
+    i->horizon_cardinal_points_marker_elevate = 0;
+    i->julian_date = 0.0;
+    i->show_solar_system = 0;
+    strcpy(i->solar_system_labels[0], "Mercury");
+    strcpy(i->solar_system_labels[1], "Venus");
+    strcpy(i->solar_system_labels[2], "Mars");
+    strcpy(i->solar_system_labels[3], "Jupiter");
+    strcpy(i->solar_system_labels[4], "Saturn");
+    strcpy(i->solar_system_labels[5], "Uranus");
+    strcpy(i->solar_system_labels[6], "Neptune");
+    strcpy(i->solar_system_ids[0], "P1");
+    strcpy(i->solar_system_ids[1], "P2");
+    strcpy(i->solar_system_ids[2], "P4");
+    strcpy(i->solar_system_ids[3], "P5");
+    strcpy(i->solar_system_ids[4], "P6");
+    strcpy(i->solar_system_ids[5], "P7");
+    strcpy(i->solar_system_ids[6], "P8");
+    i->solar_system_default_count = 7;
+    i->solar_system_ids_custom_count = 0;
+    i->solar_system_labels_custom_count = 0;
+    i->solar_system_final_count = 0;
+    i->solar_system_colour[0] = (colour) {1, 0.9, 0.75};
+    i->solar_system_colour_default_count = 1;
+    i->solar_system_colour_custom_count = 0;
+    i->solar_system_colour_final_count = 0;
+    i->solar_system_show_moon_phase = 1;
+    i->solar_system_moon_earthshine_intensity = 0.12;
+    i->solar_system_moon_colour = (colour) {1, 1, 0.8};
+    i->shade_twilight = 0;
+    i->shade_near_sun = 0;
+    i->shade_not_observable = 0;
+    i->twilight_zenith_col = (colour) {0.2, 0.2, 0.5};
+    i->twilight_horizon_col = (colour) {0.9, 0.9, 0.7};
     i->font_size = 1.0;
     i->axis_ticks_value_only = 1;
-    i->ra_dec_lines = 1;
+    i->show_grid_lines = 1;
     i->x_label_slant = 0;
     i->y_label_slant = 0;
     i->constellation_boundaries = 1;
@@ -68,7 +123,18 @@ void default_config(chart_config *i) {
     i->angular_width = 25.0;
     i->width = 16.5;
     i->aspect = 1.41421356;
-    i->ephemeride_count = 0;
+    i->dpi = 0; // automatic
+    i->ephemeris_default_count = 0;
+    i->ephemeris_custom_count = 0;
+    i->ephemeris_final_count = 0;
+    i->ephemeris_epochs_default_count = 0;
+    i->ephemeris_epochs_custom_count = 0;
+    i->ephemeris_epochs_final_count = 0;
+    i->ephemeris_epoch_labels_custom_count = 0;
+    i->scale_bars_default_count = 0;
+    i->scale_bars_custom_count = 0;
+    i->scale_bars_final_count = 0;
+    i->scale_bar_colour = (colour) {0, 0, 0};
     i->ephemeris_autoscale = 0;
     i->ephemeris_table = 0;
     i->must_show_all_ephemeris_labels = 0;
@@ -100,7 +166,14 @@ void default_config(chart_config *i) {
     i->constellation_stick_col = (colour) {0, 0.6, 0};
     i->grid_col = (colour) {0.7, 0.7, 0.7};
     i->constellation_boundary_col = (colour) {0.5, 0.5, 0.5};
-    i->ephemeris_col = (colour) {0, 0, 0};
+    i->ephemeris_col[0] = (colour) {0, 0, 0};
+    i->ephemeris_col_default_count = 1;
+    i->ephemeris_col_custom_count = 0;
+    i->ephemeris_col_final_count = 0;
+    i->ephemeris_label_col[0] = (colour) {0, 0, 0};
+    i->ephemeris_label_col_default_count = 1;
+    i->ephemeris_label_col_custom_count = 0;
+    i->ephemeris_label_col_final_count = 0;
     i->constellation_label_col = (colour) {0.1, 0.1, 0.1};
     i->plot_galaxy_map = 1;
     i->galaxy_map_width_pixels = 2048;
@@ -121,38 +194,202 @@ void default_config(chart_config *i) {
     strcpy(i->copyright, "Produced with StarCharter. https://github.com/dcf21/star-charter");
     strcpy(i->title, "");
 
-    // ----------------------------------------
-    // Settings which we don't currently expose
-    // ----------------------------------------
-
+    i->show_horizon_zenith = 0;
+    i->horizon_zenith_marker_size = 1;
+    i->horizon_zenith_colour = (colour) {1, 1, 1};
+    i->ephemeris_style = SW_EPHEMERIS_TRACK;
+    i->meteor_radiants_default_count = 0;
+    i->meteor_radiants_custom_count = 0;
+    i->meteor_radiants_final_count = 0;
+    i->meteor_radiant_marker_size = 1;
+    i->meteor_radiant_colour = (colour) {0.75, 0.75, 1};
     strcpy(i->font_family, "Roboto");
     i->great_circle_line_width = 1.75;
+    i->great_circle_dotted = 0;
     i->coordinate_grid_line_width = 1.3;
     i->dso_point_size_scaling = 1;
+    i->constellations_capitalise = 0;
+    i->constellations_label_shadow = 1;
     i->constellation_sticks_line_width = 1.4;
     i->chart_edge_line_width = 2.5;
+
+    // Pointers default to NULL
+    i->ephemeris_data = NULL;
+    i->solar_system_ephemeris_data = NULL;
+    i->cairo_surface = NULL;
+    i->cairo_draw = NULL;
 }
 
-void config_init(chart_config *i) {
-    if (i->coords == SW_COORDS_GAL) i->ra0 *= M_PI / 180; // Specify galactic longitude in degrees
-    else i->ra0 *= M_PI / 12;  // Specify RA in hours
-    i->dec0 *= M_PI / 180; // Specify declination and galactic latitude in degrees
-    i->angular_width *= M_PI / 180; // Specify angular width in degrees
-    if (i->projection == SW_PROJECTION_FLAT) i->wlin = i->angular_width;
-    else if (i->projection == SW_PROJECTION_PETERS) i->wlin = i->angular_width;
-    else if (i->projection == SW_PROJECTION_GNOM) i->wlin = 2 * tan(i->angular_width / 2);
-    else if (i->projection == SW_PROJECTION_SPH)
+//! config_init_arrays - Populate computed quantities into a chart configuration data structure.
+//! Phase 1: finalise lengths of arrays.
+//! \param i - The data structure to be populated
+
+void config_init_arrays(chart_config *i) {
+    // Update counts of number of items in lists
+    // Number of ephemeris tracks to display
+    if (i->ephemeris_custom_count > 0) {
+        i->ephemeris_final_count = i->ephemeris_custom_count;
+    } else {
+        i->ephemeris_final_count = i->ephemeris_default_count;
+    }
+
+    // Number of text labels to display
+    if (i->text_labels_custom_count > 0) {
+        i->text_labels_final_count = i->text_labels_custom_count;
+    } else {
+        i->text_labels_final_count = i->text_labels_default_count;
+    }
+
+    // Number of meteor shower radiants to display
+    if (i->meteor_radiants_custom_count > 0) {
+        i->meteor_radiants_final_count = i->meteor_radiants_custom_count;
+    } else {
+        i->meteor_radiants_final_count = i->meteor_radiants_default_count;
+    }
+
+    // Number of solar-system objects to display at the epoch <julian_date>
+    if (i->solar_system_ids_custom_count != i->solar_system_labels_custom_count) {
+        snprintf(temp_err_string, FNAME_LENGTH,
+                 "Bad input file. There are %d entries for <solar_system_ids>, but %d entries for "
+                 "<solar_system_labels>. These numbers should be equal.",
+                 i->solar_system_ids_custom_count, i->solar_system_labels_custom_count);
+        stch_fatal(__FILE__, __LINE__, temp_err_string);
+        exit(1);
+    }
+
+    if (i->solar_system_ids_custom_count > 0) {
+        i->solar_system_final_count = i->solar_system_ids_custom_count;
+    } else {
+        i->solar_system_final_count = i->solar_system_default_count;
+    }
+
+    // Number of custom ephemeris time points in the lists <ephemeris_epochs> and <ephemeris_epoch_labels>
+    if (i->ephemeris_epochs_custom_count != i->ephemeris_epoch_labels_custom_count) {
+        snprintf(temp_err_string, FNAME_LENGTH,
+                 "Bad input file. There are %d entries for <ephemeris_epochs>, but %d entries for "
+                 "<ephemeris_epoch_labels>. These numbers should be equal.",
+                 i->ephemeris_epochs_custom_count, i->ephemeris_epoch_labels_custom_count);
+        stch_fatal(__FILE__, __LINE__, temp_err_string);
+        exit(1);
+    }
+
+    if (i->ephemeris_epochs_custom_count > 0) {
+        i->ephemeris_epochs_final_count = i->ephemeris_epochs_custom_count;
+    } else {
+        i->ephemeris_epochs_final_count = i->ephemeris_epochs_default_count;
+    }
+
+    // Number of colour to use in cyclic loop when drawing solar system objects
+    if (i->solar_system_colour_custom_count > 0) {
+        i->solar_system_colour_final_count = i->solar_system_colour_custom_count;
+    } else {
+        i->solar_system_colour_final_count = i->solar_system_colour_default_count;
+    }
+
+    // Number of colour to use in cyclic loop for drawing ephemerides for solar system objects.
+    if (i->ephemeris_col_custom_count > 0) {
+        i->ephemeris_col_final_count = i->ephemeris_col_custom_count;
+    } else {
+        i->ephemeris_col_final_count = i->ephemeris_col_default_count;
+    }
+
+    // Number of colour to use in cyclic loop for labelling ephemerides for solar system objects.
+    if (i->ephemeris_label_col_custom_count > 0) {
+        i->ephemeris_label_col_final_count = i->ephemeris_label_col_custom_count;
+    } else {
+        i->ephemeris_label_col_final_count = i->ephemeris_label_col_default_count;
+    }
+
+    // Number of scale bars to display
+    if (i->scale_bars_custom_count > 0) {
+        i->scale_bars_final_count = i->scale_bars_custom_count;
+    } else {
+        i->scale_bars_final_count = i->scale_bars_default_count;
+    }
+}
+
+//! config_init_pointing - Populate computed quantities into a chart configuration data structure.
+//! Phase 2: finalise central coordinates of the plot.
+//! \param i - The data structure to be populated
+
+void config_init_pointing(chart_config *i) {
+    // Calculate the central coordinates of the chart
+    if ((i->coords == SW_COORDS_GALACTIC) && !i->ephemeris_autoscale) {
+        // Convert galactic coordinates of centre of field of view into (RA, Dec) J2000
+        convert_selected_coordinates_to_ra_dec(i, i->coords, i->l0 * M_PI / 180, i->b0 * M_PI / 180,
+                                               &(i->ra0_final), &(i->dec0_final));
+
+        // Fix position angle of plot
+        const double ra_ngp_j2000 = 192.85948 * M_PI / 180;
+        const double dec_ngp_j2000 = 27.12825 * M_PI / 180;
+
+        // Work out the position angle of the galactic pole, counterclockwise from north, as measured at centre of frame
+        // radians, for J2000 north pole
+        const double zenith_position_angle = position_angle(
+                i->ra0_final, i->dec0_final, ra_ngp_j2000, dec_ngp_j2000);
+
+        // Apply fix
+        if ((i->projection != SW_PROJECTION_FLAT) && (i->projection != SW_PROJECTION_PETERS)) {
+            i->position_angle -= zenith_position_angle * 180 / M_PI;
+        }
+    } else if ((i->coords == SW_COORDS_ALTAZ) && !i->ephemeris_autoscale) {
+        // Convert alt/az of centre of field of view into (RA, Dec) at epoch <julian_date>
+        convert_selected_coordinates_to_ra_dec(i, i->coords, i->az0 * M_PI / 180, i->alt0 * M_PI / 180,
+                                               &(i->ra0_final), &(i->dec0_final));
+
+        // Fix position angle of plot
+        double ra_zenith_at_epoch, dec_zenith_at_epoch;
+        double ra_zenith_j2000, dec_zenith_j2000;
+        get_zenith_position(i->horizon_latitude, i->horizon_longitude, i->julian_date,
+                            &ra_zenith_at_epoch, &dec_zenith_at_epoch);
+        ra_dec_to_j2000(ra_zenith_at_epoch, dec_zenith_at_epoch, i->julian_date,
+                        &ra_zenith_j2000, &dec_zenith_j2000);
+
+        // Work out the position angle of the zenith, counterclockwise from north, as measured at centre of frame
+        // radians, for J2000 north pole
+        const double zenith_position_angle = position_angle(
+                i->ra0_final, i->dec0_final, ra_zenith_j2000, dec_zenith_j2000);
+
+        // Apply fix
+        if ((i->projection != SW_PROJECTION_FLAT) && (i->projection != SW_PROJECTION_PETERS)) {
+            i->position_angle -= zenith_position_angle * 180 / M_PI;
+        }
+    } else {
+        // Centre of field-of-view is already specified in (RA, Dec), so just convert units to radians
+        convert_selected_coordinates_to_ra_dec(i, i->coords, i->ra0 * M_PI / 12, i->dec0 * M_PI / 180,
+                                               &(i->ra0_final), &(i->dec0_final));
+    }
+
+    // Convert angular width in degrees to radians
+    i->angular_width *= M_PI / 180;
+
+    // Calculate the width of the field of view in the tangent plane
+    if (i->projection == SW_PROJECTION_FLAT) {
+        i->wlin = i->angular_width;
+    } else if (i->projection == SW_PROJECTION_PETERS) {
+        i->wlin = i->angular_width;
+    } else if (i->projection == SW_PROJECTION_GNOMONIC) {
+        i->wlin = 2 * tan(i->angular_width / 2);
+    } else if (i->projection == SW_PROJECTION_STEREOGRAPHIC) {
+        i->wlin = 2 * tan(i->angular_width / 4);
+    } else if (i->projection == SW_PROJECTION_SPHERICAL) {
         i->wlin = 2 * sin(i->angular_width / 2) * 1.12; // margin specified here
-    else if (i->projection == SW_PROJECTION_ALTAZ)
+    } else if (i->projection == SW_PROJECTION_ALTAZ) {
         i->wlin = i->angular_width / (M_PI / 2) * 1.12; // margin specified here
+    }
+
+    // Convert angular field-of-view into min-max bounding-box in the tangent plane
     i->x_min = -i->wlin / 2;
     i->x_max = i->wlin / 2;
     i->y_min = -i->wlin / 2 * i->aspect;
     i->y_max = i->wlin / 2 * i->aspect;
+
+    // Tweak magnitude limits to restrict maximum number of stars visible
     tweak_magnitude_limits(i);
     i->mag_highest = i->mag_max;
 }
 
+//! config_close - Free up a chart configuration data structure
+
 void config_close(chart_config *i) {
 }
-

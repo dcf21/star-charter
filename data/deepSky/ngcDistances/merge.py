@@ -3,7 +3,7 @@
 # merge.py
 #
 # -------------------------------------------------
-# Copyright 2015-2019 Dominic Ford
+# Copyright 2015-2024 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -28,10 +28,61 @@ import operator
 import os
 import re
 import sys
+
 from math import pi, cos, sin, sqrt, asin
+from typing import Any, Dict, Final, List, Optional, Sequence
+
+# Conversion of object types used in the Messier catalogue data file into the form we use in final file
+object_type_conversion_messier: Final[Dict[str, str]] = {
+    "GC": "Gb",  # globular clusters
+    "PN": "Pl",  # planetary nebulae
+    "BN": "Nb",  # bright nebulae
+    "GX": "Gx",  # galaxies
+    "*2": "D*",  # double stars
+    "**": "As*",  # asterisms
+    "*C": "As*"  # asterisms
+}
+
+# Conversion of object types used in the NGC2000 catalogue data file into the form we use in final file
+object_type_conversion_ngc2000: Final[Dict[str, str]] = {
+    "": "-",  # no type info
+    "Ast": "As*",  # asterisms
+    "C+N": "Nb",  # clusters with nebulosity
+    "D*?": "D*",  # double stars
+    "Kt": "Nb",  # knot
+    "*": "star",  # stars
+    "***": "As*",  # asterisms
+    "*?": "star",  # stars
+    "?": "Nb"  # whatever
+}
+
+# Conversion of object types used in the OpenNGC catalogue data file into the form we use in final file
+object_type_conversion_open_ngc: Final[Dict[str, str]] = {
+    "*": "star",
+    "**": "D*",
+    "*Ass": "As*",
+    "OCl": "OC",
+    "GCl": "Gb",
+    "Cl+N": "Nb",
+    "G": "Gx",
+    "GPair": "Gx2",
+    "GTrpl": "Gx3",
+    "GGroup": "GxC",
+    "PN": "Pl",
+    "HII": "HII",
+    "DrkN": "Dk",
+    "EmN": "EmN",
+    "Neb": "Nb",
+    "RfN": "Ref",
+    "SNR": "SNR",
+    "Nova": "star",
+    "NonEx": "none",
+    "Dup": "dup",
+    "Other": "-",
+}
 
 
-def angular_distance(ra1, dec1, ra2, dec2):
+def angular_distance(ra1: float, dec1: float, ra2: float, dec2: float) -> float:
     """
     Calculate the angular distance between two points on the sky (used for cross-matching objects)
 
@@ -54,83 +105,125 @@ def angular_distance(ra1, dec1, ra2, dec2):
     dec2 *= pi / 180
 
     # Project two points onto a unit sphere in Cartesian coordinates
-    x1 = cos(ra1) * cos(dec1)
-    y1 = sin(ra1) * cos(dec1)
-    z1 = sin(dec1)
-    x2 = cos(ra2) * cos(dec2)
-    y2 = sin(ra2) * cos(dec2)
-    z2 = sin(dec2)
+    x1: float = cos(ra1) * cos(dec1)
+    y1: float = sin(ra1) * cos(dec1)
+    z1: float = sin(dec1)
+    x2: float = cos(ra2) * cos(dec2)
+    y2: float = sin(ra2) * cos(dec2)
+    z2: float = sin(dec2)
 
     # Work out the linear distance between the points in Cartesian space
-    distance = sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
+    distance: float = sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
 
     # Convert this distance into an angle
     return 2 * asin(distance / 2) * 180 / pi * 60
 
 
-def read_english_names(ic_names, ind_messiers, ngc_messiers, ngc_names):
+def read_english_names(ic_names: Dict[int, List[str]], ic_to_messier: Dict[int, int],
+                       ngc_to_messier: Dict[int, int], ngc_names: Dict[int, List[str]]) -> None:
+    """
+    Read the data file <ngc/names.dat> which lists popular names for NGC and IC objects, together with their identities
+    in the Messier catalogue.
+
+    :param ic_names:
+        For each IC object, a list of popular names.
+    :param ngc_names:
+        For each NGC object, a list of popular names.
+    :param ic_to_messier:
+        For each IC object, its Messier number.
+    :param ngc_to_messier:
+        For each NGC object, its Messier number.
+    :return:
+        None
+    """
     # Open the list of English popular names for NGC and IC objects
-    for line in open("../ngc/names.dat"):
-        # Ignore blank lines
-        if line.strip() == '':
-            continue
+    with open("../ngc/names.dat") as f:
+        for line in f:
+            # Ignore blank lines
+            if line.strip() == '':
+                continue
 
-        # Fetch the English names for this object
-        name = line[:36].strip()
+            # Fetch the English names for this object
+            name: str = line[:36].strip()
 
-        # Fetch the catalogue name for this object, e.g. M82, NGC1234 or IC123
-        words = line[37:].strip()
+            # Fetch the catalogue name for this object, e.g. M82, NGC1234 or IC123
+            words: str = line[37:].strip()
 
-        # Ignore objects with no catalogue name
-        if words == "":
-            continue
+            # Ignore objects with no catalogue name
+            if words == "":
+                continue
 
-        # NGC objects are listed simply as numbers, IC objects are prefixed 'I'
-        words = words.split()
-        ic = (line[36] == 'I')  # Boolean flag indicating if this object is an IC object
-        try:
-            n = int(words[0])  # The catalogue number of this object
-        except ValueError:
-            logging.info("Could not read catalogue names for <{}>".format(name))
-            continue
+            # NGC objects are listed simply as numbers, IC objects are prefixed 'I'
+            words: Sequence[str] = words.split()
+            is_ic: bool = (line[36] == 'I')  # Boolean flag indicating if this object is an IC object
+            try:
+                cat_num: int = int(words[0])  # The catalogue number of this object
+            except ValueError:
+                logging.info("Could not read catalogue names for <{}>".format(name))
+                continue
 
-        # English name is in fact a Messier object number. Populate arrays of the Messier numbers of NGC/IC objects
-        if name.split()[0] == 'M':
-            if ic:
-                if n not in ind_messiers:
-                    ind_messiers[n] = int(name.split()[1])
+            # English name is in fact a Messier object number. Populate arrays of the Messier numbers of NGC/IC objects
+            if name.split()[0] == 'M':
+                if is_ic:
+                    if cat_num not in ic_to_messier:
+                        ic_to_messier[cat_num] = int(name.split()[1])
+                else:
+                    if cat_num not in ngc_to_messier:
+                        ngc_to_messier[cat_num] = int(name.split()[1])
+
+            # Name is not a Messier object number - put this into array of English names for objects
             else:
-                if n not in ngc_messiers:
-                    ngc_messiers[n] = int(name.split()[1])
+                # Target array to insert this name into
+                target: Dict[int, List[str]] = ic_names if is_ic else ngc_names
 
-        # Name is not a Messier object number - put this into array of English names for objects
-        else:
-            # Target array to insert this name into
-            target = ic_names if ic else ngc_names
+                # If we don't yet have any names for this object, create an array for them
+                if cat_num not in target:
+                    target[cat_num] = []
 
-            # If we don't yet have any names for this object, create an array for them
-            if n not in target:
-                target[n] = []
+                # Check whether this is a name that we've already seen for this object
+                already_got_name: bool = False
+                for item in target[cat_num]:
+                    if item.lower() == name.lower():
+                        already_got_name = True
 
-            # Check whether this is a name that we've already seen for this object
-            already_got_name = False
-            for item in target[n]:
-                if item.lower() == name.lower():
-                    already_got_name = True
-
-            # If this is a new name that we've not seen before, insert it into the list
-            if not already_got_name:
-                target[n].append(name)
+                # If this is a new name that we've not seen before, insert it into the list
+                if not already_got_name:
+                    target[cat_num].append(name)
 
 
-def populate_stub_catalogue_entries(catalogue, ic__id, ic_names, ind_messiers, mes_id, ngc_id, ngc_messiers, ngc_names):
+def populate_stub_catalogue_entries(obj_list: List[Dict[str, Any]],
+                                    ic_ptr: Dict[int, int], ic_names: Dict[int, List[str]],
+                                    ic_to_messier: Dict[int, int], messier_ptr: Dict[int, int], ngc_ptr: Dict[int, int],
+                                    ngc_to_messier: Dict[int, int], ngc_names: Dict[int, List[str]]) -> Dict[str, Any]:
+    """
+    Create a catalogue of stub data files for all the entries in the Messier, NGC and IC catalogues.
+
+    :param obj_list:
+        A list of dictionaries describing objects.
+    :param ic_ptr:
+        Dictionary of pointers to objects in <obj_list>, indexed by IC number.
+    :param ic_names:
+        Dictionary of lists of popular names, indexed by IC number.
+    :param ic_to_messier:
+        Dictionary of Messier object numbers, indexed by IC number.
+    :param messier_ptr:
+        Dictionary of pointers to objects in <obj_list>, indexed by Messier object number.
+    :param ngc_ptr:
+        Dictionary of pointers to objects in <obj_list>, indexed by NGC object number.
+    :param ngc_to_messier:
+        Dictionary of Messier object numbers, indexed by NGC number.
+    :param ngc_names:
+        Dictionary of lists of popular names, indexed by NGC number.
+    :return:
+        Dictionary describing a stub object entry
+    """
     # Size of Messier, NGC and IC catalogues
-    catalogue_m_size = 110
-    catalogue_ngc_size = 7840
-    catalogue_ic_size = 5386
+    catalogue_m_size: Final[int] = 110
+    catalogue_ngc_size: Final[int] = 7840
+    catalogue_ic_size: Final[int] = 5386
 
     # Stub entry with all the fields that we populate for each object that we see
-    catalogue_stub_entry = {
+    object_stub_entry: Dict[str, Any] = {
         "m": 0,  # Messier number (0 is null)
         "ngc": 0,  # NGC number
         "ic": 0,  # IC number
@@ -145,510 +238,588 @@ def populate_stub_catalogue_entries(catalogue, ic__id, ic_names, ind_messiers, m
         "axis_pa": None,  # Position angle of major axis (north-eastwards)
         "type": None,  # Type identifier string
         "hubble_type": None,  # Hubble type (galaxies only)
-        "names": []  # Popular names for object
+        "names": [],  # Popular names for object
+        "designations": []  # Other designations for this object
     }
 
     # Populate stub entries for Messier objects
-    for i in range(1, catalogue_m_size + 1):
-        mes_id[i] = len(catalogue)
-        catalogue.append(copy.deepcopy(catalogue_stub_entry))
-        catalogue[-1]["m"] = i
+    for cat_num in range(1, catalogue_m_size + 1):
+        messier_ptr[cat_num] = len(obj_list)
+        obj_list.append(copy.deepcopy(object_stub_entry))
+        obj_list[-1]["m"] = cat_num
 
     # Populate stub entries for NGC objects
-    for i in range(1, catalogue_ngc_size + 1):
+    for cat_num in range(1, catalogue_ngc_size + 1):
         # Test whether this object already exists as a Messier object
         # (but reject if another NGC object is already paired with that Messier object)
-        if (i in ngc_messiers) and (catalogue[mes_id[ngc_messiers[i]]]["ngc"] == 0):
-            n = mes_id[ngc_messiers[i]]
-            ngc_id[i] = n
-            catalogue[n]["ngc"] = i
+        if (cat_num in ngc_to_messier) and (obj_list[messier_ptr[ngc_to_messier[cat_num]]]["ngc"] == 0):
+            obj_ptr: int = messier_ptr[ngc_to_messier[cat_num]]
+            ngc_ptr[cat_num] = obj_ptr
+            obj_list[obj_ptr]["ngc"] = cat_num
         # Create a new object entry
         else:
-            ngc_id[i] = len(catalogue)
-            catalogue.append(copy.deepcopy(catalogue_stub_entry))
-            catalogue[-1]["ngc"] = i
+            ngc_ptr[cat_num] = len(obj_list)
+            obj_list.append(copy.deepcopy(object_stub_entry))
+            obj_list[-1]["ngc"] = cat_num
         # Add English names for this object if they exist
-        if i in ngc_names:
-            catalogue[ngc_id[i]]["names"] = ngc_names[i]
+        if cat_num in ngc_names:
+            obj_list[ngc_ptr[cat_num]]["names"] = ngc_names[cat_num]
 
     # Populate stub entries for IC objects
-    for i in range(1, catalogue_ic_size + 1):
+    for cat_num in range(1, catalogue_ic_size + 1):
         # Test whether this object already exists as a Messier object
-        if (i in ind_messiers) and (catalogue[mes_id[ind_messiers[i]]]["ic"] == 0):
-            n = mes_id[ind_messiers[i]]
-            ic__id[i] = n
-            catalogue[n]["ic"] = i
+        if (cat_num in ic_to_messier) and (obj_list[messier_ptr[ic_to_messier[cat_num]]]["ic"] == 0):
+            obj_ptr = messier_ptr[ic_to_messier[cat_num]]
+            ic_ptr[cat_num] = obj_ptr
+            obj_list[obj_ptr]["ic"] = cat_num
         # Create a new object entry
         else:
-            ic__id[i] = len(catalogue)
-            catalogue.append(copy.deepcopy(catalogue_stub_entry))
-            catalogue[-1]["ic"] = i
+            ic_ptr[cat_num] = len(obj_list)
+            obj_list.append(copy.deepcopy(object_stub_entry))
+            obj_list[-1]["ic"] = cat_num
         # Add English names for this object if they exist
-        if i in ic_names:
-            catalogue[ic__id[i]]["names"] = ic_names[i]
-    return catalogue_stub_entry
+        if cat_num in ic_names:
+            obj_list[ic_ptr[cat_num]]["names"] = ic_names[cat_num]
+    return object_stub_entry
 
 
-def read_messier_catalogue(catalogue, mes_id):
+def read_messier_catalogue(obj_list: List[Dict[str, Any]], messier_ptr: Dict[int, int]) -> None:
+    """
+    Read the data file <messier/messier.dat> which contains the Messier catalogue.
+
+    :param obj_list:
+        A list of dictionaries describing objects.
+    :param messier_ptr:
+        Dictionary of pointers to objects in <obj_list>, indexed by Messier object number.
+    :return:
+        None
+    """
     # Import V-band magnitudes from Messier catalogue
-    no = 0
-    for line in open("../messier/messier.dat"):
-        # Ignore blank lines
-        if line.strip() == '':
-            continue
-        # Get Messier catalogue number from line number
-        no += 1
+    cat_num: int = 0
+    with open("../messier/messier.dat") as f:
+        for line in f:
+            # Ignore blank lines
+            if line.strip() == '':
+                continue
+            # Get Messier catalogue number from line number
+            cat_num += 1
 
-        # Index in catalogue of objects
-        i = mes_id[no]
+            # Index in catalogue of objects
+            obj_ptr: int = messier_ptr[cat_num]
 
-        # Extract RA and Dec (J2000) from ASCII file
-        RAhrs = float(line[32:34])
-        RAmins = float(line[34:38])
-        DecDeg = float(line[40:42])
-        DecMins = float(line[42:46])
-        DecSign = line[39]
-        DistTxt = line[48:61]
+            # Extract RA and Dec (J2000) from ASCII file
+            ra_hours: float = float(line[32:34])
+            ra_minutes: float = float(line[34:38])
+            dec_deg: float = float(line[40:42])
+            dec_minutes: float = float(line[42:46])
+            dec_sign: str = line[39]
+            distance_str: str = line[48:61]
 
-        # Some objects have multiple magnitudes
-        mags = line[18:31].split(",")
-        mag_list = {}
-        for mag in mags:
-            mag = mag.strip()
-            band = ""
+            # Some objects have multiple magnitudes
+            mags: Sequence[str] = line[18:31].split(",")
+            mag_list: Dict[str, float] = {}
+            for mag in mags:
+                mag: str = mag.strip()
+                band: str = ""
 
-            # If magnitude has non-numeric characters at the end, these name a band, e.g. V or B
-            while mag[-1] not in '0123456789':
-                band = mag[-1] + band
-                mag = mag[:-1]
-            band = band.upper()
+                # If magnitude has non-numeric characters at the end, these name a band, e.g. V or B
+                while mag[-1] not in '0123456789':
+                    band = mag[-1] + band
+                    mag = mag[:-1]
+                band = band.upper()
 
-            # Add the magnitude we have just extracted from the catalogue
-            if band in ['V', 'B']:
-                mag_list[band] = float(mag)
+                # Add the magnitude we have just extracted from the catalogue
+                if band in ['V', 'B']:
+                    mag_list[band] = float(mag)
 
-        # Convert RA and Dec from hours and minutes into decimal hours and degrees
-        RA = (RAhrs + RAmins / 60)
-        Dec = (DecDeg + DecMins / 60)
-        if DecSign == '-':
-            Dec *= -1
+            # Convert RA and Dec from hours and minutes into decimal hours and degrees
+            ra: float = (ra_hours + ra_minutes / 60)
+            decl: float = (dec_deg + dec_minutes / 60)
+            if dec_sign == '-':
+                decl *= -1
 
-        # Messier catalogue uses different object type names from the NGC catalogue
-        # Convert Messier catalogue type names into NGC types
-        obj_type = line[9:11]
+            # Messier catalogue uses different object type names from the NGC catalogue
+            # Convert Messier catalogue type names into NGC types
+            obj_type_messier: str = line[9:11]
 
-        object_type_conversion = {
-            "GC": "Gb",  # globular clusters
-            "PN": "Pl",  # planetary nebulae
-            "BN": "Nb",  # bright nebulae
-            "GX": "Gx",  # galaxies
-            "*2": "D*",  # double stars
-            "**": "As*",  # asterisms
-            "*C": "As*"  # asterisms
-        }
-
-        if obj_type in object_type_conversion:
-            obj_type = object_type_conversion[obj_type]
-
-        # Fetch distance, expressed as value and unit
-        dist = line[48:61].split(" ")
-        try:
-            dist_val = float(dist[0])
-
-            # Objects have distances various in ly, kly or Mly
-            if dist[1] == 'kly':
-                dist_val *= 3.06595098e-04
-            elif dist[1] == 'Mly':
-                dist_val *= 0.306595098
-            elif dist[1] == 'ly':
-                dist_val *= 3.06595098e-07
+            if obj_type_messier in object_type_conversion_messier:
+                obj_type: str = object_type_conversion_messier[obj_type_messier]
             else:
-                logging.info("Unknown distance unit <{}>".format(dist[1]))
-                raise ValueError
+                obj_type = obj_type_messier
 
-            # Insert distance into object catalogue
-            catalogue[i]['dist'] = dist_val  # in Mpc
-            catalogue[i]['source_dist'] = 'messier'
-        except (ValueError, IndexError):
-            pass
+            # Fetch distance, expressed as value and unit
+            dist: Sequence[str] = line[48:61].split(" ")
+            try:
+                dist_val: float = float(dist[0])
 
-        # Insert object's position into object catalogue
-        catalogue[i]['ra'] = RA
-        catalogue[i]['dec'] = Dec
-        catalogue[i]['source'] = 'messier'
+                # Objects have distances various in ly, kly or Mly
+                if dist[1] == 'kly':
+                    dist_val *= 3.06595098e-04
+                elif dist[1] == 'Mly':
+                    dist_val *= 0.306595098
+                elif dist[1] == 'ly':
+                    dist_val *= 3.06595098e-07
+                else:
+                    logging.info("Unknown distance unit <{}>".format(dist[1]))
+                    raise ValueError
 
-        # Insert object's magnitude into object catalogue
-        for band, mag in list(mag_list.items()):
-            catalogue[i]['mag'][band] = {'value': mag, 'source': 'messier'}
+                # Insert distance into object catalogue
+                obj_list[obj_ptr]['dist'] = dist_val  # in Mpc
+                obj_list[obj_ptr]['source_dist'] = 'messier'
+            except (ValueError, IndexError):
+                pass
 
-        # Insert object's type into object catalogue
-        catalogue[i]['type'] = obj_type
+            # Insert object's position into object catalogue
+            obj_list[obj_ptr]['ra'] = ra
+            obj_list[obj_ptr]['dec'] = decl
+            obj_list[obj_ptr]['source'] = 'messier'
 
-        # Read angular size of object, and if present, insert into object catalogue
-        test = re.match(r"([0-9\.]*)'", line[61:].strip())
-        if test:
-            catalogue[i]['axis_major'] = catalogue[i]['axis_minor'] = float(test.group(1))
-            catalogue[i]['axis_pa'] = 0
+            # Insert object's magnitude into object catalogue
+            for band, mag in list(mag_list.items()):
+                obj_list[obj_ptr]['mag'][band] = {'value': mag, 'source': 'messier'}
+
+            # Insert object's type into object catalogue
+            obj_list[obj_ptr]['type'] = obj_type
+
+            # Read angular size of object, and if present, insert into object catalogue
+            test = re.match(r"([0-9\.]*)'", line[61:].strip())
+            if test:
+                obj_list[obj_ptr]['axis_major'] = float(test.group(1))
+                obj_list[obj_ptr]['axis_minor'] = None
+                obj_list[obj_ptr]['axis_pa'] = None
 
 
-def read_redshift_independent_distances(catalogue, ic__id, ngc_id):
+def read_redshift_independent_distances(obj_list: List[Dict[str, Any]],
+                                        ic_ptr: Dict[int, int], ngc_ptr: Dict[int, int]) -> None:
+    """
+    Read redshift-independent distance measures for NGC and IC objects, from the data file <output/NED_distances.dat>.
+
+    :param obj_list:
+        A list of dictionaries describing objects.
+    :param ic_ptr:
+        Dictionary of pointers to objects in <obj_list>, indexed by IC number.
+    :param ngc_ptr:
+        Dictionary of pointers to objects in <obj_list>, indexed by NGC object number.
+    :return:
+        None
+    """
     # Gather redshift-independent distances
-    for line in open("output/NED_distances.dat"):
-        # Ignore blank lines and comment lines
-        if (len(line) < 8) or (line[0] == '#'):
-            continue
+    with open("output/NED_distances.dat") as f:
+        for line in f:
+            # Ignore blank lines and comment lines
+            if (len(line) < 8) or (line[0] == '#'):
+                continue
 
-        # Flag indicating whether this is an IC object (true), or an NGC object (false)
-        ic = (line[0] == 'I')
+            # Flag indicating whether this is an IC object (true), or an NGC object (false)
+            is_ic: bool = (line[0] == 'I')
 
-        # The catalogue number of this source (in either NGC or IC catalogue)
-        number = int(line[4:8])
+            # The catalogue number of this source (in either NGC or IC catalogue)
+            cat_num: int = int(line[4:8])
 
-        # The index of this object within the <catalogue> list
-        if ic:
-            i = ic__id[number]
-        else:
-            i = ngc_id[number]
+            # The index of this object within the <obj_list> list
+            if is_ic:
+                obj_ptr: int = ic_ptr[cat_num]
+            else:
+                obj_ptr: int = ngc_ptr[cat_num]
 
-        # Look up the distance unit as recorded in the list of distances returned by the NED web interface
-        x = line[66:70].strip()
+            # Look up the distance unit as recorded in the list of distances returned by the NED web interface
+            dist_unit: str = line[66:70].strip()
 
-        # Reject the distance if it's not in Mpc
-        if not ((len(x) > 0) and (x[0] != '-')):
-            continue
-        if x != "Mpc":
-            logging.info("WARNING Distance unit = {} (should be Mpc)".format(x))
+            # Reject the distance if it's not in Mpc
+            if not ((len(dist_unit) > 0) and (dist_unit[0] != '-')):
+                continue
+            if dist_unit != "Mpc":
+                logging.info("WARNING Distance unit = {} (should be Mpc)".format(dist_unit))
 
-        # Look up the median distance to this object
-        try:
-            x = float(line[30:37])
-            catalogue[i]['dist'] = x
-            catalogue[i]['source_dist'] = 'ned'
-        except ValueError:
-            pass
+            # Look up the median distance to this object
+            try:
+                dist_float: float = float(line[30:37])
+                obj_list[obj_ptr]['dist'] = dist_float
+                obj_list[obj_ptr]['source_dist'] = 'ned'
+            except ValueError:
+                pass
 
-        # Look up the redshift of this object
-        # ztext contains two white-space separated values: redshift and redshift error
-        catalogue[i]['ztext'] = line[72:].strip()
+            # Look up the redshift of this object
+            # ztext contains two white-space separated values: redshift and redshift error
+            obj_list[obj_ptr]['ztext'] = line[72:].strip()
 
 
-def read_ngc_2000(catalogue, ic__id, ngc_id):
+def read_ngc_2000(obj_list: List[Dict[str, Any]], ic_ptr: Dict[int, int], ngc_ptr: Dict[int, int]) -> None:
+    """
+    Read data from the NGC2000 catalogue at <ngc/ngc2000.dat>.
+
+    :param obj_list:
+        A list of dictionaries describing objects.
+    :param ic_ptr:
+        Dictionary of pointers to objects in <obj_list>, indexed by IC number.
+    :param ngc_ptr:
+        Dictionary of pointers to objects in <obj_list>, indexed by NGC object number.
+    :return:
+        None
+    """
     # Import data from NGC2000 catalogue
-    for line in open("../ngc/ngc2000.dat"):
-        # Ignore blank lines and comment lines
-        if len(line) < 20:
-            continue
+    with open("../ngc/ngc2000.dat") as f:
+        for line in f:
+            # Ignore blank lines and comment lines
+            if len(line) < 20:
+                continue
 
-        # Flag indicating whether this is an IC object (true), or an NGC object (false)
-        ic = (line[0] == 'I')
+            # Flag indicating whether this is an IC object (true), or an NGC object (false)
+            is_ic: bool = (line[0] == 'I')
 
-        # The catalogue number of this source (in either NGC or IC catalogue)
-        number = int(line[1:5])
+            # The catalogue number of this source (in either NGC or IC catalogue)
+            cat_num: int = int(line[1:5])
 
-        # The index of this object within the <catalogue> list
-        if ic:
-            i = ic__id[number]
-        else:
-            i = ngc_id[number]
+            # The index of this object within the <obj_list> list
+            if is_ic:
+                obj_ptr: int = ic_ptr[cat_num]
+            else:
+                obj_ptr: int = ngc_ptr[cat_num]
 
-        # Look up the reported type of this object
-        obj_type = line[6:10].strip()
+            # Look up the reported type of this object
+            obj_type_ngc2000: str = line[6:10].strip()
 
-        object_type_conversion = {
-            "": "-",  # no type info
-            "Ast": "As*",  # asterisms
-            "C+N": "Nb",  # clusters with nebulosity
-            "D*?": "D*",  # double stars
-            "Kt": "Nb",  # knot
-            "*": "star",  # stars
-            "***": "As*",  # asterisms
-            "*?": "star",  # stars
-            "?": "Nb"  # whatever
-        }
+            if obj_type_ngc2000 in object_type_conversion_ngc2000:
+                obj_type: str = object_type_conversion_ngc2000[obj_type_ngc2000]
+            else:
+                obj_type = obj_type_ngc2000
 
-        if obj_type in object_type_conversion:
-            obj_type = object_type_conversion[obj_type]
+            # Look up the reported angular size of this object (arcminutes)
+            size_str: str = line[34:39].strip()
+            if size_str != "":
+                size: Optional[float] = float(size_str)
+            else:
+                size = None
 
-        # Look up the reported angular size of this object (arcminutes)
-        size = line[34:39].strip()
-        if size != "":
-            size = float(size)
+            # Look up reported brightness and position of this object
+            mag: str = line[40:44].strip()
+            ra: float = (int(line[10:12])) + 1.0 / 60 * (float(line[13:17]))
+            dec: float = (int(line[20:22])) + 1.0 / 60 * (float(line[23:25]))
+            if line[19] == '-':
+                dec = -dec
 
-        # Look up reported brightness and position of this object
-        mag = line[40:44].strip()
-        ra = (int(line[10:12])) + 1.0 / 60 * (float(line[13:17]))
-        dec = (int(line[20:22])) + 1.0 / 60 * (float(line[23:25]))
-        if line[19] == '-':
-            dec = -dec
-
-        # Insert data into this objects record in the list <catalogue>
-        catalogue[i]['ra'] = ra
-        catalogue[i]['dec'] = dec
-        catalogue[i]['source'] = 'ngc2000'
-        if mag and (line[44] != 'p'):
-            catalogue[i]['mag']['V'] = {'value': mag, 'source': 'ngc2000'}
-        catalogue[i]['type'] = obj_type
-        if size:
-            catalogue[i]['axis_major'] = catalogue[i]['axis_minor'] = size
-            catalogue[i]['axis_pa'] = 0
+            # Insert data into this objects record in the list <obj_list>
+            obj_list[obj_ptr]['ra'] = ra
+            obj_list[obj_ptr]['dec'] = dec
+            obj_list[obj_ptr]['source'] = 'ngc2000'
+            if mag and (line[44] != 'p'):
+                obj_list[obj_ptr]['mag']['V'] = {'value': mag, 'source': 'ngc2000'}
+            obj_list[obj_ptr]['type'] = obj_type
+            if size:
+                obj_list[obj_ptr]['axis_major'] = size
+                obj_list[obj_ptr]['axis_minor'] = None
+                obj_list[obj_ptr]['axis_pa'] = None
 
 
-def read_open_ngc(catalogue, ic__id, ngc_id):
+def read_open_ngc(obj_list: List[Dict[str, Any]], ic_ptr: Dict[int, int], ngc_ptr: Dict[int, int]) -> None:
+    """
+    Read the data file <ngc/open_ngc.csv> which contains the OpenNGC catalogue.
+
+    :param obj_list:
+        A list of dictionaries describing objects.
+    :param ic_ptr:
+        Dictionary of pointers to objects in <obj_list>, indexed by IC number.
+    :param ngc_ptr:
+        Dictionary of pointers to objects in <obj_list>, indexed by NGC object number.
+    :return:
+        None
+    """
     # Import data from OpenNGC catalogue
-    for line in open("../ngc/open_ngc.csv"):
+    columns: Optional[List[str]] = None  # Read column headings from first line of CSV file
+    with open("../ngc/open_ngc.csv") as f:
+        for line in f:
+            # First line contains column headings
+            if columns is None:
+                columns = line.strip().split(";")
+                continue
 
-        # Flag indicating whether this is an IC object (true), or an NGC object (false)
-        ic = line.startswith("IC")
-        ngc = line.startswith("NGC")
+            # Flag indicating whether this is an IC object (true), or an NGC object (false)
+            is_ic: bool = line.startswith("IC")
+            is_ngc: bool = line.startswith("NGC")
 
-        # Ignore objects which are neither NGC nor IC objects
-        if not (ic or ngc):
-            continue
+            # Ignore objects which are neither NGC nor IC objects
+            if not (is_ic or is_ngc):
+                continue
 
-        # Further fields are separated by ;s
-        words = line.split(";")
+            # Further fields are separated by ;s
+            words: List[str] = line.split(";")
 
-        # Read object number within NGC / IC catalogue
-        number = int(words[0][3:7] if ngc else words[0][2:6])
+            def fetch(column: str) -> str:
+                return words[columns.index(column)]
 
-        # The index of this object within the <catalogue> list
-        if ic:
-            i = ic__id[number]
-        else:
-            i = ngc_id[number]
+            # Read object number within NGC / IC catalogue
+            cat_num: int = int(fetch('Name')[3:7] if is_ngc else fetch('Name')[2:6])
 
-        # Read magnitudes in various filters
-        for index, band in enumerate(['B', 'V', 'J', 'H', 'K']):
-            if words[8 + index]:
-                catalogue[i]['mag'][band] = {'value': float(words[8 + index]), 'source': 'open_ngc'}
+            # The index of this object within the <obj_list> list
+            if is_ic:
+                obj_ptr: int = ic_ptr[cat_num]
+            else:
+                obj_ptr: int = ngc_ptr[cat_num]
 
-        # Read B-V colour
-        if words[8] and words[9]:
-            catalogue[i]['b_v'] = float(words[8]) - float(words[9])
+            # Read magnitudes in various filters
+            for band in ('B', 'V', 'J', 'H', 'K'):
+                field_name: str = '{}-Mag'.format(band)
+                if fetch(field_name):
+                    obj_list[obj_ptr]['mag'][band] = {'value': float(fetch(field_name)), 'source': 'open_ngc'}
 
-        # Read object type
-        obj_type_open_ngc = words[1]
+            # Read B-V colour
+            if fetch('B-Mag') and fetch('V-Mag'):
+                obj_list[obj_ptr]['b_v'] = float(fetch('B-Mag')) - float(fetch('V-Mag'))
 
-        object_type_conversion = {
-            "*": "star",
-            "**": "D*",
-            "*Ass": "As*",
-            "OCl": "OC",
-            "GCl": "Gb",
-            "Cl+N": "Nb",
-            "G": "Gx",
-            "GPair": "Gx2",
-            "GTrpl": "Gx3",
-            "GGroup": "GxC",
-            "PN": "Pl",
-            "HII": "HII",
-            "DrkN": "Dk",
-            "EmN": "EmN",
-            "Neb": "Nb",
-            "RfN": "Ref",
-            "SNR": "SNR",
-            "Nova": "star",
-            "NonEx": "none",
-            "Dup": "dup",
-            "Other": "-",
-        }
+            # Read object type
+            obj_type_open_ngc: str = fetch('Type')
 
-        obj_type = object_type_conversion[obj_type_open_ngc]
-        catalogue[i]['type'] = obj_type
+            obj_type: str = object_type_conversion_open_ngc[obj_type_open_ngc]
+            obj_list[obj_ptr]['type'] = obj_type
 
-        # If this object is a duplicate, what is it a duplicate of?
-        if obj_type == 'dup':
-            for from_catalogue in ((18, "Messier"), (19, "NGC"), (20, "IC")):
-                if words[from_catalogue[0]]:
-                    if not words[from_catalogue[0]].isdigit():
-                        if words[from_catalogue[0]][-1].isdigit():
-                            # Truncate NGC1234A to NGC1234
-                            words[from_catalogue[0]] = words[from_catalogue[0]][-1]
-                        else:
-                            # If NGC number isn't recoverable, skip
-                            continue
-                    catalogue[i]['duplicate_of'] = "{} {}".format(from_catalogue[1], int(words[from_catalogue[0]]))
+            # If this object is a duplicate, what is it a duplicate of?
+            if obj_type == 'dup':
+                for column_name, from_catalogue in (("M", "Messier"), ("NGC", "NGC"), ("IC", "IC")):
+                    datum: str = fetch(column_name)
+                    if datum:
+                        if not datum.isdigit():
+                            if datum[:-1].isdigit():
+                                # Truncate NGC1234A to NGC1234
+                                datum = datum[:-1]
+                            else:
+                                # If NGC number isn't recoverable, skip
+                                continue
+                        obj_list[obj_ptr]['duplicate_of'] = "{} {}".format(from_catalogue, int(datum))
 
-        # Read RA and Dec
-        if words[2] and words[3]:
-            catalogue[i]['ra'] = int(words[2][0:2]) + int(words[2][3:5]) / 60. + float(words[2][6:]) / 3600.
-            catalogue[i]['dec'] = int(words[3][1:3]) + int(words[3][4:6]) / 60. + float(words[3][7:]) / 3600.
-            catalogue[i]['source'] = 'open_ngc'
-            if words[3][0] == '-':
-                catalogue[i]['dec'] *= -1
+            # Read RA and Dec
+            ra: str = fetch('RA')
+            dec: str = fetch('Dec')
+            if fetch('RA') and fetch('Dec'):
+                obj_list[obj_ptr]['ra'] = int(ra[0:2]) + int(ra[3:5]) / 60. + float(ra[6:]) / 3600.
+                obj_list[obj_ptr]['dec'] = int(dec[1:3]) + int(dec[4:6]) / 60. + float(dec[7:]) / 3600.
+                obj_list[obj_ptr]['source'] = 'open_ngc'
+                if dec[0] == '-':
+                    obj_list[obj_ptr]['dec'] *= -1
 
-        # Read major axis
-        if words[5]:
-            catalogue[i]['axis_major'] = float(words[5])
+            # Read major axis
+            if fetch('MajAx'):
+                obj_list[obj_ptr]['axis_major'] = float(fetch('MajAx'))
+                obj_list[obj_ptr]['axis_minor'] = None
+                obj_list[obj_ptr]['axis_pa'] = None
 
-        # Read minor axis
-        if words[6]:
-            catalogue[i]['axis_minor'] = float(words[6])
+            # Read minor axis
+            if fetch('MinAx'):
+                obj_list[obj_ptr]['axis_minor'] = float(fetch('MinAx'))
+                obj_list[obj_ptr]['axis_pa'] = None
 
-        # Read position angle
-        if words[7]:
-            catalogue[i]['axis_pa'] = float(words[7])
+            # Read position angle
+            if fetch('PosAng'):
+                obj_list[obj_ptr]['axis_pa'] = float(fetch('PosAng'))
 
-        # Read Hubble type
-        if words[14]:
-            catalogue[i]['hubble_type'] = words[14]
+            # Read Hubble type
+            if fetch('Hubble'):
+                obj_list[obj_ptr]['hubble_type'] = fetch('Hubble')
 
-        # Read popular name for object
-        if words[23]:
-            for name in words[23].split(","):
-                target = catalogue[i]['names']
-                already_got_name = False
-                for item in target:
-                    if item.lower() == name.lower():
-                        already_got_name = True
-                if not already_got_name:
-                    target.append(name)
+            # Read popular name for object
+            if fetch('Common names'):
+                for name in fetch('Common names').split(","):
+                    target: List[str] = obj_list[obj_ptr]['names']
+                    already_got_name: bool = False
+                    for item in target:
+                        if item.lower() == name.lower():
+                            already_got_name = True
+                    if not already_got_name:
+                        target.append(name)
+
+            # Read other designations for object
+            if fetch('Identifiers'):
+                for name in fetch('Identifiers').split(","):
+                    target: List[str] = obj_list[obj_ptr]['designations']
+                    already_got_name: bool = False
+                    for item in target:
+                        if item.lower() == name.lower():
+                            already_got_name = True
+                    if not already_got_name:
+                        target.append(name)
 
 
-def read_open_cluster_catalogue(catalogue):
+def read_open_cluster_catalogue(obj_list: List[Dict[str, Any]]) -> None:
+    """
+    Read data from the open cluster catalogue at <openClusters/clusters.txt>.
+
+    :param obj_list:
+        A list of dictionaries describing objects.
+    :return:
+        None
+    """
     # Import data from catalogue of open clusters
-    for line in open("../openClusters/clusters.txt"):
-        # Ignore blank lines and comment lines
-        if len(line.strip()) == 0:
-            continue
-        name = line[0:18].strip()
-
-        # Read position of object
-        ra = (int(line[18:20])) + 1.0 / 60 * (int(line[21:23])) + 1.0 / 3600 * (int(line[24:26]))
-        dec = (int(line[29:31])) + 1.0 / 60 * (int(line[32:34])) + 1.0 / 3600 * (int(line[35:37]))
-        if line[28] == '-':
-            dec *= -1
-
-        # Read distance of object
-        dist = line[55:60].strip()
-        if dist == "":
-            continue
-        dist = (int(dist)) / 1.0e6  # Convert pc into Mpc
-
-        # Search existing objects for matching open clusters within 10 arcminutes of reported location
-        match = False
-        for i in catalogue:
-            # Cannot do cross-match without sky position
-            if ('ra' not in i) or ('dec' not in i):
+    with open("../openClusters/clusters.txt") as f:
+        for line in f:
+            # Ignore blank lines and comment lines
+            if len(line.strip()) == 0:
                 continue
+            name: str = line[0:18].strip()
 
-            # Angular distance between this object and item in catalogue
-            AngDist = angular_distance(i['ra'], i['dec'], ra, dec)
-            if AngDist > 10:
+            # Read position of object
+            ra: float = (int(line[18:20])) + 1.0 / 60 * (int(line[21:23])) + 1.0 / 3600 * (int(line[24:26]))
+            dec: float = (int(line[29:31])) + 1.0 / 60 * (int(line[32:34])) + 1.0 / 3600 * (int(line[35:37]))
+            if line[28] == '-':
+                dec *= -1
+
+            # Read distance of object
+            dist_str: str = line[55:60].strip()
+            if dist_str == "":
                 continue
-            if i['type'] != "OC":
-                # Possibly object is actually an open cluster, but has the wrong type recorded in NGC catalogue
-                if name.endswith(str(i['ngc'])) and i['ngc']:
-                    logging.info("Dodgy match between {} with NGC{}".format(name, i['ngc']))
-                    i['type'] = "OC"
-                elif name.endswith(str(i['ic'])) and i['ic']:
-                    logging.info("Dodgy match between {} with IC{}".format(name, i['ic']))
-                    i['type'] = "OC"
+            dist_float: float = (int(dist_str)) / 1.0e6  # Convert pc into Mpc
 
-                # ... but if name field doesn't match NGC number, reject this match
-                else:
-                    logging.info("Rejecting match of {} with M{} NGC{} IC{}".format(name, i['m'], i['ngc'], i['ic']))
+            # Search existing objects for matching open clusters within 10 arcminutes of reported location
+            match: bool = False
+            for obj_info in obj_list:
+                # Cannot do cross-match without sky position
+                if ('ra' not in obj_info) or ('dec' not in obj_info):
                     continue
-            # logging.info("{} matched to M{} NGC{} IC{} (distance {} arcmin)".
-            #              format(name, i['m'], i['ngc'], i['ic'], AngDist))
-            i['dist'] = dist
-            i['source_dist'] = 'open_clusters'
-            match = True
-            break
-        if not match:
-            logging.info("No match found for {}".format(name))
+
+                # Angular distance between this object and item in catalogue
+                angular_dist: float = angular_distance(obj_info['ra'], obj_info['dec'], ra, dec)
+                if angular_dist > 10:
+                    continue
+                if obj_info['type'] != "OC":
+                    # Possibly object is actually an open cluster, but has the wrong type recorded in NGC catalogue
+                    if name.endswith(str(obj_info['ngc'])) and obj_info['ngc']:
+                        logging.info("Dodgy match between {} with NGC{}".format(name, obj_info['ngc']))
+                        obj_info['type'] = "OC"
+                    elif name.endswith(str(obj_info['ic'])) and obj_info['ic']:
+                        logging.info("Dodgy match between {} with IC{}".format(name, obj_info['ic']))
+                        obj_info['type'] = "OC"
+
+                    # ... but if name field doesn't match NGC number, reject this match
+                    else:
+                        logging.info("Rejecting match of {} with M{} NGC{} IC{}".format(
+                            name, obj_info['m'], obj_info['ngc'], obj_info['ic']))
+                        continue
+                # logging.info("{} matched to M{} NGC{} IC{} (distance {} arcmin)".
+                #              format(name, obj_info['m'], obj_info['ngc'], obj_info['ic'], angular_dist))
+                obj_info['dist'] = dist_float
+                obj_info['source_dist'] = 'open_clusters'
+                match = True
+                break
+            if not match:
+                logging.info("No match found for {}".format(name))
 
 
-def read_globular_cluster_catalogue(catalogue):
+def read_globular_cluster_catalogue(obj_list: List[Dict[str, Any]]) -> None:
+    """
+    Read data from the globular cluster catalogue at <globularClusters/catalogue.dat>.
+
+    :param obj_list:
+        A list of dictionaries describing objects.
+    :return:
+        None
+    """
     # Import data from catalogue of globular clusters
-    for line in open("../globularClusters/catalogue.dat"):
-        # Ignore blank lines and comment lines
-        if len(line.strip()) == 0:
-            continue
-        if line[0] == '#':
-            continue
-        name = line[1:23].strip()
-
-        # Read position of object
-        ra = (int(line[23:25])) + 1.0 / 60 * (int(line[26:28])) + 1.0 / 3600 * (float(line[30:33]))
-        dec = (int(line[36:38])) + 1.0 / 60 * (int(line[39:41])) + 1.0 / 3600 * (int(line[42:44]))
-        if line[35] == '-':
-            dec *= -1
-
-        # Read distance of object
-        dist = line[61:67].strip()
-        if dist == "":
-            continue
-        dist = (float(dist)) / 1.0e3  # Convert kpc into Mpc
-
-        # Search existing objects for matching globular clusters within 20 arcminutes of reported location
-        match = False
-        for i in catalogue:
-            # Cannot do cross-match without sky position
-            if ('ra' not in i) or ('dec' not in i):
+    with open("../globularClusters/catalogue.dat") as f:
+        for line in f:
+            # Ignore blank lines and comment lines
+            if len(line.strip()) == 0:
                 continue
-
-            # Angular distance between this object and item in catalogue
-            AngDist = angular_distance(i['ra'], i['dec'], ra, dec)
-            if AngDist > 20:
+            if line[0] == '#':
                 continue
-            if i['type'] != "Gb":
-                # Possibly object is actually an open cluster, but has the wrong type recorded in NGC catalogue
-                if name.endswith(str(i['ngc'])) and i['ngc']:
-                    logging.info("Dodgy match between {} with NGC{}".format(name, i['ngc']))
-                    i['type'] = "Gb"
-                elif name.endswith(str(i['ic'])) and i['ic']:
-                    logging.info("Dodgy match between {} with IC{}".format(name, i['ic']))
-                    i['type'] = "Gb"
+            name: str = line[1:23].strip()
 
-                # ... but if name field doesn't match NGC number, reject this match
-                else:
-                    logging.info("Rejecting match of {} with M{} NGC{} IC{}".format(name, i['m'], i['ngc'], i['ic']))
+            # Read position of object
+            ra: float = (int(line[23:25])) + 1.0 / 60 * (int(line[26:28])) + 1.0 / 3600 * (float(line[30:33]))
+            dec: float = (int(line[36:38])) + 1.0 / 60 * (int(line[39:41])) + 1.0 / 3600 * (int(line[42:44]))
+            if line[35] == '-':
+                dec *= -1
+
+            # Read distance of object
+            dist_str = line[61:67].strip()
+            if dist_str == "":
+                continue
+            dist_float: float = (float(dist_str)) / 1.0e3  # Convert kpc into Mpc
+
+            # Search existing objects for matching globular clusters within 20 arcminutes of reported location
+            match: bool = False
+            for obj_info in obj_list:
+                # Cannot do cross-match without sky position
+                if ('ra' not in obj_info) or ('dec' not in obj_info):
                     continue
-            # logging.info("{} matched to M{} NGC{} IC{} (distance {} arcmin)".
-            #              format(name, i['m'], i['ngc'], i['ic'], AngDist))
-            i['dist'] = dist
-            i['source_dist'] = 'globular_clusters'
-            match = True
-            break
-        if not match:
-            logging.info("No match found for {}".format(name))
+
+                # Angular distance between this object and item in catalogue
+                angular_dist: float = angular_distance(obj_info['ra'], obj_info['dec'], ra, dec)
+                if angular_dist > 20:
+                    continue
+                if obj_info['type'] != "Gb":
+                    # Possibly object is actually an open cluster, but has the wrong type recorded in NGC catalogue
+                    if name.endswith(str(obj_info['ngc'])) and obj_info['ngc']:
+                        logging.info("Dodgy match between {} with NGC{}".format(name, obj_info['ngc']))
+                        obj_info['type'] = "Gb"
+                    elif name.endswith(str(obj_info['ic'])) and obj_info['ic']:
+                        logging.info("Dodgy match between {} with IC{}".format(name, obj_info['ic']))
+                        obj_info['type'] = "Gb"
+
+                    # ... but if name field doesn't match NGC number, reject this match
+                    else:
+                        logging.info("Rejecting match of {} with M{} NGC{} IC{}".format(
+                            name, obj_info['m'], obj_info['ngc'], obj_info['ic']))
+                        continue
+                # logging.info("{} matched to M{} NGC{} IC{} (distance {} arcmin)".
+                #              format(name, obj_info['m'], obj_info['ngc'], obj_info['ic'], angular_dist))
+                obj_info['dist'] = dist_float
+                obj_info['source_dist'] = 'globular_clusters'
+                match = True
+                break
+            if not match:
+                logging.info("No match found for {}".format(name))
 
 
-def clean_object_catalogue(catalogue):
+def clean_object_catalogue(obj_list: List[Dict[str, Any]]) -> None:
+    """
+    Perform cleaning on object catalogue before it is written to disk.
+
+    :param obj_list:
+        A list of dictionaries describing objects.
+    :return:
+        None
+    """
     # Clean output
-    for i in catalogue:
+    for obj_info in obj_list:
         # Clean up various kinds of spurious objects in NGC catalogue into a common type
-        if "type" not in i:
-            i["type"] = "-"
+        if "type" not in obj_info:
+            obj_info["type"] = "-"
 
         # Convert list of names into a JSON list
-        if "names" in i:
-            names = i["names"]
+        if "names" in obj_info:
+            names: List[str] = obj_info["names"]
         else:
             names = []
-        i["names"] = json.dumps(names)
+        obj_info["names"] = json.dumps(names)
 
         # Populate a field with the primary name for each object: a Messier designation if present, otherwise
         # NGC/IC number
-        name = "-"
-        if i["m"]:
-            name = "M%d" % i["m"]
-        elif i["ngc"]:
-            name = "NGC%d" % i["ngc"]
-        elif i["ic"]:
-            name = "IC%d" % i["ic"]
-        i["name"] = name
+        name: str = "-"
+        if obj_info["m"]:
+            name = "M%d" % obj_info["m"]
+        elif obj_info["ngc"]:
+            name = "NGC%d" % obj_info["ngc"]
+        elif obj_info["ic"]:
+            name = "IC%d" % obj_info["ic"]
+        obj_info["name"] = name
 
 
-def add_manual_objects(catalogue, catalogue_stub_entry):
+def add_manual_objects(obj_list: List[Dict[str, Any]], object_stub_entry: Dict[str, Any]) -> None:
+    """
+    Add manually created objects to object catalogue before it is written to disk.
+
+    :param obj_list:
+        A list of dictionaries describing objects.
+    :param object_stub_entry:
+        Dictionary with null entries which acts as a stub entry for an object.
+    :return:
+        None
+    """
     # Add Sun to catalogue
     # catalogue.append(
     #   {"name":"Sun","names":json.dumps(["Sun"]),
     #    "ra":0,"dec":0,"mag":-26,"type":"sun","dist":0,"z":"0 0","m":0,"ngc":0,"ic":0}
     # )
     # Add SgrA to catalogue
-    sgr_a = copy.deepcopy(catalogue_stub_entry)
+    sgr_a = copy.deepcopy(object_stub_entry)
     sgr_a.update({
         "name": "SgrA",
         "names": json.dumps(["SgrA"]),
@@ -660,100 +831,114 @@ def add_manual_objects(catalogue, catalogue_stub_entry):
         "source_dist": "manual",
         "z": "0 0"
     })
-    catalogue.append(sgr_a)
+    obj_list.append(sgr_a)
 
 
-def write_output(catalogue):
+def write_output(obj_list: List[Dict[str, Any]]) -> None:
+    """
+    Write object catalogue to disk.
+
+    :param obj_list:
+        A list of dictionaries describing objects.
+    :return:
+        None
+    """
     # Write output as an enormous JSON file
-    f = open("output/ngc_merged.dat", "w")
-    s = json.dumps(catalogue)
-    f.write(s)
-    f.close()
+    with open("output/ngc_merged.dat", "w") as f:
+        catalogue_str: str = json.dumps(obj_list)
+        f.write(catalogue_str)
+
     # Work out reference magnitude to use for each object
-    for i in catalogue:
-        mag = 999
+    for obj_info in obj_list:
+        mag: float = 999
         for band in ["V", "G", "B"]:
-            if band in i["mag"]:
-                mag = float(i["mag"][band]["value"])
+            if band in obj_info["mag"]:
+                mag = float(obj_info["mag"][band]["value"])
                 break
-        i['reference_magnitude'] = mag
+        obj_info['reference_magnitude'] = mag
+
     # Sort objects in order of decreasing brightness
-    catalogue.sort(key=operator.itemgetter('reference_magnitude'))
+    obj_list.sort(key=operator.itemgetter('reference_magnitude'))
+
     # Write output as an enormous text file
-    f = open("output/ngc_merged.txt", "w")
-    f.write(
-        "# {:4s} {:6s} {:8s} {:17s} {:17s} {:17s} {:17s} {:17s} {:17s} {:5s}\n"
-            .format("M", "NGC", "IC", "RA", "Dec", "Mag", "Axis major", "Axis minor", "Axis PA", "Type"))
-    for i in catalogue:
-        # Ignore objects with no magnitudes
-        if i['reference_magnitude'] > 100:
-            continue
-
-        # Deal with None values
-        axis_major = i["axis_major"] if i["axis_major"] is not None else 0
-        axis_minor = i["axis_minor"] if i["axis_minor"] is not None else 0
-        axis_pa = i["axis_pa"] if i["axis_pa"] is not None else 0
-
-        # Write entry for this object
+    with open("output/ngc_merged.txt", "w") as f:
         f.write(
-            "{:6d} {:6d} {:8d} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:5s}\n"
-                .format(i["m"], i["ngc"], i["ic"],
-                        i["ra"], i["dec"], i["reference_magnitude"], axis_major, axis_minor, axis_pa,
-                        i["type"]
-                        ))
-    f.close()
+            "# {:4s} {:6s} {:8s} {:17s} {:17s} {:17s} {:17s} {:17s} {:17s} {:5s}\n"
+            .format("M", "NGC", "IC", "RA", "Dec", "Mag", "Axis major", "Axis minor", "Axis PA", "Type"))
+
+        for obj_info in obj_list:
+            # Ignore objects with no magnitudes
+            if obj_info['reference_magnitude'] > 100:
+                continue
+
+            # Deal with None values
+            axis_major: float = obj_info["axis_major"] if obj_info["axis_major"] is not None else 0
+            axis_minor: float = obj_info["axis_minor"] if obj_info["axis_minor"] is not None else 0
+            axis_pa: float = obj_info["axis_pa"] if obj_info["axis_pa"] is not None else 0
+
+            # Write entry for this object
+            f.write("{:6d} {:6d} {:8d} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:5s}\n".format(
+                obj_info["m"], obj_info["ngc"], obj_info["ic"],
+                obj_info["ra"], obj_info["dec"], obj_info["reference_magnitude"], axis_major, axis_minor, axis_pa,
+                obj_info["type"]
+            ))
 
 
-def merge_deep_sky_catalogues():
-    # Work out which NGC objects are also Messier objects
-    ngc_messiers = {}  # ngc_messiers[NGC num] = Messier no
-    ind_messiers = {}  # ic_messiers[IC_num] = Messier no
+def merge_deep_sky_catalogues() -> None:
+    """
+    Main entry point for creating a merged catalogue from all the available catalogues of deep sky objects.
+    """
+    # Index of which NGC objects are also Messier objects
+    ngc_to_messier: Dict[int, int] = {}  # ngc_to_messier[NGC num] = Messier number
+    ic_to_messier: Dict[int, int] = {}  # ic_messiers[IC_num] = Messier number
 
     # English names for NGC objects
-    ngc_names = {}
-    ic_names = {}
+    ngc_names: Dict[int, List[str]] = {}
+    ic_names: Dict[int, List[str]] = {}
 
     # Read file containing the popular English names for deep sky objects
-    read_english_names(ic_names, ind_messiers, ngc_messiers, ngc_names)
+    read_english_names(ic_names=ic_names, ic_to_messier=ic_to_messier,
+                       ngc_to_messier=ngc_to_messier, ngc_names=ngc_names)
 
     # Make empty catalogue of objects we've seen
-    catalogue = []
+    obj_list: List[Dict[str, Any]] = []
 
-    # Cross references -- e.g. mes_id[catalogue_index] = Messier number
-    mes_id = {}
-    ngc_id = {}
-    ic__id = {}
+    # Pointers to where Messier, NGC and IC objects are within the array <obj_list>
+    messier_ptr: Dict[int, int] = {}
+    ngc_ptr: Dict[int, int] = {}
+    ic_ptr: Dict[int, int] = {}
 
     # Create stub entries for all Messier, NGC and IC objects
-    catalogue_stub_entry = populate_stub_catalogue_entries(catalogue, ic__id, ic_names, ind_messiers, mes_id, ngc_id,
-                                                           ngc_messiers, ngc_names)
+    object_stub_entry: Dict[str, Any] = populate_stub_catalogue_entries(
+        obj_list=obj_list, ic_ptr=ic_ptr, ic_names=ic_names, ic_to_messier=ic_to_messier,
+        messier_ptr=messier_ptr, ngc_ptr=ngc_ptr, ngc_to_messier=ngc_to_messier, ngc_names=ngc_names)
 
     # Read data from the Messier catalogue
-    read_messier_catalogue(catalogue, mes_id)
+    read_messier_catalogue(obj_list=obj_list, messier_ptr=messier_ptr)
 
     # Read redshift-independent distances
-    read_redshift_independent_distances(catalogue, ic__id, ngc_id)
+    read_redshift_independent_distances(obj_list=obj_list, ic_ptr=ic_ptr, ngc_ptr=ngc_ptr)
 
     # Read NGC2000 catalogue
-    read_ngc_2000(catalogue, ic__id, ngc_id)
+    read_ngc_2000(obj_list=obj_list, ic_ptr=ic_ptr, ngc_ptr=ngc_ptr)
 
     # Read OpenNGC catalogue
-    read_open_ngc(catalogue, ic__id, ngc_id)
+    read_open_ngc(obj_list=obj_list, ic_ptr=ic_ptr, ngc_ptr=ngc_ptr)
 
     # Read catalogue of open clusters
-    read_open_cluster_catalogue(catalogue)
+    read_open_cluster_catalogue(obj_list=obj_list)
 
     # Read catalogue of globular clusters
-    read_globular_cluster_catalogue(catalogue)
+    read_globular_cluster_catalogue(obj_list=obj_list)
 
     # Data cleaning
-    clean_object_catalogue(catalogue)
+    clean_object_catalogue(obj_list=obj_list)
 
     # Add objects such as Sgr A* manually
-    add_manual_objects(catalogue, catalogue_stub_entry)
+    add_manual_objects(obj_list=obj_list, object_stub_entry=object_stub_entry)
 
     # Create output files
-    write_output(catalogue)
+    write_output(obj_list=obj_list)
 
 
 # Do it right away if we're run as a script

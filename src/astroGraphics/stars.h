@@ -1,7 +1,7 @@
 // stars.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -30,6 +30,8 @@
 #include "vectorGraphics/cairo_page.h"
 
 void tweak_magnitude_limits(chart_config *s);
+
+double get_star_size(const chart_config *s, double mag);
 
 void plot_stars(chart_config *s, cairo_page *page);
 

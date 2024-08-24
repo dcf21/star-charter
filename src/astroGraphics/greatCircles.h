@@ -1,7 +1,7 @@
 // greatCircles.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -28,6 +28,15 @@
 #include "settings/chart_config.h"
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
+
+//! A label to place along the length of a great circle
+typedef struct {
+    char label[16];
+    double xpos;
+} gc_label;
+
+void plot_great_circle(double ra0, double dec0, chart_config *s, line_drawer *ld,
+                       cairo_page *page, int n_labels, gc_label *labels, colour colour);
 
 void plot_equator(chart_config *s, line_drawer *ld, cairo_page *page);
 

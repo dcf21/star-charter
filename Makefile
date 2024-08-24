@@ -1,7 +1,7 @@
 # Makefile for StarCharter
 # 
 # -------------------------------------------------
-# Copyright 2015-2022 Dominic Ford
+# Copyright 2015-2024 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -21,8 +21,8 @@
 
 CWD=$(shell pwd)
 
-VERSION = 4.0
-DATE    = 12/12/2021
+VERSION = 5.0
+DATE    = 16/08/2024
 PATHLINK= /
 
 WARNINGS= -Wall -Wno-format-truncation -Wno-unused-result
@@ -41,19 +41,23 @@ LOCAL_BINDIR = bin
 
 CORE_FILES = astroGraphics/constellations.c astroGraphics/deepSky.c astroGraphics/deepSkyOutlines.c \
              astroGraphics/ephemeris.c astroGraphics/galaxyMap.c astroGraphics/greatCircles.c \
-             astroGraphics/raDecLines.c astroGraphics/starListReader.c astroGraphics/stars.c coreUtils/asciiDouble.c \
+             astroGraphics/gridLines.c astroGraphics/horizon.c astroGraphics/meteorShower.c \
+             astroGraphics/solarSystem.c astroGraphics/starListReader.c astroGraphics/scaleBars.c \
+             astroGraphics/stars.c astroGraphics/textAnnotations.c astroGraphics/zenith.c coreUtils/asciiDouble.c \
              coreUtils/errorReport.c coreUtils/makeRasters.c listTools/ltDict.c listTools/ltList.c \
              listTools/ltMemory.c listTools/ltStringProc.c mathsTools/julianDate.c mathsTools/projection.c \
-             mathsTools/sphericalTrig.c  settings/chart_config.c vectorGraphics/lineDraw.c \
-             vectorGraphics/cairo_page.c
+             mathsTools/sphericalTrig.c settings/chart_config.c settings/read_config.c settings/render_chart.c \
+             vectorGraphics/arrowDraw.c vectorGraphics/lineDraw.c vectorGraphics/cairo_page.c
 
 CORE_HEADERS = astroGraphics/constellations.h astroGraphics/deepSky.h astroGraphics/deepSkyOutlines.h \
                astroGraphics/ephemeris.h astroGraphics/galaxyMap.h astroGraphics/greatCircles.h \
-               astroGraphics/raDecLines.h astroGraphics/starListReader.h astroGraphics/stars.h coreUtils/asciiDouble.h \
+               astroGraphics/gridLines.h astroGraphics/horizon.h astroGraphics/meteorShower.h \
+               astroGraphics/solarSystem.h astroGraphics/starListReader.h astroGraphics/scaleBars.h \
+               astroGraphics/stars.h astroGraphics/textAnnotations.h astroGraphics/zenith.h coreUtils/asciiDouble.h \
                coreUtils/errorReport.h coreUtils/makeRasters.h coreUtils/strConstants.h listTools/ltDict.h \
                listTools/ltList.h listTools/ltMemory.h listTools/ltStringProc.h mathsTools/julianDate.h \
-               mathsTools/projection.h mathsTools/sphericalTrig.h settings/chart_config.h vectorGraphics/lineDraw.h \
-               vectorGraphics/cairo_page.h
+               mathsTools/projection.h mathsTools/sphericalTrig.h settings/chart_config.h settings/read_config.h \
+               settings/render_chart.h vectorGraphics/arrowDraw.h vectorGraphics/lineDraw.h vectorGraphics/cairo_page.h
 
 STARCHART_FILES = main.c
 

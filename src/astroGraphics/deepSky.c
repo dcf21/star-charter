@@ -1,7 +1,7 @@
 // deepSky.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -149,7 +149,7 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
 
         // Project RA and Dec of object into physical coordinates on the star chart
         double x, y;
-        plane_project(&x, &y, s, ra * M_PI / 12, dec * M_PI / 180, 0);
+        plane_project(&x, &y, s, ra * M_PI / 12, dec * M_PI / 180);
 
         // Reject this object if it falls outside the plot area
         if ((!gsl_finite(x)) || (!gsl_finite(y))) {
@@ -204,14 +204,14 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
 
             // Work out direction of north on the chart
             double x2, y2;
-            plane_project(&x2, &y2, s, ra * M_PI / 12, (dec + 1e-3) * M_PI / 180, 0);
+            plane_project(&x2, &y2, s, ra * M_PI / 12, (dec + 1e-3) * M_PI / 180);
 
             // Check output is finite
             if ((!gsl_finite(x2)) || (!gsl_finite(y2))) {
                 continue;
             }
 
-            const double north_direction[2] = {x2-x, y2-y};
+            const double north_direction[2] = {x2 - x, y2 - y};
             const double north_theta = atan2(north_direction[0], north_direction[1]) * 180 / M_PI; // degrees
 
             // Start drawing
@@ -246,8 +246,10 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
 
             if (show_name) {
                 chart_label_buffer(page, s, s->dso_label_col, object_name,
-                                   (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
-                                                        {x, y, -horizontal_offset, 1,  0}}, 2,
+                                   (label_position[2]) {
+                                           {x, y, 0, horizontal_offset,  0, -1, 0},
+                                           {x, y, 0, -horizontal_offset, 0, 1,  0}
+                                   }, 2,
                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                    0, 0, 0, mag);
                 label_counter++;
@@ -255,8 +257,10 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
             if (show_mag) {
                 snprintf(temp_err_string, FNAME_LENGTH, "mag %.1f", mag);
                 chart_label_buffer(page, s, s->dso_label_col, temp_err_string,
-                                   (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
-                                                        {x, y, -horizontal_offset, 1,  0}}, 2,
+                                   (label_position[2]) {
+                                           {x, y, 0, horizontal_offset,  0, -1, 0},
+                                           {x, y, 0, -horizontal_offset, 0, 1,  0}
+                                   }, 2,
                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                    0, 0, 0, mag);
                 label_counter++;

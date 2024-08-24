@@ -1,7 +1,7 @@
 # Demonstration configuration file to show the constellation of Orion
 # 
 # -------------------------------------------------
-# Copyright 2015-2022 Dominic Ford
+# Copyright 2015-2024 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -27,11 +27,11 @@ angular_width=29.0
 mag_min=7
 width=15.0
 aspect=1.41421356
-ra_dec_lines=1
+show_grid_lines=1
 constellation_boundaries=1
 constellation_sticks=1
 coords=ra_dec
-projection=gnomonic
+projection=stereographic
 star_names=1
 star_flamsteed_labels=0
 constellation_names=1

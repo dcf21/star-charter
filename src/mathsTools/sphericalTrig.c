@@ -1,7 +1,7 @@
 // sphericalTrig.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -50,12 +50,35 @@ double angDist_RADec(double ra0, double dec0, double ra1, double dec1) {
     return 2 * asin(sep / 2);
 }
 
+//! position_angle - Return the position angle (radians) of the great circle path from (RA1, Dec1) to (RA2, Dec2), as
+//! seen at the former point. All inputs/outputs in radians.
+//! \param ra1 - The right ascension of the first point, radians
+//! \param dec1 - The declination of the first point, radians
+//! \param ra2 - The right ascension of the second point, radians
+//! \param dec2 - The declination of the second point, radians
+//! \return - Position angle, radians
+
+double position_angle(double ra1, double dec1, double ra2, double dec2) {
+    const double a[3] = {
+            cos(ra2) * cos(dec2),
+            sin(ra2) * cos(dec2),
+            sin(dec2)
+    };
+
+    double a2[3], a3[3];
+    rotate_xy(a2, a, -ra1);
+    rotate_xz(a3, a2, M_PI / 2 - dec1);
+
+    const double azimuth = atan2(a3[1], -a3[0]);
+    return azimuth;
+}
+
 //! rotate_xy - Rotate a three-component vector about the z axis
 //! \param [out] out Rotated vector
 //! \param [in] in Vector to rotate
 //! \param theta The angle to rotate around the z axis (radians)
 
-void rotate_xy(double *out, double *in, double theta) {
+void rotate_xy(double *out, const double *in, double theta) {
     double t[3];
     memcpy(t, in, 3 * sizeof(double));
     out[0] = t[0] * cos(theta) + t[1] * -sin(theta);
@@ -68,7 +91,7 @@ void rotate_xy(double *out, double *in, double theta) {
 //! \param [in] in Vector to rotate
 //! \param theta The angle to rotate around the y axis (radians)
 
-void rotate_xz(double *out, double *in, double theta) {
+void rotate_xz(double *out, const double *in, double theta) {
     double t[3];
     memcpy(t, in, 3 * sizeof(double));
     out[0] = t[0] * cos(theta) + t[2] * -sin(theta);

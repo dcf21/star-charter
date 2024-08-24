@@ -3,7 +3,7 @@
 # query_ned.py
 #
 # -------------------------------------------------
-# Copyright 2015-2022 Dominic Ford
+# Copyright 2015-2024 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -30,8 +30,10 @@ import re
 import logging
 from urllib.request import urlopen
 
+from typing import Dict, Sequence
 
-def fetch_redshift(ned_data):
+
+def fetch_redshift(ned_data: str) -> Dict[str, str]:
     """
     Search through the HTML for the line which has the redshift on it.
 
@@ -44,8 +46,8 @@ def fetch_redshift(ned_data):
     for line in ned_data.split('\n'):
         test = re.search(r"Redshift\s*:\s*(\S*)\s*\+/-\s*(\S*)", line)
         if test is not None:
-            z = test.group(1)
-            zerr = test.group(2)
+            z: str = test.group(1)
+            zerr: str = test.group(2)
             return {
                 'z': z,
                 'z_err': zerr
@@ -57,7 +59,7 @@ def fetch_redshift(ned_data):
     }
 
 
-def fetch_distance(ned_data):
+def fetch_distance(ned_data: str) -> Dict[str, str]:
     """
     Search through the HTML for the lines which have the redshift-independent distance estimates on them.
 
@@ -67,7 +69,7 @@ def fetch_distance(ned_data):
         Dictionary with information about the redshift-independent distance estimates
     """
 
-    null_result = {
+    null_result: Dict[str, str] = {
         'distances_count': "---",
         'distances_mean': "---",
         'distances_median': "---",
@@ -76,9 +78,9 @@ def fetch_distance(ned_data):
         'distances_max': "---",
         'distances_unit': "---"
     }
-    lines = ned_data.split('\n')
+    lines: Sequence[str] = ned_data.split('\n')
 
-    line_count = len(lines)
+    line_count: int = len(lines)
     for line_count in range(len(lines)):
         test = re.search("REDSHIFT-INDEPENDENT DISTANCES", lines[line_count])
         if test is not None:
@@ -104,7 +106,7 @@ def fetch_distance(ned_data):
         return null_result
 
     return {
-        'distances_count': "%4d" % (int(test.group(1))),
+        'distances_count': "{:4d}".format(int(test.group(1))),
         'distances_mean': test3.group(1),
         'distances_median': test5.group(2),
         'distances_std_dev': test3.group(2),
@@ -115,17 +117,17 @@ def fetch_distance(ned_data):
 
 
 # Use process ID to uniquely identify this run
-run_id = "%s" % os.getpid()
+run_id: str = "{}".format(os.getpid())
 
 # The format that we use for the lines of output
-line_format = """\
+line_format: str = """\
 {object:8} {distances_count:11} {distances_mean:8} {distances_median:8} {distances_std_dev:8} \
 {distances_min:8} {distances_max:8} {distances_unit:5} \
 {z:8} {z_err:8}
 """
 
 # The headings that we put at the top of each line of the output file
-column_headings = {
+column_headings: Dict[str, str] = {
     'object': "# Object",
     'distances_count': "NDistances",
     'distances_mean': "Mean",
@@ -143,14 +145,19 @@ os.system("mkdir -p output")
 
 # Create output file and write the column headings
 with open("output/NED_distances.{}.dat".format(run_id), "w") as output:
+    # Write column headings at the top of the file
     output.write(line_format.format(**column_headings))
 
     # Loop over all NGC and IC objects
+    catalogue: str
+    size: int
+    cat_num: int
     for catalogue, size in (("NGC", 7840), ("IC", 5387)):
         for cat_num in range(1, size + 1):
 
             # Query NED to find out the NED objid for each object
-            query_url = "http://nedwww.ipac.caltech.edu/cgi-bin/nph-objsearch?objname={}{}".format(catalogue, cat_num)
+            query_url: str = "http://nedwww.ipac.caltech.edu/cgi-bin/nph-objsearch?objname={}{}".format(
+                catalogue, cat_num)
             with urlopen(url=query_url) as query_page:
                 query_page_str = query_page.read().decode('utf-8')
 
@@ -162,21 +169,21 @@ with open("output/NED_distances.{}.dat".format(run_id), "w") as output:
                 logging.info("Could not find data for {}{}".format(catalogue, cat_num))
                 continue
 
-            obj_id_int = int(obj_id.group(1))
+            obj_id_int: int = int(obj_id.group(1))
 
             # Now that we have a NED object ID, use this to fetch a page with information about each object
-            object_url = """
+            object_url: str = """
 http://nedwww.ipac.caltech.edu/cgi-bin/objsearch?search_type=Obj_id&objid={}&img_stamp=YES\
 &hconst=73.0&omegam=0.27&omegav=0.73&corr_z=1
 """.format(obj_id_int).strip()
 
             with urlopen(url=object_url) as object_page:
-                query_page_str = object_page.read().decode('utf-8')
+                query_page_str: str = object_page.read().decode('utf-8')
 
             # Parse the HTML contents of the page to extract a distance and a redshift
-            object_properties = {**fetch_distance(ned_data=query_page_str),
-                                 **fetch_redshift(ned_data=query_page_str)
-                                 }
+            object_properties: Dict[str, str] = {**fetch_distance(ned_data=query_page_str),
+                                                 **fetch_redshift(ned_data=query_page_str)
+                                                 }
 
             # Write a line to the output file describing each object
             output.write(line_format.format(
@@ -184,5 +191,5 @@ http://nedwww.ipac.caltech.edu/cgi-bin/objsearch?search_type=Obj_id&objid={}&img
                 **object_properties)
             )
 
-            # Make sure that the output file is always up to date
+            # Make sure that the output file is always up-to-date
             output.flush()

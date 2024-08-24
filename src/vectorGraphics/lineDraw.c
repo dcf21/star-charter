@@ -1,7 +1,7 @@
 // lineDraw.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -34,9 +34,9 @@
 #include "vectorGraphics/cairo_page.h"
 
 //! list_add_tick - Add a label to one of the axes of a star chart, indicating a particular RA or Dec
-//! \param l - The list of labels to go along a particular axis of a chart
-//! \param x - The position along the axis where this label should be placed
-//! \param label - The new label to place on this axis
+//! \param [out] l - The list of labels to go along a particular axis of a chart
+//! \param [in] x - The position along the axis where this label should be placed
+//! \param [in] label - The new label to place on this axis
 
 static void list_add_tick(list *l, double x, const char *label) {
     void *buff;
@@ -64,22 +64,28 @@ static void list_add_tick(list *l, double x, const char *label) {
 //! \param [in] ymin - The bottom-most limit of the vertical axis of the star chart (plot coordinates)
 //! \param [in] ymax - The top-most limit of the vertical axis of the star chart (plot coordinates)
 //! \param [in] label - The string label associated with this line
-//! \param xlabels - The list of labels to place on the bottom edge of the chart
-//! \param x2labels - The list of labels to place on the top edge of the chart
-//! \param ylabels - The list of labels to place on the left edge of the chart
-//! \param y2labels - The list of labels to place on the right edge of the chart
+//! \param [out] xlabels - The list of labels to place on the bottom edge of the chart
+//! \param [out] x2labels - The list of labels to place on the top edge of the chart
+//! \param [out] ylabels - The list of labels to place on the left edge of the chart
+//! \param [out] y2labels - The list of labels to place on the right edge of the chart
 
 void truncate_at_axis(double *xout, double *yout, double x0, double y0, double x1, double y1, double xmin, double xmax,
                       double ymin, double ymax, char *label, list *xlabels, list *x2labels, list *ylabels,
                       list *y2labels) {
     double x, y;
 
+    // Snap points which are very close to the edges to the edges, to ensure they create ticks
+    const double snap_margin = fabs(xmax - xmin) * 1e-6;
+
     if (x1 != x0) {
         // Look for intersection with left edge of chart
         y = (xmin - x0) * (y1 - y0) / (x1 - x0) + y0;
         if (
-                (y <= gsl_max(y0, y1)) && (y >= gsl_min(y0, y1)) &&
-                (xmin <= gsl_max(x1, x0)) && (xmin >= gsl_min(x1, x0))) {
+                (y <= gsl_max(y0, y1) + snap_margin) &&
+                (y >= gsl_min(y0, y1) - snap_margin) &&
+                (xmin <= gsl_max(x1, x0) + snap_margin) &&
+                (xmin >= gsl_min(x1, x0) - snap_margin)
+                ) {
             list_add_tick(ylabels, y, label);
             *xout = xmin;
             *yout = y;
@@ -88,8 +94,11 @@ void truncate_at_axis(double *xout, double *yout, double x0, double y0, double x
         // Look for intersection with right edge of chart
         y = (xmax - x0) * (y1 - y0) / (x1 - x0) + y0;
         if (
-                (y <= gsl_max(y0, y1)) && (y >= gsl_min(y0, y1)) &&
-                (xmax <= gsl_max(x1, x0)) && (xmax >= gsl_min(x1, x0))) {
+                (y <= gsl_max(y0, y1) + snap_margin) &&
+                (y >= gsl_min(y0, y1) - snap_margin) &&
+                (xmax <= gsl_max(x1, x0) + snap_margin) &&
+                (xmax >= gsl_min(x1, x0) - snap_margin)
+                ) {
             list_add_tick(y2labels, y, label);
             *xout = xmax;
             *yout = y;
@@ -101,8 +110,11 @@ void truncate_at_axis(double *xout, double *yout, double x0, double y0, double x
         // Look for intersection with top edge of chart
         x = (ymin - y0) * (x1 - x0) / (y1 - y0) + x0;
         if (
-                (x <= gsl_max(x0, x1)) && (x >= gsl_min(x0, x1)) &&
-                (ymin <= gsl_max(y1, y0)) && (ymin >= gsl_min(y1, y0))) {
+                (x <= gsl_max(x0, x1) + snap_margin) &&
+                (x >= gsl_min(x0, x1) - snap_margin) &&
+                (ymin <= gsl_max(y1, y0) + snap_margin) &&
+                (ymin >= gsl_min(y1, y0) - snap_margin)
+                ) {
             list_add_tick(xlabels, x, label);
             *xout = x;
             *yout = ymin;
@@ -111,8 +123,11 @@ void truncate_at_axis(double *xout, double *yout, double x0, double y0, double x
         // Look for intersection with bottom edge of chart
         x = (ymax - y0) * (x1 - x0) / (y1 - y0) + x0;
         if (
-                (x <= gsl_max(x0, x1)) && (x >= gsl_min(x0, x1)) &&
-                (ymax <= gsl_max(y1, y0)) && (ymax >= gsl_min(y1, y0))) {
+                (x <= gsl_max(x0, x1) + snap_margin) &&
+                (x >= gsl_min(x0, x1) - snap_margin) &&
+                (ymax <= gsl_max(y1, y0) + snap_margin) &&
+                (ymax >= gsl_min(y1, y0) - snap_margin)
+                ) {
             list_add_tick(x2labels, x, label);
             *xout = x;
             *yout = ymax;

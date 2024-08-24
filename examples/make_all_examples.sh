@@ -2,7 +2,7 @@
 # make_all_examples.sh
 #
 # -------------------------------------------------
-# Copyright 2015-2022 Dominic Ford
+# Copyright 2015-2024 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -21,14 +21,10 @@
 # -------------------------------------------------
 
 ./all_constellations.py
-../bin/starchart.bin all_sky_maps.sch
-../bin/starchart.bin alt_az.sch
-../bin/starchart.bin background_image_demo.sch
-../bin/starchart.bin cygnus_photo_overlay.sch
-../bin/starchart.bin demo_charts.sch
-../bin/starchart.bin galactic_coordinates.sch
-../bin/starchart.bin jupiter_ephemeris.sch
-../bin/starchart.bin orion.sch
-../bin/starchart.bin peters.sch
-../bin/starchart.bin venus_ephemeris.sch
+
+for chart in *.sch
+do
+  echo "Working on <${chart}>"
+  ../bin/starchart.bin ${chart}
+done
 

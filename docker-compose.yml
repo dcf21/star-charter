@@ -1,9 +1,7 @@
-version: '3'
 services:
   star-charter:
     build: .
-    image: star-charter:v1
+    image: star-charter:v5
     volumes:
     - ./examples/output:/star-charter/examples/output
     command: ./make_all_examples.sh
-

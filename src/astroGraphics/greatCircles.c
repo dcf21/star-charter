@@ -1,7 +1,7 @@
 // ephemeris.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -27,6 +27,7 @@
 #include <gsl/gsl_math.h>
 
 #include "astroGraphics/ephemeris.h"
+#include "astroGraphics/greatCircles.h"
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
 #include "mathsTools/projection.h"
@@ -38,12 +39,6 @@
 //! The number of samples along the length of a great circle to be plotted across the sky
 #define N_SAMPLES 720
 
-//! A label to place along the length of a great circle
-typedef struct {
-    char label[16];
-    double xpos;
-} gc_label;
-
 //! plot_great_circle - Plot a great circle across the sky
 //! \param ra0 - The right ascension of the pole that the great circle lies perpendicular to (degrees)
 //! \param dec0 - The declination of the pole that the great circle lies perpendicular to (degrees)
@@ -54,8 +49,8 @@ typedef struct {
 //! \param labels - An array of <gc_label> structures defining the labels to draw.
 //! \param colour - The colour to use to paint the great circle.
 
-static void plot_great_circle(double ra0, double dec0, chart_config *s, line_drawer *ld,
-                              cairo_page *page, int n_labels, gc_label *labels, colour colour) {
+void plot_great_circle(double ra0, double dec0, chart_config *s, line_drawer *ld,
+                       cairo_page *page, int n_labels, gc_label *labels, colour colour) {
     int i;
     ra0 = ra0 * M_PI / 180;
     dec0 = dec0 * M_PI / 180;
@@ -70,7 +65,7 @@ static void plot_great_circle(double ra0, double dec0, chart_config *s, line_dra
 
         dec = asin(a[2]);
         ra = atan2(a[1], a[0]);
-        plane_project(&x, &y, s, ra, dec, 0);
+        plane_project(&x, &y, s, ra, dec);
         ld_point(ld, x, y, NULL);
     }
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
@@ -86,13 +81,15 @@ static void plot_great_circle(double ra0, double dec0, chart_config *s, line_dra
 
             dec = asin(a[2]);
             ra = atan2(a[1], a[0]);
-            plane_project(&x, &y, s, ra, dec, 0);
+            plane_project(&x, &y, s, ra, dec);
             ld_point(ld, x, y + 0.035, NULL);
             ld_point(ld, x, y - 0.035, NULL);
             ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
 
             chart_label_buffer(page, s, colour, labels[i].label,
-                               &(label_position) {x, y + 0.045, 0, 0, -1}, 1,
+                               &(label_position)
+                                       {x, y + 0.045, 0, 0, 0, 0, -1},
+                               1,
                                0, 1, 2.0, 1, 0, 0, -0.5);
         }
 }
@@ -103,12 +100,22 @@ static void plot_great_circle(double ra0, double dec0, chart_config *s, line_dra
 //! \param page - A <cairo_page> structure defining the cairo drawing context.
 
 void plot_equator(chart_config *s, line_drawer *ld, cairo_page *page) {
+    // Set dash style
+    if (s->great_circle_dotted) {
+        // Set dashed line style
+        double dash_style[1] = {0.5 * s->mm};
+        cairo_set_dash(s->cairo_draw, dash_style, 1, 0);
+    }
+
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgb(s->cairo_draw, s->equator_col.red, s->equator_col.grn, s->equator_col.blu);
     cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
 
     plot_great_circle(0, 90, s, ld, page, 0, NULL, s->equator_col);
+
+    // Unset dashed line style
+    cairo_set_dash(s->cairo_draw, NULL, 0, 0);
 }
 
 //! plot_galactic_plane - Draw a line along the plane of the Milky Way
@@ -117,6 +124,13 @@ void plot_equator(chart_config *s, line_drawer *ld, cairo_page *page) {
 //! \param page - A <cairo_page> structure defining the cairo drawing context.
 
 void plot_galactic_plane(chart_config *s, line_drawer *ld, cairo_page *page) {
+    // Set dash style
+    if (s->great_circle_dotted) {
+        // Set dashed line style
+        double dash_style[1] = {0.5 * s->mm};
+        cairo_set_dash(s->cairo_draw, dash_style, 1, 0);
+    }
+
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgb(s->cairo_draw, s->galactic_plane_col.red, s->galactic_plane_col.grn,
@@ -125,6 +139,9 @@ void plot_galactic_plane(chart_config *s, line_drawer *ld, cairo_page *page) {
 
     plot_great_circle((12. + 51. / 60 + 26.282 / 3600.) / 24. * 360., (27. + 7.0 / 60. + 42.01 / 3600.), s,
                       ld, page, 0, NULL, s->galaxy_col);
+
+    // Unset dashed line style
+    cairo_set_dash(s->cairo_draw, NULL, 0, 0);
 }
 
 //! plot_ecliptic - Draw a line along the ecliptic (i.e. the zodiac; the path the Sun follows across the sky)
@@ -133,6 +150,13 @@ void plot_galactic_plane(chart_config *s, line_drawer *ld, cairo_page *page) {
 //! \param page - A <cairo_page> structure defining the cairo drawing context.
 
 void plot_ecliptic(chart_config *s, line_drawer *ld, cairo_page *page) {
+    // Set dash style
+    if (s->great_circle_dotted) {
+        // Set dashed line style
+        double dash_style[1] = {0.5 * s->mm};
+        cairo_set_dash(s->cairo_draw, dash_style, 1, 0);
+    }
+
     gc_label labels[12] = {{"Jan", 11},
                            {"Feb", 42},
                            {"Mar", 70},
@@ -153,6 +177,9 @@ void plot_ecliptic(chart_config *s, line_drawer *ld, cairo_page *page) {
 
     plot_great_circle(18. / 24. * 360., 90. - 23.4, s, ld, page, s->label_ecliptic ? 12 : 0, labels,
                       s->ecliptic_col);
+
+    // Unset dashed line style
+    cairo_set_dash(s->cairo_draw, NULL, 0, 0);
 }
 
 //! draw_great_circle_key - Draw a legend below the star chart indicating the colours of the lines representing great
@@ -180,8 +207,16 @@ double draw_great_circle_key(chart_config *s, double legend_y_pos) {
     double x = x1 - xw / 2;
     cairo_text_extents_t extents;
 
+    // Set line width
     cairo_set_font_size(s->cairo_draw, 3.6 * s->mm * s->font_size);
     cairo_set_line_width(s->cairo_draw, 2.5 * s->line_width_base);
+
+    // Set dash style
+    if (s->great_circle_dotted) {
+        // Set dashed line style
+        double dash_style[1] = {0.5 * s->mm};
+        cairo_set_dash(s->cairo_draw, dash_style, 1, 0);
+    }
 
     x += w_left;
 
@@ -260,6 +295,9 @@ double draw_great_circle_key(chart_config *s, double legend_y_pos) {
         // Advance horizontally to draw the next item in the legend
         //x += w_item;
     }
+
+    // Unset dashed line style
+    cairo_set_dash(s->cairo_draw, NULL, 0, 0);
 
     const double new_bottom_to_legend_items = y0 + 1.0;
     return new_bottom_to_legend_items;

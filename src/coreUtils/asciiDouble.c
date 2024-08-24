@@ -1,7 +1,7 @@
 // asciiDouble.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -208,7 +208,8 @@ void file_readline(FILE *file, char *output) {
     char *outputscan = output;
 
     while (((int) c != '\n') && (!feof(file)) && (!ferror(file)))
-        if ((fscanf(file, "%c", &c) >= 0) && ((((int) c) > 31) || (((int) c) < 0) || (((int) c) == 9))) *(outputscan++) = c;
+        if ((fscanf(file, "%c", &c) >= 0) && ((((int) c) > 31) || (((int) c) < 0) || (((int) c) == 9)))
+            *(outputscan++) = c;
     *outputscan = '\0';
 }
 
@@ -378,9 +379,38 @@ void readConfig_fetchKey(char *line, char *out) {
 
 void readConfig_fetchValue(char *line, char *out) {
     char *scan = out;
-    while ((*line != '\0') && (*(line++) != '='));
-    while (*line != '\0') *(scan++) = *(line++);
+    while ((*line != '\0') && (*line != '=')) line++;
+    if (*line == '=') line++;
+    while ((*line != '\0') && (*line != '#')) *(scan++) = *(line++);
     *scan = '\0';
     str_strip(out, out);
 }
 
+//! split_file_path - Split a file path into a directory path, and the filename. Similar to Python's <os.path.split>.
+//! \param [out] out_path - Newly malloced string containing a file path.
+//! \param [out] out_file - Newly malloced string containing the filename.
+//! \param [in] in_path - Input string containing the full input file path to split.
+
+void split_file_path(char **out_path, char **out_file, const char *in_path) {
+    // Find last delimiter
+    const char *scan;
+    for (scan = in_path + strlen(in_path); scan >= in_path; scan--) {
+        if (*scan == '/' || *scan == '\\')
+            break;
+    }
+
+    if (scan >= in_path) {
+        // There is a delimiter: construct separate path and filename fragments
+        // printf("--> %ld\n", (long) (scan - in_path));
+        *out_path = malloc(scan - in_path + 1);
+        strncpy(*out_path, in_path, scan - in_path);
+        (*out_path)[scan - in_path] = '\0';
+        *out_file = malloc(strlen(scan));
+        strcpy(*out_file, scan + 1);
+    } else {
+        // There is no delimiter: the entire string must be a filename
+        *out_path = NULL;
+        *out_file = malloc(strlen(in_path) + 1);
+        strcpy(*out_file, in_path);
+    }
+}

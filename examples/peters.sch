@@ -2,7 +2,7 @@
 # in a Peters projection
 #
 # -------------------------------------------------
-# Copyright 2015-2022 Dominic Ford
+# Copyright 2015-2024 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -20,8 +20,8 @@
 # along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 # -------------------------------------------------
 
-CHART
-output_filename=output/peters.png
+# Common settings which apply to all the charts we produce
+DEFAULTS
 ra_central=12.0
 dec_central=0.0
 angular_width=360.0
@@ -35,3 +35,12 @@ maximum_star_label_count=20
 dso_names=0
 constellation_names=1
 
+# Chart with a grid of RA/Dec
+CHART
+output_filename=output/peters_0.png
+grid_coords=ra_dec
+
+# Chart with a grid of ecliptic coordinates
+CHART
+output_filename=output/peters_1.png
+grid_coords=galactic

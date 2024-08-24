@@ -1,7 +1,7 @@
 // galaxyMap.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -34,7 +34,9 @@
 #include "astroGraphics/galaxyMap.h"
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
+#include "mathsTools/julianDate.h"
 #include "mathsTools/projection.h"
+#include "mathsTools/sphericalTrig.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
@@ -78,36 +80,155 @@ void plot_galaxy_map(chart_config *s) {
     // Allocate buffer for image data
     unsigned char *pixel_data = malloc(stride * height);
 
+    // Fetch position of the Sun
+    double ra_sun, dec_sun; // hours / degrees
+    sun_pos(s->julian_date, &ra_sun, &dec_sun);
+
     // Render galaxy map into pixel array
-#pragma omp parallel for shared(pixel_data) private(j)
+#pragma omp parallel for shared(pixel_data, ra_sun, dec_sun) private(j)
     for (j = 0; j < height; j++) {
         int i;
-        double y = (j / ((double) height) - 0.5) * s->aspect * s->wlin;
+        const double y = (j / ((double) height) - 0.5) * s->aspect * s->wlin;
         for (i = 0; i < width; i++) {
-            double x = (i / ((double) width) - 0.5) * s->wlin;
-            double ra, dec;
-            int c, x_map, y_map;
+            const double x = (i / ((double) width) - 0.5) * s->wlin;
+            double ra, dec; // radians
             // Work out where each pixel in the star chart maps to, in a rectangular grid of (RA, Dec)
             inv_plane_project(&ra, &dec, s, x, y);
-            x_map = (int) (ra / (2 * M_PI) * map_h_size);
-            y_map = (int) ((dec + M_PI / 2) / M_PI * map_v_size);
+
+            // Work out base colour to use for this pixel
+            colour colour_base = s->galaxy_col0;
+
+            // Project point onto galaxy map
+            const int x_map = (int) (ra / (2 * M_PI) * map_h_size);
+            const int y_map = (int) ((dec + M_PI / 2) / M_PI * map_v_size);
             if ((x_map < 0) || (x_map >= map_h_size) || (y_map < 0) || (y_map >= map_v_size)) {
                 // If this pixel falls outside the galaxy map image we loaded, we set it to white.
                 // Cairo's ARGB32 pixel format stores pixels as 32-bit ints.
                 *(uint32_t *) (pixel_data + j * stride + 4 * i) = 0xffffffff;
-            } else {
-                // Read pixel from the galaxy map image we loaded
-                c = galaxy_data[x_map + y_map * map_h_size];
-                if (c > 254) c = 254;
-                if (c < 1) c = 1;
-
-                // Cairo's ARGB32 pixel format stores pixels as 32-bit ints, with alpha in most significant byte.
-                *(uint32_t *) (pixel_data + j * stride + 4 * i) =
-                        (uint32_t) (s->galaxy_col0.blu * (255 - c) + s->galaxy_col.blu * c) +  // blue
-                        ((uint32_t) (s->galaxy_col0.grn * (255 - c) + s->galaxy_col.grn * c) << (unsigned) 8) +  // green
-                        ((uint32_t) (s->galaxy_col0.red * (255 - c) + s->galaxy_col.red * c) << (unsigned) 16) + // red
-                        ((uint32_t) 255 << (unsigned) 24);  // alpha
+                continue;
             }
+
+            // If we're shading twilight, mix this into the base colour
+            if (s->shade_twilight) {
+                // Convert (RA, Dec) to local (Alt, Az)
+                double alt, az;
+                double ra_at_epoch, dec_at_epoch;
+                ra_dec_from_j2000(ra, dec, s->julian_date, &ra_at_epoch, &dec_at_epoch);
+                alt_az(ra_at_epoch, dec_at_epoch, s->julian_date, s->horizon_latitude, s->horizon_longitude, &alt, &az);
+                const double alt_degrees = alt * 180 / M_PI;
+                const double alt_normalised = gsl_min(1, alt_degrees / 20.);
+
+                if (alt_normalised >= 0) {
+                    // Above the horizon
+                    const double w1 = pow(alt_normalised, 0.5);
+                    const double w2 = 1 - w1;
+
+                    colour_base.red = s->twilight_horizon_col.red * w2 + s->twilight_zenith_col.red * w1;
+                    colour_base.grn = s->twilight_horizon_col.grn * w2 + s->twilight_zenith_col.grn * w1;
+                    colour_base.blu = s->twilight_horizon_col.blu * w2 + s->twilight_zenith_col.blu * w1;
+                } else {
+                    // Below the horizon, shade everything white
+                    colour_base.red = 1;
+                    colour_base.grn = 1;
+                    colour_base.blu = 1;
+                }
+            }
+
+            // If we're shading the sky near the Sun, mix this into the base colour
+            if (s->shade_near_sun) {
+                // Calculate angular distance from the Sun
+                const double angular_separation = angDist_RADec(ra_sun * M_PI / 12, dec_sun * M_PI / 180, ra, dec);
+                const double ang_degrees = angular_separation * 180 / M_PI;
+                const double ang_normalised = gsl_max(0, gsl_min(1, ang_degrees / 15.));
+
+                const double w1 = pow(ang_normalised, 0.5);
+                const double w2 = 1 - w1;
+
+                colour_base.red = gsl_max(colour_base.red,
+                                          s->twilight_horizon_col.red * w2 + s->twilight_zenith_col.red * w1);
+                colour_base.grn = gsl_max(colour_base.grn,
+                                          s->twilight_horizon_col.grn * w2 + s->twilight_zenith_col.grn * w1);
+                colour_base.blu = gsl_max(colour_base.blu,
+                                          s->twilight_horizon_col.blu * w2 + s->twilight_zenith_col.blu * w1);
+            }
+
+            // If we're shading the region of sky that is not observable, mix this into the base colour
+            if (s->shade_not_observable) {
+                double best_alt_normalised = 0.2;
+
+                for (int step = 0; step < 96; step++) {
+                    // Unix time for this step
+                    const double julian_date_this = s->julian_date + (step / 96. - 0.5);
+
+                    // Fetch position of the zenith
+                    double ra_zenith_at_epoch, dec_zenith_at_epoch; // radians
+                    double ra_zenith_j2000, dec_zenith_j2000; // radians
+                    get_zenith_position(s->horizon_latitude, s->horizon_longitude, julian_date_this,
+                                        &ra_zenith_at_epoch, &dec_zenith_at_epoch);
+                    ra_dec_to_j2000(ra_zenith_at_epoch, dec_zenith_at_epoch, julian_date_this,
+                                    &ra_zenith_j2000, &dec_zenith_j2000);
+
+                    // Calculate angular distance of zenith from the Sun
+                    const double angular_separation = angDist_RADec(
+                            ra_sun * M_PI / 12, dec_sun * M_PI / 180,
+                            ra_zenith_j2000, dec_zenith_j2000);
+                    const double solar_altitude = 90 - angular_separation * 180 / M_PI;
+
+                    // Reject time steps which fall in twilight
+                    if (solar_altitude > -4) continue;
+
+                    // Convert (RA, Dec) to local (Alt, Az)
+                    double alt, az;
+                    double ra_at_epoch, dec_at_epoch;
+                    ra_dec_from_j2000(ra, dec, julian_date_this, &ra_at_epoch, &dec_at_epoch);
+                    alt_az(ra_at_epoch, dec_at_epoch, julian_date_this,
+                           s->horizon_latitude, s->horizon_longitude, &alt, &az);
+                    const double alt_degrees = alt * 180 / M_PI;
+                    const double alt_normalised = gsl_max(0, gsl_min(1, alt_degrees / 20.));
+                    if (alt_normalised > best_alt_normalised) best_alt_normalised = alt_normalised;
+                }
+
+                const double w1 = pow(best_alt_normalised, 0.5);
+                const double w2 = 1 - w1;
+
+                colour_base.red = gsl_max(colour_base.red,
+                                          s->twilight_horizon_col.red * w2 + s->twilight_zenith_col.red * w1);
+                colour_base.grn = gsl_max(colour_base.grn,
+                                          s->twilight_horizon_col.grn * w2 + s->twilight_zenith_col.grn * w1);
+                colour_base.blu = gsl_max(colour_base.blu,
+                                          s->twilight_horizon_col.blu * w2 + s->twilight_zenith_col.blu * w1);
+            }
+
+            // Project point onto galaxy map
+            colour colour_final = colour_base;
+            if (s->plot_galaxy_map) {
+                // Read pixel from the galaxy map image we loaded
+                int c = galaxy_data[x_map + y_map * map_h_size];
+
+                const double alt_normalised = gsl_max(0, gsl_min(0.999, c / 255.));
+
+                const double w1 = alt_normalised;
+                const double w2 = 1 - w1;
+
+                // Compute final colour
+                colour_final.red = colour_base.red * w2 + s->galaxy_col.red * w1;
+                colour_final.grn = colour_base.grn * w2 + s->galaxy_col.grn * w1;
+                colour_final.blu = colour_base.blu * w2 + s->galaxy_col.blu * w1;
+
+                // If we're shading twilight, then mixing must be additive; galaxy cannot be darker than twilight
+                if (s->shade_twilight) {
+                    colour_final.red = gsl_max(colour_base.red, colour_final.red);
+                    colour_final.grn = gsl_max(colour_base.grn, colour_final.grn);
+                    colour_final.blu = gsl_max(colour_base.blu, colour_final.blu);
+                }
+            }
+
+            // Cairo's ARGB32 pixel format stores pixels as 32-bit ints, with alpha in most significant byte.
+            *(uint32_t *) (pixel_data + j * stride + 4 * i) =
+                    (uint32_t) (255 * colour_final.blu) +  // blue
+                    ((uint32_t) (255 * colour_final.grn) << (unsigned) 8) +  // green
+                    ((uint32_t) (255 * colour_final.red) << (unsigned) 16) +  // red
+                    ((uint32_t) 255 << (unsigned) 24);  // alpha
         }
     }
 

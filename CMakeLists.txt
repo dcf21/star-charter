@@ -16,12 +16,24 @@ set(SOURCE_FILES
         src/astroGraphics/galaxyMap.h
         src/astroGraphics/greatCircles.c
         src/astroGraphics/greatCircles.h
-        src/astroGraphics/raDecLines.c
-        src/astroGraphics/raDecLines.h
+        src/astroGraphics/gridLines.c
+        src/astroGraphics/gridLines.h
+        src/astroGraphics/horizon.c
+        src/astroGraphics/horizon.h
+        src/astroGraphics/meteorShower.c
+        src/astroGraphics/meteorShower.h
+        src/astroGraphics/solarSystem.c
+        src/astroGraphics/solarSystem.h
         src/astroGraphics/starListReader.c
         src/astroGraphics/starListReader.h
+        src/astroGraphics/scaleBars.c
+        src/astroGraphics/scaleBars.h
         src/astroGraphics/stars.c
         src/astroGraphics/stars.h
+        src/astroGraphics/textAnnotations.c
+        src/astroGraphics/textAnnotations.h
+        src/astroGraphics/zenith.c
+        src/astroGraphics/zenith.h
         src/coreUtils/asciiDouble.c
         src/coreUtils/asciiDouble.h
         src/coreUtils/errorReport.c
@@ -45,6 +57,12 @@ set(SOURCE_FILES
         src/mathsTools/sphericalTrig.h
         src/settings/chart_config.c
         src/settings/chart_config.h
+        src/settings/read_config.c
+        src/settings/read_config.h
+        src/settings/render_chart.c
+        src/settings/render_chart.h
+        src/vectorGraphics/arrowDraw.c
+        src/vectorGraphics/arrowDraw.h
         src/vectorGraphics/lineDraw.c
         src/vectorGraphics/lineDraw.h
         src/vectorGraphics/cairo_page.c
@@ -54,4 +72,3 @@ set(SOURCE_FILES
 add_executable(starcharter ${SOURCE_FILES})
 
 target_link_libraries(starcharter gsl gslcblas z cairo m)
-

@@ -1,7 +1,7 @@
 // asciiDouble.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 
-int get_digit(const char c);
+int get_digit(char c);
 
 double get_float(const char *str, int *Nchars);
 
@@ -59,6 +59,8 @@ int str_cmp_no_case(const char *a, const char *b);
 void readConfig_fetchKey(char *line, char *out);
 
 void readConfig_fetchValue(char *line, char *out);
+
+void split_file_path(char **out_path, char **out_file, const char *in_path);
 
 #endif
 

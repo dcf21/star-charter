@@ -2,7 +2,7 @@
 # all_constellations.py
 #
 # -------------------------------------------------
-# Copyright 2015-2022 Dominic Ford
+# Copyright 2015-2024 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -131,12 +131,12 @@ dec_central={dec}
 angular_width={angular_width}
 width=25.0
 aspect=0.63
-ra_dec_lines=1
+show_grid_lines=1
 constellation_boundaries=1
 constellation_sticks=1
 constellation_highlight={constellation_abbrev}
 coords=ra_dec
-projection=gnomonic
+projection=stereographic
 star_names=1
 star_flamsteed_labels=0
 constellation_names=1

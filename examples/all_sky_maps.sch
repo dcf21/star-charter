@@ -1,7 +1,7 @@
 # Demonstration configuration file which produces a map of the whole sky
 # 
 # -------------------------------------------------
-# Copyright 2015-2022 Dominic Ford
+# Copyright 2015-2024 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -19,7 +19,7 @@
 # along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 # -------------------------------------------------
 
-# Common settings which apply to both of the charts we produce
+# Common settings which apply to all the charts we produce
 DEFAULTS
 ra_central=12.0
 dec_central=0.0
@@ -57,18 +57,7 @@ ecliptic_col=0.8,0.65,0
 # A demo chart on a dark background
 CHART
 output_filename=output/allsky2.png
-constellation_stick_col=0,0.5,0
-constellation_boundary_col=0.5,0.5,0
-constellation_label_col=0.9,0.9,0.9
-dso_cluster_col=0.6,0.6,0.1875
-dso_nebula_col=0.1875,0.5,0.1875
-dso_label_col=0.8,0.8,0.8
+INCLUDE include_files/light_on_dark_colours.sch
 galaxy_col=0,0,0.5
 galaxy_col0=0,0,0.25
-star_col=0.8,0.8,0.8
-star_label_col=0.6,0.6,0.6
-grid_col=0.3,0.3,0.3
-equator_col=0.65,0,0.65
-galactic_plane_col=0,0.8,0.25
-ecliptic_col=0.8,0.65,0
 

@@ -1,7 +1,7 @@
 // projection.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -24,9 +24,36 @@
 
 #include "settings/chart_config.h"
 
-void plane_project(double *x, double *y, chart_config *s, double lng, double lat, int grid_line);
+void galactic_project(double ra, double dec, double *l_out, double *b_out);
 
-void inv_plane_project(double *ra, double *dec, chart_config *s, double x, double y);
+void inv_galactic_project(double *ra_out, double *dec_out, double l, double b);
+
+void alt_az(double ra, double dec, double julian_date, double latitude, double longitude, double *alt, double *az);
+
+void inv_alt_az(double alt, double az, double julian_date, double latitude, double longitude,
+                double *ra_out, double *dec_out);
+
+void convert_ra_dec_to_selected_coordinates(const chart_config *s, int coords, double ra, double dec,
+                                            double *lat_out, double *lng_out);
+
+void convert_selected_coordinates_to_ra_dec(const chart_config *s, int coords, double lng_in, double lat_in,
+                                            double *ra_out, double *dec_out);
+
+void plane_project_flat(double *x, double *y, const chart_config *s, double ra, double dec);
+
+void plane_project_peters(double *x, double *y, const chart_config *s, double ra, double dec);
+
+void plane_project_spherical(double *x, double *y, const chart_config *s, double ra, double dec);
+
+void plane_project(double *x, double *y, const chart_config *s, double ra, double dec);
+
+void inv_plane_project_flat(double *ra, double *dec, const chart_config *s, double x, double y);
+
+void inv_plane_project_peters(double *ra, double *dec, const chart_config *s, double x, double y);
+
+void inv_plane_project_spherical(double *ra, double *dec, const chart_config *s, double x, double y);
+
+void inv_plane_project(double *ra, double *dec, const chart_config *s, double x, double y);
 
 #endif
 

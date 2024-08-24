@@ -1,7 +1,7 @@
 // ephemeris.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -29,13 +29,17 @@
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
 
-void ephemerides_fetch(chart_config *s);
+int ephemerides_fetch(ephemeris **ephemeris_data_out, int ephemeris_count,
+                      const char (*ephemeris_definitions)[N_TRACES_MAX][FNAME_LENGTH],
+                      const char *ephemeris_compute_path);
 
 void ephemerides_free(chart_config *s);
 
 void ephemerides_autoscale_plot(chart_config *s, int total_ephemeris_points);
 
-void ephemerides_add_text_labels(chart_config *s);
+void ephemerides_add_manual_text_labels(chart_config *s);
+
+void ephemerides_add_automatic_text_labels(chart_config *s);
 
 void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trace_num);
 

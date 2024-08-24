@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # -------------------------------------------------
-# Copyright 2015-2022 Dominic Ford
+# Copyright 2015-2024 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -21,42 +21,50 @@
 
 # Do all of the tasks we need to get StarCharter up and running
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")" || exit
 cwd=`pwd`
 
 # Download all of the data we need from the internet
 echo "Downloading required data files"
-cd ${cwd}
+cd ${cwd} || exit
 ./dataFetch.py
 
 # Convert the constellation stick figures, defined by the HIP numbers of stars, into RA/Dec
-cd ${cwd}
-cd data/constellations/process_stick_figures
+cd ${cwd} || exit
+cd data/constellations/process_stick_figures || exit
 ./constellationLines.py
 
 # Make a blurred map of the Milky Way to use as a background for star charts
-cd ${cwd}
-cd data/milkyWay/process
+cd ${cwd} || exit
+cd data/milkyWay/process || exit
 ./prettymake
 ./bin/galaxymap.bin
 
 # Query the NED website for the redshifts and distances of deep sky objects
 # We don't do this automatically, since it takes around 12 hours. Used cached version instead.
-cd ${cwd}
-cd data/deepSky/ngcDistances
+cd ${cwd} || exit
+cd data/deepSky/ngcDistances || exit
 # ./fetch_distances_from_ned.py
 
 # Merge data from various NGC/IC data sources
-cd ${cwd}
-cd data/deepSky/ngcDistances
+cd ${cwd} || exit
+cd data/deepSky/ngcDistances || exit
 ./merge.py
 
 # Merge data from various star catalogues
-cd ${cwd}
-cd data/stars/starCataloguesMerge
-./main_catalogue_merge.py
+# Below we set a magnitude limit of 10, to minimise memory usage to < 4 GB.
+# This can be safely reduced to 14 if you have 16 GB of RAM.
+cd ${cwd} || exit
+cd data/stars/starCataloguesMerge || exit
+./main_catalogue_merge.py --magnitude-limit 10
 
 # Compile the StarCharter code
 echo "Compiling code"
-cd ${cwd}
+cd ${cwd} || exit
 ./prettymake
+
+# Make a single example, to ensure text input files are converted to binary
+cd ${cwd} || exit
+cd examples
+../bin/starchart.bin jupiter_ephemeris.sch
+

@@ -1,7 +1,7 @@
 // cairo_page.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -30,17 +30,19 @@
 #include "settings/chart_config.h"
 
 typedef struct {
-    // The (x, y) position to label (star chart angular coordinates)
+    // The (x, y) position to label (tangent plane angular coordinates)
     double x, y;
 
-    // The size of the tick mark at (x,y); we must ensure the text label is at an offset of <offset_size> away
-    // from (x,y). (cairo coordinates)
-    double offset_size;
+    // The clockwise rotation angle of the text relative to upright (degrees)
+    double rotation;
 
-    // Value of -1, 0 or 1, indicating left, centre, or right alignment
+    // The offset of this label text relative to the point being labelled (cairo pixel coordinates)
+    double offset_x, offset_y;
+
+    // Value indicating horizontal alignment: -1 (left), 0 (centre) or 1 (right)
     int h_align;
 
-    // Value of -1, 0 or 1, indicating bottom, middle, or top alignment
+    // Value indicating vertical alignment: -1 (bottom), 0 (middle) or 1 (top)
     int v_align;
 } label_position;
 
@@ -80,9 +82,9 @@ void plot_background_image(chart_config *s);
 
 void draw_chart_edging(cairo_page *p, chart_config *s);
 
-void fetch_canvas_coordinates(double *x_out, double *y_out, double x_in, double y_in, chart_config *s);
+void fetch_canvas_coordinates(double *x_out, double *y_out, double x_in, double y_in, const chart_config *s);
 
-void fetch_graph_coordinates(double x_in, double y_in, double *x_out, double *y_out, chart_config *s);
+void fetch_graph_coordinates(double x_in, double y_in, double *x_out, double *y_out, const chart_config *s);
 
 void chart_label_buffer(cairo_page *p, chart_config *s, colour colour, const char *label,
                         const label_position *possible_positions, int possible_position_count, int multiple_labels,

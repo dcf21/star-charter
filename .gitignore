@@ -14,10 +14,9 @@ eggs/
 /.idea
 /cmake-build-debug
 /examples/output
+/examples/starchart.log
 
 # Input data files
-/data/constellations/downloads/ReadMe
-/data/constellations/downloads/boundaries.dat
 /data/constellations/downloads/hip_main.dat.gz
 /data/constellations/downloads/ybsc.gz
 /data/constellations/process_stick_figures/output/
@@ -35,6 +34,7 @@ eggs/
 /data/stars/tycho1/hip_main.dat.gz
 /data/stars/tycho2/tyc2.dat.??.gz
 /data/stars/tycho2/ReadMe
+/data/stars/gaiaEDR3/*.gz
 
 # /data/milkyWay/process/
 /data/milkyWay/process/bin

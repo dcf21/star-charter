@@ -1,7 +1,7 @@
 // deepSkyOutlines.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -104,7 +104,7 @@ void plot_deep_sky_outlines(chart_config *s, cairo_page *page) {
 
                 // Project RA and Dec of object into physical coordinates on the star chart
                 plane_project(&x[point_counter], &y[point_counter], s,
-                              ra[point_counter] * M_PI / 180, dec[point_counter] * M_PI / 180, 0);
+                              ra[point_counter] * M_PI / 180, dec[point_counter] * M_PI / 180);
 
                 // Reject this object if it falls outside the plot area
                 if ((!gsl_finite(x[point_counter])) || (!gsl_finite(y[point_counter]))) {

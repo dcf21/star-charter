@@ -1,7 +1,7 @@
 // constellations.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -52,6 +52,23 @@ static char *replace_at_with_space(const char *in) {
     return buf;
 }
 
+//! string_capitalise - Replace lowercase letters with uppercase equivalents
+//! \param in - The input string
+//! \return - Pointer to a static character buffer with the processed copy of the string.
+static char *string_capitalise(const char *in) {
+    int i, j;
+    static char buf[BUFLEN + 4];
+    for (i = 0, j = 0; ((j < BUFLEN) && ((in[i] < '\0') || (in[i] > ' '))); i++, j++) {
+        if ((in[i] >= 'a') && (in[i] <= 'z')) {
+            buf[j] = (char) (in[i] + 'A' - 'a');
+        } else {
+            buf[j] = in[i];
+        }
+    }
+    buf[j] = '\0';
+    return buf;
+}
+
 //! plot_constellation_boundaries - Draw lines around the boundaries of the constellations.
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 //! \param ld - A <line_drawer> structure used to draw lines on a cairo surface.
@@ -91,7 +108,7 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
             continue;
         }
 
-        plane_project(&x, &y, s, ra * M_PI / 12, dec * M_PI / 180, 0);
+        plane_project(&x, &y, s, ra * M_PI / 12, dec * M_PI / 180);
 
         if (s->zodiacal_only && (strncmp(line + 23, "AQR ", 4) != 0) && (strncmp(line + 23, "ARI ", 4) != 0) &&
             (strncmp(line + 23, "LEO ", 4) != 0) && (strncmp(line + 23, "CNC ", 4) != 0) &&
@@ -104,8 +121,11 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
 
         if (strncmp(line + 23, constellation, 4) != 0) {
             if (constellation[0] != '@') { ld_point(ld, x_first, y_first, NULL); }
-            strncpy(constellation, line + 23, 4);
-            constellation[5] = '\0';
+            constellation[0] = line[23];
+            constellation[1] = line[24];
+            constellation[2] = line[25];
+            constellation[3] = line[26];
+            constellation[4] = '\0';
             ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
             x_first = x;
             y_first = y;
@@ -117,7 +137,8 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
                 cairo_set_line_width(s->cairo_draw, 2);
                 was_highlighted = 1;
             } else if (was_highlighted) {
-                cairo_set_source_rgb(s->cairo_draw, s->constellation_boundary_col.red, s->constellation_boundary_col.grn,
+                cairo_set_source_rgb(s->cairo_draw, s->constellation_boundary_col.red,
+                                     s->constellation_boundary_col.grn,
                                      s->constellation_boundary_col.blu);
                 cairo_set_line_width(s->cairo_draw, 0.8);
                 was_highlighted = 0;
@@ -181,8 +202,8 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
         ra1 = get_float(scan, NULL);
         scan = next_word(scan);
         dec1 = get_float(scan, NULL);
-        plane_project(&x0, &y0, s, ra0 * M_PI / 180, dec0 * M_PI / 180, 0);
-        plane_project(&x1, &y1, s, ra1 * M_PI / 180, dec1 * M_PI / 180, 0);
+        plane_project(&x0, &y0, s, ra0 * M_PI / 180, dec0 * M_PI / 180);
+        plane_project(&x1, &y1, s, ra1 * M_PI / 180, dec1 * M_PI / 180);
         ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
         ld_point(ld, x0, y0, NULL);
         ld_point(ld, x1, y1, NULL);
@@ -202,7 +223,7 @@ void plot_constellation_names(chart_config *s, cairo_page *page) {
     char line[FNAME_LENGTH];
 
     strcpy(line, SRCDIR "../data/constellations/name_places.dat");
-    if (s->language == SW_LANG_FR) strcpy(line, SRCDIR "../data/constellations/name_places_fr.dat");
+    if (s->language == SW_LANG_FRENCH) strcpy(line, SRCDIR "../data/constellations/name_places_fr.dat");
     file = fopen(line, "r");
     if (file == NULL) stch_fatal(__FILE__, __LINE__, "Could not open constellation name data");
 
@@ -228,7 +249,7 @@ void plot_constellation_names(chart_config *s, cairo_page *page) {
             ra = get_float(scan, NULL);
             scan = next_word(scan);
             dec = get_float(scan, NULL);
-            plane_project(&x, &y, s, ra * M_PI / 12, dec * M_PI / 180, 0);
+            plane_project(&x, &y, s, ra * M_PI / 12, dec * M_PI / 180);
             if ((x < s->x_min) || (x > s->x_max) || (y < s->y_min) || (y > s->y_max)) {
                 scan = next_word(scan);
                 continue;
@@ -236,9 +257,12 @@ void plot_constellation_names(chart_config *s, cairo_page *page) {
 
             char *label = replace_at_with_space(name);
 
+            if (s->constellations_capitalise) label = string_capitalise(label);
+
             chart_label_buffer(page, s, s->constellation_label_col, label,
-                               &(label_position) {x, y, 0, 0, 0}, 1,
-                               0, 1, 1.4 * s->label_font_size_scaling,
+                               &(label_position) {x, y, 0, 0, 0, 0, 0},
+                               1, 0, s->constellations_label_shadow,
+                               1.4 * s->label_font_size_scaling,
                                0, 1, 0, -1);
             break;
         }

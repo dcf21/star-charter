@@ -1,7 +1,7 @@
 // stars.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -128,7 +128,7 @@ void tweak_magnitude_limits(chart_config *s) {
 
                     // Work out where star appears on chart
                     double x, y;
-                    plane_project(&x, &y, s, sd.ra, sd.dec, 0);
+                    plane_project(&x, &y, s, sd.ra, sd.dec);
 
                     // Ignore this star if it falls outside the plot area
                     if ((!gsl_finite(x)) || (!gsl_finite(y)) || (x < s->x_min) || (x > s->x_max) || (y < s->y_min) ||
@@ -200,8 +200,9 @@ double get_star_size(const chart_config *s, double mag) {
     // Normalise the star's brightness into a number of <mag_step> intervals fainter than <mag_max>
     double mag2 = (s->mag_max - mag) / s->mag_step;
 
-    // Truncate size of stars at magMax. But this can make very bright stars look much too faint
-    // if ( mag2 > 0) mag2 = 0;
+    // Truncate size of stars at magMax. But this can make very bright stars look much too faint, so only do this if
+    // we're not showing a magnitude scale.
+    if ((!s->magnitude_key) && (mag2 > 0)) mag2 = 0;
 
     // Physical radius of this star on the page, logarithmically scaled as a function of brightness
     mag2 = s->mag_size_norm * 46.6 * pow(s->mag_alpha, mag2);
@@ -262,7 +263,7 @@ void plot_stars(chart_config *s, cairo_page *page) {
 
                     // Work out coordinates of this star on the star chart
                     double x, y;
-                    plane_project(&x, &y, s, sd.ra, sd.dec, 0);
+                    plane_project(&x, &y, s, sd.ra, sd.dec);
 
                     // Ignore this star if it falls outside the plot area
                     if ((!gsl_finite(x)) || (!gsl_finite(y)) ||
@@ -280,20 +281,25 @@ void plot_stars(chart_config *s, cairo_page *page) {
                     const double size = get_star_size(s, sd.mag);
 
                     // Draw a circular splodge on the star chart
+                    const double size_canvas = size * s->dpi;
                     double x_canvas, y_canvas;
                     fetch_canvas_coordinates(&x_canvas, &y_canvas, x, y, s);
                     cairo_set_source_rgb(s->cairo_draw, s->star_col.red, s->star_col.grn, s->star_col.blu);
                     cairo_new_path(s->cairo_draw);
-                    cairo_arc(s->cairo_draw, x_canvas, y_canvas, size * s->dpi, 0, 2 * M_PI);
+                    cairo_arc(s->cairo_draw, x_canvas, y_canvas, size_canvas, 0, 2 * M_PI);
                     cairo_fill(s->cairo_draw);
 
                     // Don't allow text labels to be placed over this star
                     {
-                        double x_exclusion_region, y_exclusion_region;
-                        fetch_graph_coordinates(x_canvas, y_canvas, &x_exclusion_region, &y_exclusion_region, s);
+                        double x_exclusion_0, y_exclusion_0;
+                        double x_exclusion_1, y_exclusion_1;
+                        fetch_graph_coordinates(x_canvas - size_canvas, y_canvas - size_canvas,
+                                                &x_exclusion_0, &y_exclusion_0, s);
+                        fetch_graph_coordinates(x_canvas + size_canvas, y_canvas + size_canvas,
+                                                &x_exclusion_1, &y_exclusion_1, s);
                         chart_add_label_exclusion(page, s,
-                                                  x_exclusion_region, x_exclusion_region,
-                                                  y_exclusion_region, y_exclusion_region);
+                                                  x_exclusion_0, x_exclusion_1,
+                                                  y_exclusion_0, y_exclusion_1);
                     }
 
                     // Consider whether to write a text label nest to this star
@@ -324,7 +330,7 @@ void plot_stars(chart_config *s, cairo_page *page) {
                         const int multiple_labels = (star_label_count > 1) && s->star_allow_multiple_labels;
 
                         // How far should we move this label to the side of the star, to avoid writing text on top of the star?
-                        double horizontal_offset = size * s->dpi + 0.05 * s->cm;
+                        const double horizontal_offset = size * s->dpi + 0.075 * s->cm;
 
                         // Write an English name next to this star
                         if (show_name3) {
@@ -335,8 +341,10 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                 if (temp_err_string[k] == '_') temp_err_string[k] = ' ';
 
                             chart_label_buffer(page, s, s->star_label_col, temp_err_string,
-                                               (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
-                                                                    {x, y, -horizontal_offset, 1,  0}}, 2,
+                                               (label_position[2]) {
+                                                       {x, y, 0, horizontal_offset,  0, -1, 0},
+                                                       {x, y, 0, -horizontal_offset, 0, 1,  0}
+                                               }, 2,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                0, 0, 0, sd.mag);
                             label_counter++;
@@ -346,8 +354,10 @@ void plot_stars(chart_config *s, cairo_page *page) {
                         // Write a Bayer designation next to this star
                         if (show_name1) {
                             chart_label_buffer(page, s, s->star_label_col, sd.name1,
-                                               (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
-                                                                    {x, y, -horizontal_offset, 1,  0}}, 2,
+                                               (label_position[2]) {
+                                                       {x, y, 0, horizontal_offset,  0, -1, 0},
+                                                       {x, y, 0, -horizontal_offset, 0, 1,  0}
+                                               }, 2,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                0, 0, 0, sd.mag);
                             label_counter++;
@@ -357,8 +367,10 @@ void plot_stars(chart_config *s, cairo_page *page) {
                         // Write a Flamsteed number next to this star
                         if (show_name5) {
                             chart_label_buffer(page, s, s->star_label_col, sd.name5,
-                                               (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
-                                                                    {x, y, -horizontal_offset, 1,  0}}, 2,
+                                               (label_position[2]) {
+                                                       {x, y, 0, horizontal_offset,  0, -1, 0},
+                                                       {x, y, 0, -horizontal_offset, 0, 1,  0}
+                                               }, 2,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                0, 0, 0, sd.mag);
                             label_counter++;
@@ -374,8 +386,10 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                 if (temp_err_string[k] == '_') temp_err_string[k] = ' ';
 
                             chart_label_buffer(page, s, s->star_label_col, temp_err_string,
-                                               (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
-                                                                    {x, y, -horizontal_offset, 1,  0}}, 2,
+                                               (label_position[2]) {
+                                                       {x, y, 0, horizontal_offset,  0, -1, 0},
+                                                       {x, y, 0, -horizontal_offset, 0, 1,  0}
+                                               }, 2,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                0, 0, 0, sd.mag);
                             label_counter++;
@@ -388,24 +402,30 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                 // Write a Hipparcos number
                                 snprintf(temp_err_string, FNAME_LENGTH, "HIP%d", sd.hip_num);
                                 chart_label_buffer(page, s, s->star_label_col, temp_err_string,
-                                                   (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
-                                                                        {x, y, -horizontal_offset, 1,  0}}, 2,
+                                                   (label_position[2]) {
+                                                           {x, y, 0, horizontal_offset,  0, -1, 0},
+                                                           {x, y, 0, -horizontal_offset, 0, 1,  0}
+                                                   }, 2,
                                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                    0, 0, 0, sd.mag);
                             } else if ((s->star_catalogue == SW_CAT_YBSC) && (sd.ybsn_num > 0)) {
                                 // Write an HR number (i.e. Yale Bright Star Catalog number)
                                 snprintf(temp_err_string, FNAME_LENGTH, "HR%d", sd.ybsn_num);
                                 chart_label_buffer(page, s, s->star_label_col, temp_err_string,
-                                                   (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
-                                                                        {x, y, -horizontal_offset, 1,  0}}, 2,
+                                                   (label_position[2]) {
+                                                           {x, y, 0, horizontal_offset,  0, -1, 0},
+                                                           {x, y, 0, -horizontal_offset, 0, 1,  0}
+                                                   }, 2,
                                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                    0, 0, 0, sd.mag);
                             } else if ((s->star_catalogue == SW_CAT_HD) && (sd.hd_num > 0)) {
                                 // Write a Henry Draper number
                                 snprintf(temp_err_string, FNAME_LENGTH, "HD%d", sd.hd_num);
                                 chart_label_buffer(page, s, s->star_label_col, temp_err_string,
-                                                   (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
-                                                                        {x, y, -horizontal_offset, 1,  0}}, 2,
+                                                   (label_position[2]) {
+                                                           {x, y, 0, horizontal_offset,  0, -1, 0},
+                                                           {x, y, 0, -horizontal_offset, 0, 1,  0}
+                                                   }, 2,
                                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                    0, 0, 0, sd.mag);
                             }
@@ -417,8 +437,10 @@ void plot_stars(chart_config *s, cairo_page *page) {
                         if (s->star_mag_labels) {
                             snprintf(temp_err_string, FNAME_LENGTH, "mag %.1f", sd.mag);
                             chart_label_buffer(page, s, s->star_label_col, temp_err_string,
-                                               (label_position[2]) {{x, y, horizontal_offset,  -1, 0},
-                                                                    {x, y, -horizontal_offset, 1,  0}}, 2,
+                                               (label_position[2]) {
+                                                       {x, y, 0, horizontal_offset,  0, -1, 0},
+                                                       {x, y, 0, -horizontal_offset, 0, 1,  0}
+                                               }, 2,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                0, 0, 0, sd.mag - 0.000001);
                             label_counter++;

@@ -2,7 +2,7 @@
 # an arbitrary image
 # 
 # -------------------------------------------------
-# Copyright 2015-2022 Dominic Ford
+# Copyright 2015-2024 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -22,8 +22,7 @@
 
 CHART
 output_filename=output/chart_with_background.png
-photo_filename=/etc/alternatives/start-here-256.png
+photo_filename=/usr/share/backgrounds/warty-final-ubuntu.png
 position_angle=74.640
 ra_central=20.6802
 dec_central=54.191
-

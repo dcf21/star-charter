@@ -1,7 +1,7 @@
-// raDecLines.h
+// gridLines.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -29,7 +29,7 @@
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
 
-void plot_ra_dec_lines(chart_config *s, line_drawer *ld);
+void plot_grid_lines(chart_config *s, line_drawer *ld);
 
 #endif
 

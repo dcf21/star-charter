@@ -1,7 +1,7 @@
 // cairo_page.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -21,6 +21,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
 #include <math.h>
 
@@ -90,9 +91,11 @@ void cairo_init(cairo_page *p, chart_config *s) {
     }
 
     // Some useful units of size / width
-    const double png_dpi = 100;
+    const double png_dpi = 200;
     const double vector_dpi = 72;
-    s->dpi = (s->output_format == SW_FORMAT_PNG) ? png_dpi : vector_dpi;  // pixels / inch
+    if (s->dpi <= 0) {
+        s->dpi = (s->output_format == SW_FORMAT_PNG) ? png_dpi : vector_dpi;  // pixels / inch
+    }
     s->pt = s->dpi / 72;  // pixels / pt
     s->cm = 0.393701 * s->dpi;  // pixels / cm
     s->mm = s->cm * 0.1;  // pixels / mm
@@ -103,7 +106,7 @@ void cairo_init(cairo_page *p, chart_config *s) {
     s->canvas_offset_x = 1.6;
     s->canvas_offset_y = have_title ? 1.4 : 0.7;
     s->canvas_width = (s->width + 2 * s->canvas_offset_x) * s->cm;
-    s->canvas_height = (s->width * s->aspect + s->canvas_offset_y + 0.7 + (s->ra_dec_lines ? 0.5 : 0)) * s->cm;
+    s->canvas_height = (s->width * s->aspect + s->canvas_offset_y + 0.7 + (s->show_grid_lines ? 0.5 : 0)) * s->cm;
 
     // Add space to the bounding box for legend items which go beneath the star chart
     double legend_y_pos_left = 0;
@@ -143,6 +146,19 @@ void cairo_init(cairo_page *p, chart_config *s) {
     // Calculate full height of the drawing canvas
     s->canvas_height += gsl_max(legend_y_pos_left, legend_y_pos_right);
     s->legend_right_column_width = legend_right_width;
+
+    // Check that requested output path is writable
+    {
+        FILE *f = fopen(s->output_filename, "wb");
+        if (f == NULL) {
+            char buffer[LSTR_LENGTH];
+            snprintf(buffer, LSTR_LENGTH, "Could not open <%s> for writing.\nError: %d (%s)\n",
+                     s->output_filename, errno, strerror(errno));
+            stch_fatal(__FILE__, __LINE__, buffer);
+            exit(1);
+        }
+        fclose(f);
+    }
 
     // Create cairo drawing surface of the appropriate graphics type
     switch (s->output_format) {
@@ -197,7 +213,7 @@ void cairo_init(cairo_page *p, chart_config *s) {
     // spilling over the edges.
     cairo_save(s->cairo_draw);
 
-    if ((s->projection == SW_PROJECTION_SPH) || (s->projection == SW_PROJECTION_ALTAZ)) {
+    if ((s->projection == SW_PROJECTION_SPHERICAL) || (s->projection == SW_PROJECTION_ALTAZ)) {
         cairo_arc(s->cairo_draw,
                   (s->canvas_offset_x + s->width / 2) * s->cm,
                   (s->canvas_offset_y + s->width / 2 * s->aspect) * s->cm,
@@ -274,7 +290,7 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
     cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
     cairo_set_line_width(s->cairo_draw, s->chart_edge_line_width * s->line_width_base);
     cairo_new_path(s->cairo_draw);
-    if ((s->projection == SW_PROJECTION_SPH) || (s->projection == SW_PROJECTION_ALTAZ)) {
+    if ((s->projection == SW_PROJECTION_SPHERICAL) || (s->projection == SW_PROJECTION_ALTAZ)) {
         // On alt/az charts, the chart has a circular shape
         cairo_arc(s->cairo_draw,
                   (s->canvas_offset_x + s->width / 2) * s->cm,
@@ -289,17 +305,21 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
             const double a = s->position_angle * M_PI / 180;
             const colour black = (colour) {0, 0, 0};
             chart_label(p, s, black, "N",
-                        &(label_position) {-dh * sin(a), -dv * cos(a), 0, 0, -1}, 1,
-                        0, 0, 2.5, 1, 0, 0, -1);
+                        &(label_position)
+                                {-dh * sin(a), -dv * cos(a), 0, 0, 0, 0, -1},
+                        1, 0, 0, 2.5, 1, 0, 0, -1);
             chart_label(p, s, black, "E",
-                        &(label_position) {-dh * sin(a + DEG90), -dv * cos(a + DEG90), 0, 0, -1}, 1,
-                        0, 0, 2.5, 1, 0, 0, -1);
+                        &(label_position)
+                                {-dh * sin(a + DEG90), -dv * cos(a + DEG90), 0, 0, 0, 0, -1},
+                        1, 0, 0, 2.5, 1, 0, 0, -1);
             chart_label(p, s, black, "S",
-                        &(label_position) {-dh * sin(a + DEG180), -dv * cos(a + DEG180), 0, 0, 1}, 1,
-                        0, 0, 2.5, 1, 0, 0, -1);
+                        &(label_position)
+                                {-dh * sin(a + DEG180), -dv * cos(a + DEG180), 0, 0, 0, 0, 1},
+                        1, 0, 0, 2.5, 1, 0, 0, -1);
             chart_label(p, s, black, "W",
-                        &(label_position) {-dh * sin(a + DEG270), -dv * cos(a + DEG270), 0, 0, 1}, 1,
-                        0, 0, 2.5, 1, 0, 0, -1);
+                        &(label_position)
+                                {-dh * sin(a + DEG270), -dv * cos(a + DEG270), 0, 0, 0, 0, 1},
+                        1, 0, 0, 2.5, 1, 0, 0, -1);
         }
 
     } else {
@@ -340,31 +360,28 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
     }
 }
 
-//! fetch_canvas_coordinates - Convert the point (x_in, y_in) in "star chart" coordinates, into physical coordinates
+//! fetch_canvas_coordinates - Convert the point (x_in, y_in) in tangent-plane coordinates, into physical coordinates
 //! on the cairo page.
 //! \param [out] x_out - The physical x coordinate (cairo coordinates)
 //! \param [out] y_out - The physical y coordinate (cairo coordinates)
-//! \param [in] x_in - The star chart x coordinate (star chart angular coordinates)
-//! \param [in] y_in - The star chart y coordinate (star chart angular coordinates)
+//! \param [in] x_in - The star chart x coordinate (tangent plane coordinates; radians)
+//! \param [in] y_in - The star chart y coordinate (tangent plane coordinates; radians)
 //! \param [in] s - Settings for the star chart we are drawing
 
-void fetch_canvas_coordinates(double *x_out, double *y_out, double x_in, double y_in, chart_config *s) {
+void fetch_canvas_coordinates(double *x_out, double *y_out, double x_in, double y_in, const chart_config *s) {
     *x_out = ((x_in - s->x_min) / (s->x_max - s->x_min) * s->width + s->canvas_offset_x) * s->cm;
     *y_out = ((y_in - s->y_min) / (s->y_max - s->y_min) * s->width * s->aspect + s->canvas_offset_y) * s->cm;
 }
 
-//! fetch_graph_coordinates - Convert the point (x_in, y_in) in physical coordinates, into graph coordinates
+//! fetch_graph_coordinates - Convert the point (x_in, y_in) in physical coordinates, into tangent-plane coordinates
 //! on the cairo page.
 //! \param [in] x_in - The physical x coordinate (cairo coordinates)
 //! \param [in] y_in - The physical y coordinate (cairo coordinates)
-//! \param [out] x_out - The star chart x coordinate (star chart angular coordinates)
-//! \param [out] y_out - The star chart y coordinate (star chart angular coordinates)
+//! \param [out] x_out - The star chart x coordinate (tangent plane coordinates; radians)
+//! \param [out] y_out - The star chart y coordinate (tangent plane coordinates; radians)
 //! \param [in] s - Settings for the star chart we are drawing
 
-void fetch_graph_coordinates(double x_in, double y_in, double *x_out, double *y_out, chart_config *s) {
-    *x_out = ((x_in - s->x_min) / (s->x_max - s->x_min) * s->width + s->canvas_offset_x) * s->cm;
-    *y_out = ((y_in - s->y_min) / (s->y_max - s->y_min) * s->width * s->aspect + s->canvas_offset_y) * s->cm;
-
+void fetch_graph_coordinates(double x_in, double y_in, double *x_out, double *y_out, const chart_config *s) {
     *x_out = (x_in / s->cm - s->canvas_offset_x) / s->width * (s->x_max - s->x_min) + s->x_min;
     *y_out = (y_in / s->cm - s->canvas_offset_y) / (s->width * s->aspect) * (s->y_max - s->y_min) + s->y_min;
 }
@@ -543,8 +560,12 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
         label_position pos = possible_positions[position_count];
 
         // Reject this position if it is not finite
-        if ((!gsl_finite(pos.x)) || (!gsl_finite(pos.y)) || (!gsl_finite(pos.offset_size)))
+        if (
+                (!gsl_finite(pos.x)) || (!gsl_finite(pos.y)) || (!gsl_finite(pos.rotation)) ||
+                (!gsl_finite(pos.offset_x)) || (!gsl_finite(pos.offset_y))
+                ) {
             continue;
+        }
 
         // Select font
         cairo_text_extents_t extents;
@@ -556,18 +577,26 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
         // Measure text bounding box
         cairo_text_extents(s->cairo_draw, label, &extents);
 
-        double x_canvas, y_canvas;
-        fetch_canvas_coordinates(&x_canvas, &y_canvas, pos.x, pos.y, s);
+        double x_canvas_pivot, y_canvas_pivot;
+        fetch_canvas_coordinates(&x_canvas_pivot, &y_canvas_pivot, pos.x, pos.y, s);
+
+        // Apply user-requested text offset
+        x_canvas_pivot += pos.offset_x;
+        y_canvas_pivot += pos.offset_y;
+
+        // Work out offset to achieve requested text alignment
+        double x_alignment_offset = 0;
+        double y_alignment_offset = 0;
 
         switch (pos.h_align) {
             case 1:
-                x_canvas -= extents.width + extents.x_bearing; // right align
+                x_alignment_offset -= extents.width + extents.x_bearing; // right align
                 break;
             case 0:
-                x_canvas -= extents.width / 2 + extents.x_bearing; // centre align
+                x_alignment_offset -= extents.width / 2 + extents.x_bearing; // centre align
                 break;
             case -1:
-                x_canvas -= extents.x_bearing; // left align
+                x_alignment_offset -= extents.x_bearing; // left align
                 break;
             default:
                 break;
@@ -575,23 +604,24 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
 
         switch (pos.v_align) {
             case 1:
-                y_canvas -= extents.height + extents.y_bearing; // top align
+                y_alignment_offset -= extents.height + extents.y_bearing; // top align
                 break;
             case 0:
-                y_canvas -= extents.height / 2 + extents.y_bearing; // centre align
+                y_alignment_offset -= extents.height / 2 + extents.y_bearing; // centre align
                 break;
             case -1:
-                y_canvas -= extents.y_bearing; // bottom align
+                y_alignment_offset -= extents.y_bearing; // bottom align
                 break;
             default:
                 break;
         }
 
-        // Apply offset
-        x_canvas += pos.offset_size;
+        // Work out final canvas position, neglecting text rotation
+        const double x_canvas = x_canvas_pivot + x_alignment_offset;
+        const double y_canvas = y_canvas_pivot + y_alignment_offset;
 
         // Calculate approximate bounding box for this label
-        double margin = multiple_labels ? 0.01 : 0.07;
+        const double margin = multiple_labels ? 0.01 : 0.07;
         double x_min, x_max, y_min, y_max;
         fetch_graph_coordinates(x_canvas, y_canvas, &x_min, &y_min, s);
         fetch_graph_coordinates(x_canvas + extents.width, y_canvas - extents.height, &x_max, &y_max, s);
@@ -609,8 +639,8 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
         }
 
         // Work out how much space to allow around this label
-        double x_margin = margin * (x_max - x_min) * (extra_margin + 1.);
-        double y_margin = margin * (y_max - y_min) * 2.3 * (extra_margin + 1.);
+        const double x_margin = margin * (x_max - x_min) * (extra_margin + 1.);
+        const double y_margin = margin * (y_max - y_min) * 2.3 * (extra_margin + 1.);
 
         // Enlarge bounding box by margin
         x_min -= x_margin;
@@ -619,6 +649,7 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
         y_max += y_margin;
 
         // Reject label if it collides with one we've already rendered
+        // We do collision detection without applying rotation, to keep things simple
         if (priority >= 0) {
             // Do not allow label positions which go outside edges of the plot
             if ((x_min < s->x_min) || (x_max > s->x_max) || (y_min < s->y_min) || (y_max > s->y_max)) {
@@ -637,22 +668,32 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
             chart_add_label_exclusion(p, s, x_min, x_max, y_min, y_max);
         }
 
+        // Put label at origin and rotate as requested
+        cairo_save(s->cairo_draw);
+        cairo_translate(s->cairo_draw, x_canvas_pivot, y_canvas_pivot);
+        cairo_rotate(s->cairo_draw, pos.rotation * M_PI / 180);
+
         // If <make_background> is set, we smear the background around the label with a dark colour
         if (make_background && s->plot_galaxy_map) {
-            double theta;
             const double offset = 0.2 * s->mm;
             cairo_set_source_rgb(s->cairo_draw, s->galaxy_col0.red, s->galaxy_col0.grn, s->galaxy_col0.blu);
-            for (theta = 0; theta < 359; theta += 30) {
-                cairo_move_to(s->cairo_draw, x_canvas + offset * sin(theta), y_canvas + offset * cos(theta));
+            for (double theta = 0; theta < 359.; theta += 30.) {
+                cairo_move_to(s->cairo_draw,
+                              x_alignment_offset + offset * sin(theta * M_PI / 180),
+                              y_alignment_offset + offset * cos(theta * M_PI / 180));
                 cairo_show_text(s->cairo_draw, label);
             }
         }
 
         // Render the text label itself
         cairo_set_source_rgb(s->cairo_draw, colour.red, colour.grn, colour.blu);
-        cairo_move_to(s->cairo_draw, x_canvas, y_canvas);
+        cairo_move_to(s->cairo_draw, x_alignment_offset, y_alignment_offset);
         cairo_show_text(s->cairo_draw, label);
 
+        // Undo canvas coordinate transformation
+        cairo_restore(s->cairo_draw);
+
+        // Finished
         return 0;
     }
 
@@ -698,10 +739,10 @@ void chart_ticks_draw(cairo_page *p, chart_config *s, list *labels, char *axis) 
             x_canvas = (s->canvas_offset_x + s->width * (tic_pos - s->x_min) / (s->x_max - s->x_min)) * s->cm;
 
             // Check that this label does not collide with previous labels
-            const double x_min = x_canvas-extents.width / 2;
-            const double x_max = x_canvas+extents.width / 2;
-            const double y_min = y_canvas-extents.height/2;
-            const double y_max = y_canvas+extents.height/2;
+            const double x_min = x_canvas - extents.width / 2;
+            const double x_max = x_canvas + extents.width / 2;
+            const double y_min = y_canvas - extents.height / 2;
+            const double y_max = y_canvas + extents.height / 2;
             if (chart_check_label_exclusion(p, x_min, x_max, y_min, y_max)) continue;
             chart_add_label_exclusion(p, s, x_min, x_max, y_min, y_max);
 
@@ -718,10 +759,10 @@ void chart_ticks_draw(cairo_page *p, chart_config *s, list *labels, char *axis) 
             x_canvas = (s->canvas_offset_x + s->width * (tic_pos - s->x_min) / (s->x_max - s->x_min)) * s->cm;
 
             // Check that this label does not collide with previous labels
-            const double x_min = x_canvas-extents.width / 2;
-            const double x_max = x_canvas+extents.width / 2;
-            const double y_min = y_canvas-extents.height/2;
-            const double y_max = y_canvas+extents.height/2;
+            const double x_min = x_canvas - extents.width / 2;
+            const double x_max = x_canvas + extents.width / 2;
+            const double y_min = y_canvas - extents.height / 2;
+            const double y_max = y_canvas + extents.height / 2;
             if (chart_check_label_exclusion(p, x_min, x_max, y_min, y_max)) continue;
             chart_add_label_exclusion(p, s, x_min, x_max, y_min, y_max);
 
@@ -739,10 +780,10 @@ void chart_ticks_draw(cairo_page *p, chart_config *s, list *labels, char *axis) 
                     (s->canvas_offset_y + s->width * s->aspect * (tic_pos - s->y_min) / (s->y_max - s->y_min)) * s->cm;
 
             // Check that this label does not collide with previous labels
-            const double x_min = x_canvas-extents.width / 2;
-            const double x_max = x_canvas+extents.width / 2;
-            const double y_min = y_canvas-extents.height/2;
-            const double y_max = y_canvas+extents.height/2;
+            const double x_min = x_canvas - extents.width / 2;
+            const double x_max = x_canvas + extents.width / 2;
+            const double y_min = y_canvas - extents.height / 2;
+            const double y_max = y_canvas + extents.height / 2;
             if (chart_check_label_exclusion(p, x_min, x_max, y_min, y_max)) continue;
             chart_add_label_exclusion(p, s, x_min, x_max, y_min, y_max);
 
@@ -760,10 +801,10 @@ void chart_ticks_draw(cairo_page *p, chart_config *s, list *labels, char *axis) 
                     (s->canvas_offset_y + s->width * s->aspect * (tic_pos - s->y_min) / (s->y_max - s->y_min)) * s->cm;
 
             // Check that this label does not collide with previous labels
-            const double x_min = x_canvas-extents.width / 2;
-            const double x_max = x_canvas+extents.width / 2;
-            const double y_min = y_canvas-extents.height/2;
-            const double y_max = y_canvas+extents.height/2;
+            const double x_min = x_canvas - extents.width / 2;
+            const double x_max = x_canvas + extents.width / 2;
+            const double y_min = y_canvas - extents.height / 2;
+            const double y_max = y_canvas + extents.height / 2;
             if (chart_check_label_exclusion(p, x_min, x_max, y_min, y_max)) continue;
             chart_add_label_exclusion(p, s, x_min, x_max, y_min, y_max);
 
@@ -797,7 +838,7 @@ int chart_finish(cairo_page *p, chart_config *s) {
     cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
     cairo_move_to(s->cairo_draw,
                   (s->canvas_offset_x * 0.5) * s->cm,
-                  (s->canvas_offset_y + 0.7 + (s->ra_dec_lines ? 0.5 : 0) +
+                  (s->canvas_offset_y + 0.7 + (s->show_grid_lines ? 0.5 : 0) +
                    +s->width * s->aspect
                    + s->copyright_gap - 0.2
                    + s->copyright_gap_2) * s->cm);

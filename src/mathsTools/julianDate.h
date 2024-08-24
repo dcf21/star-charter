@@ -1,7 +1,7 @@
 // julianDate.h
 //
 // -------------------------------------------------
-// Copyright 2015-2022 Dominic Ford
+// Copyright 2015-2024 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -35,5 +35,28 @@ double julian_day(int year, int month, int day, int hour, int min, int sec, int 
 void inv_julian_day(double jd, int *year, int *month, int *day, int *hour, int *min, double *sec, int *status,
                     char *err_text);
 
-#endif
+double sidereal_time(double utc);
 
+double unix_from_jd(double jd);
+
+double jd_from_unix(double utc);
+
+void ra_dec_from_j2000(double ra_j2000_in, double dec_j2000_in, double jd_new,
+                       double *ra_epoch_out, double *dec_epoch_out);
+
+void ra_dec_to_j2000(double ra_epoch_in, double dec_epoch_in, double jd_old,
+                     double *ra_j2000_out, double *dec_j2000_out);
+
+void ra_dec_switch_epoch(double ra_epoch_in, double dec_epoch_in, double jd_epoch_in,
+                         double jd_epoch_out, double *ra_epoch_out, double *dec_epoch_out);
+
+void ra_dec_j2000_from_b1950(double ra_b1950_in, double dec_b1950_in, double *ra_j2000_out, double *dec_j2000_out);
+
+void ra_dec_b1950_from_j2000(double ra_j2000_in, double dec_j2000_in, double *ra_b1950_out, double *dec_b1950_out);
+
+void get_zenith_position(double latitude, double longitude, double julian_date,
+                         double *ra_at_epoch_out, double *dec_at_epoch_out);
+
+void sun_pos(double julian_date, double *ra_j2000_out, double *dec_j2000_out);
+
+#endif
