@@ -30,7 +30,7 @@ import os
 import sys
 import logging
 
-from typing import Dict, List
+from typing import Dict, List, Union
 
 
 def fetch_file(web_address: str, destination: str, force_refresh: bool = False) -> bool:
@@ -124,7 +124,7 @@ def fetch_required_files(refresh: bool) -> None:
         None
     """
     # List of the files we require
-    required_files: List[Dict[str, str | bool]] = [
+    required_files: List[Dict[str, Union[str, bool]]] = [
         # Definitions of constellation boundaries
 #       {
 #           'url': 'https://cdsarc.u-strasbg.fr/ftp/VI/49/bound_20.dat.gz',

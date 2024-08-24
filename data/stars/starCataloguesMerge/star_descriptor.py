@@ -27,7 +27,7 @@ A data structure for storing data about stars
 import logging
 
 from math import hypot, pi, cos
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 
 # Memory efficient data structure used for storing data about stars
@@ -154,14 +154,14 @@ class StarDescriptor:
             self.names_catalogue_ref = []
         self.names_catalogue_ref.append(new_name)
 
-    def magnitude_dictionary(self) -> Dict[str, Dict[str, float | Optional[str]]]:
+    def magnitude_dictionary(self) -> Dict[str, Dict[str, Union[float, Optional[str]]]]:
         """
         Return a dictionary of all available magnitudes for this star.
 
         :return:
             dict
         """
-        output: Dict[str, Dict[str, float | Optional[str]]] = {}
+        output: Dict[str, Dict[str, Union[float, Optional[str]]]] = {}
         if self.mag_V is not None:
             output['V'] = {'value': self.mag_V, 'source': self.mag_V_source}
         if self.mag_BT is not None:
