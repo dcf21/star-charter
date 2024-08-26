@@ -350,9 +350,6 @@ typedef struct chart_config {
     //! The maximum number of DSOs which may be labelled
     int maximum_dso_label_count;
 
-    //! Boolean flag which we set false if the user manually sets a desired <mag_min> value.
-    int mag_min_automatic;
-
     //! The faintest magnitude of star which we draw
     double mag_min;
 
@@ -598,6 +595,24 @@ typedef struct chart_config {
 
     //! Line width to use for the edge of the star chart
     double chart_edge_line_width;
+
+    //! Boolean flags indicating which settings have been manually overridden
+    //! (so that automatic scaling does not overwrite them).
+    int mag_min_is_set;
+    int dso_mag_min_is_set;
+    int minimum_star_count_is_set;
+    int ra0_is_set;
+    int dec0_is_set;
+    int star_flamsteed_labels_is_set;
+    int star_bayer_labels_is_set;
+    int constellation_names_is_set;
+    int star_catalogue_is_set;
+    int star_catalogue_numbers_is_set;
+    int maximum_star_label_count_is_set;
+    int projection_is_set;
+    int angular_width_is_set;
+    int dso_names_is_set;
+    int aspect_is_set;
 
     // ---------------
     // Calculated data

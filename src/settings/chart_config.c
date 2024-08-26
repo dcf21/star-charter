@@ -139,11 +139,10 @@ void default_config(chart_config *i) {
     i->ephemeris_table = 0;
     i->must_show_all_ephemeris_labels = 0;
     i->mag_min = 6.0;
-    i->mag_min_automatic = 1;
     i->mag_max = 0.0;
     i->mag_step = 0.5;
     i->mag_alpha = 1.1727932;
-    i->mag_size_norm = 0.4;
+    i->mag_size_norm = 1.0;
     i->maximum_star_count = 1693;
     i->minimum_star_count = 0;
     i->maximum_star_label_count = 1000;
@@ -212,6 +211,23 @@ void default_config(chart_config *i) {
     i->constellations_label_shadow = 1;
     i->constellation_sticks_line_width = 1.4;
     i->chart_edge_line_width = 2.5;
+
+    // Boolean flags indicating which settings have been manually overridden
+    i->mag_min_is_set = 0;
+    i->dso_mag_min_is_set = 0;
+    i->minimum_star_count_is_set = 0;  // not exposed
+    i->ra0_is_set = 0;
+    i->dec0_is_set = 0;
+    i->star_flamsteed_labels_is_set = 0;
+    i->star_bayer_labels_is_set = 0;
+    i->constellation_names_is_set = 0;
+    i->star_catalogue_is_set = 0;
+    i->star_catalogue_numbers_is_set = 0;
+    i->maximum_star_label_count_is_set = 0;
+    i->projection_is_set = 0;
+    i->angular_width_is_set = 0;
+    i->dso_names_is_set = 0;
+    i->aspect_is_set = 0;
 
     // Pointers default to NULL
     i->ephemeris_data = NULL;

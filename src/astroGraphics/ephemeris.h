@@ -35,6 +35,8 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, int ephemeris_count,
 
 void ephemerides_free(chart_config *s);
 
+void ephemerides_autoscale_show_config(chart_config *s);
+
 void ephemerides_autoscale_plot(chart_config *s, int total_ephemeris_points);
 
 void ephemerides_add_manual_text_labels(chart_config *s);

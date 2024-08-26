@@ -227,7 +227,7 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, int ephemeris_count,
 
 
 //! ephemerides_free - Free memory allocated to store ephemeride data for solar system objects
-//! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param [in|out] s - A <chart_config> structure defining the properties of the star chart to be drawn.
 
 void ephemerides_free(chart_config *s) {
     int i;
@@ -239,8 +239,93 @@ void ephemerides_free(chart_config *s) {
     free(s->ephemeris_data);
 }
 
+//! ephemerides_autoscale_show_config - Display the configuration settings chosen by the autoscaling logic
+//! \param [in] s  - A <chart_config> structure defining the properties of the star chart to be drawn.
+
+void ephemerides_autoscale_show_config(chart_config *s) {
+    char projection[FNAME_LENGTH], star_catalogue[FNAME_LENGTH];
+    char buffer[LSTR_LENGTH];
+
+    // Render name of projection to a string
+    switch (s->projection) {
+        case SW_PROJECTION_ALTAZ:
+            strcpy(projection, "alt_az");
+            break;
+        case SW_PROJECTION_FLAT:
+            strcpy(projection, "flat");
+            break;
+        case SW_PROJECTION_GNOMONIC:
+            strcpy(projection, "gnomonic");
+            break;
+        case SW_PROJECTION_PETERS:
+            strcpy(projection, "peters");
+            break;
+        case SW_PROJECTION_SPHERICAL:
+            strcpy(projection, "sphere");
+            break;
+        case SW_PROJECTION_STEREOGRAPHIC:
+            strcpy(projection, "stereographic");
+            break;
+        default:
+            strcpy(projection, "????");
+            break;
+    }
+
+    // Render the name of the star catalogue to use to a string
+    switch (s->star_catalogue) {
+        case SW_CAT_HIP:
+            strcpy(star_catalogue, "hipparcos");
+            break;
+        case SW_CAT_YBSC:
+            strcpy(star_catalogue, "ybsc");
+            break;
+        case SW_CAT_HD:
+            strcpy(star_catalogue, "hd");
+            break;
+        default:
+            strcpy(star_catalogue, "????");
+            break;
+    }
+
+    snprintf(buffer, LSTR_LENGTH, "\n\
+# Parameters set by <ephemerides_autoscale_plot>\n\
+projection=%s  # %s\n\
+ra_central=%.6f  # %s\n\
+dec_central=%.6f  # %s\n\
+angular_width=%.6f  # %s\n\
+aspect=%.6f  # %s\n\
+mag_min=%.6f  # %s\n\
+dso_mag_min=%.6f  # %s\n\
+dso_names=%d  # %s\n\
+minimum_star_count=%d  # %s\n\
+star_catalogue=%s  # %s\n\
+star_flamsteed_labels=%d  # %s\n\
+star_bayer_labels=%d  # %s\n\
+constellation_names=%d  # %s\n\
+star_catalogue_numbers=%d  # %s\n\
+maximum_star_label_count=%d  # %s\n\
+",
+             projection, (s->projection_is_set) ? "Manually set" : "Automatic",
+             s->ra0, (s->ra0_is_set) ? "Manually set" : "Automatic",
+             s->dec0, (s->dec0_is_set) ? "Manually set" : "Automatic",
+             s->angular_width, (s->angular_width_is_set) ? "Manually set" : "Automatic",
+             s->aspect, (s->aspect_is_set) ? "Manually set" : "Automatic",
+             s->mag_min, (s->mag_min_is_set) ? "Manually set" : "Automatic",
+             s->dso_mag_min, (s->dso_mag_min_is_set) ? "Manually set" : "Automatic",
+             s->dso_names, (s->dso_names_is_set) ? "Manually set" : "Automatic",
+             s->minimum_star_count, (s->minimum_star_count_is_set) ? "Manually set" : "Automatic",
+             star_catalogue, (s->star_catalogue_is_set) ? "Manually set" : "Automatic",
+             s->star_flamsteed_labels, (s->star_flamsteed_labels_is_set) ? "Manually set" : "Automatic",
+             s->star_bayer_labels, (s->star_bayer_labels_is_set) ? "Manually set" : "Automatic",
+             s->constellation_names, (s->constellation_names_is_set) ? "Manually set" : "Automatic",
+             s->star_catalogue_numbers, (s->star_catalogue_numbers_is_set) ? "Manually set" : "Automatic",
+             s->maximum_star_label_count, (s->maximum_star_label_count_is_set) ? "Manually set" : "Automatic"
+    );
+    stch_log(buffer);
+}
+
 //! ephemerides_autoscale_plot - Automatically scale plot to contain all of the computed ephemeris tracks
-//! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param [in|out] s - A <chart_config> structure defining the properties of the star chart to be drawn.
 
 void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_points) {
     int i, j, k;
@@ -308,6 +393,7 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     while (!ra_usage[ra_bin_min]) {
         // If we reach the centroid of the chart, something has gone wrong
         if (ra_bin_min == ra_centre_bin) {
+            stch_error("Plot autoscaling failure: could not determine minimum RA for plot.");
             s->ephemeris_autoscale = 0;
             break;
         }
@@ -319,6 +405,7 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     while (!ra_usage[ra_bin_max]) {
         // If we reach the centroid of the chart, something has gone wrong
         if (ra_bin_max == ra_centre_bin) {
+            stch_error("Plot autoscaling failure: could not determine maximum RA for plot.");
             s->ephemeris_autoscale = 0;
             break;
         }
@@ -330,6 +417,7 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     while (!dec_usage[dec_bin_min]) {
         // If we reach the centroid of the chart, something has gone wrong
         if (dec_bin_min == dec_bins - 1) {
+            stch_error("Plot autoscaling failure: could not determine minimum declination for plot.");
             s->ephemeris_autoscale = 0;
             break;
         }
@@ -341,6 +429,7 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     while (!dec_usage[dec_bin_max]) {
         // If we reach the centroid of the chart, something has gone wrong
         if (dec_bin_max == 0) {
+            stch_error("Plot autoscaling failure: could not determine maximum declination for plot.");
             s->ephemeris_autoscale = 0;
             break;
         }
@@ -380,84 +469,99 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     // If plot is auto-scaling, set coordinates for the centre and the angular extent
     if (s->ephemeris_autoscale) {
         // Set magnitude limits
-        if (s->mag_min_automatic) {
-            for (i = 0; i < s->ephemeris_final_count; i++) {
-                // Show stars two magnitudes fainter than target
-                const double magnitude_margin = 2;
+        for (i = 0; i < s->ephemeris_final_count; i++) {
+            // Show stars two magnitudes fainter than target
+            const double magnitude_margin = 2;
 
-                // Limiting magnitude for stars
+            // Limiting magnitude for stars
+            if (!s->mag_min_is_set) {
                 s->mag_min = gsl_max(
                         s->mag_min,
-                        ceil((s->ephemeris_data[i].brightest_magnitude + magnitude_margin) / s->mag_step) * s->mag_step
+                        ceil((s->ephemeris_data[i].brightest_magnitude + magnitude_margin) / s->mag_step) *
+                        s->mag_step
                 );
-
-                // Limiting magnitude for deep sky objects
-                s->dso_mag_min = gsl_max(4, s->mag_min + 1);
             }
 
-            // If we have very few stars, then extend magnitude limit to fainter stars
+            // Limiting magnitude for deep sky objects
+            if (!s->dso_mag_min_is_set) {
+                s->dso_mag_min = gsl_max(4, s->mag_min + 1);
+            }
+        }
+
+        // If we have very few stars, then extend magnitude limit to fainter stars
+        if (!s->minimum_star_count_is_set) {
             s->minimum_star_count = s->maximum_star_count / 8;
         }
 
         // The coordinates of the centre of the star chart
-        s->ra0 = (ra_min + ra_max) / 2;
-        s->dec0 = (dec_min + dec_max) / 2;
+        if ((!s->ra0_is_set) && (!s->dec0_is_set)) {
+            s->ra0 = (ra_min + ra_max) / 2;
+            s->dec0 = (dec_min + dec_max) / 2;
 
-        // Make sure that RA is within range
-        while (s->ra0 < 0) s->ra0 += 24;
-        while (s->ra0 >= 24) s->ra0 -= 24;
+            // Make sure that RA is within range
+            while (s->ra0 < 0) s->ra0 += 24;
+            while (s->ra0 >= 24) s->ra0 -= 24;
+        }
 
         // Decide what labels to show, based on how wide the area of sky we're showing
-        s->star_flamsteed_labels = (int) (angular_width_base < 30);
-        s->star_bayer_labels = (int) (angular_width_base < 70);
-        s->constellation_names = 1;
+        if (!s->star_flamsteed_labels_is_set) s->star_flamsteed_labels = (int) (angular_width_base < 30);
+        if (!s->star_bayer_labels_is_set) s->star_bayer_labels = (int) (angular_width_base < 70);
+        if (!s->constellation_names_is_set) s->constellation_names = 1;
 
         if (angular_width_base < 8) {
-            s->star_catalogue = SW_CAT_HIP;
-            s->star_catalogue_numbers = 1;
-            s->maximum_star_label_count = 20;
+            if (!s->star_catalogue_is_set) s->star_catalogue = SW_CAT_HIP;
+            if (!s->star_catalogue_numbers_is_set) s->star_catalogue_numbers = 1;
+            if (!s->maximum_star_label_count_is_set) s->maximum_star_label_count = 20;
         }
 
         // Set an appropriate projection
         if (angular_width_base > 110) {
             // Charts wider than 110 degrees should use a rectangular projection, not a gnomonic projection
-            s->projection = SW_PROJECTION_FLAT;
-            s->angular_width = angular_width_base;
+            if (!s->projection_is_set) s->projection = SW_PROJECTION_FLAT;
+            if (!s->angular_width_is_set) s->angular_width = angular_width_base;
 
-            // Plots which cover the whole sky need to be really big...
+            // Plots which cover the whole sky need to be huge...
             s->width *= 1.6;
             s->font_size *= 0.95;
-            s->mag_min = gsl_min(s->mag_min, 6);
-            s->maximum_star_label_count = 25;
-            s->dso_names = 0;
+            if (!s->mag_min_is_set) s->mag_min = gsl_min(s->mag_min, 6);
+            if (!s->maximum_star_label_count_is_set) s->maximum_star_label_count = 25;
+            if (!s->dso_names_is_set) s->dso_names = 0;
 
             // Normally use an aspect ratio of 0.5, but if RA span is large and Dec span small, go wide and thin
-            s->aspect = gsl_min(0.5, fabs(dec_max - dec_min) / (fabs(ra_max - ra_min) * 180 / 12) * 1.8);
+            if (!s->aspect_is_set) {
+                s->aspect = gsl_min(0.5, fabs(dec_max - dec_min) / (fabs(ra_max - ra_min) * 180 / 12) * 1.8);
+            }
 
             // Deal with tall narrow finder charts
             if (fabs(dec_max - dec_min) / (fabs(ra_max - ra_min) * 180 / 12) > 0.5) {
-                s->aspect = 1;
+                if (!s->aspect_is_set) s->aspect = 1;
                 s->width *= 0.7;
             }
 
             // Make sure that plot does not go outside the declination range -90 to 90
-            double ang_height = angular_width_base * s->aspect;
-            s->dec0 = gsl_max(s->dec0, -89 + ang_height / 2);
-            s->dec0 = gsl_min(s->dec0, 89 - ang_height / 2);
+            if (!s->dec0_is_set) {
+                double ang_height = angular_width_base * s->aspect;
+                s->dec0 = gsl_max(s->dec0, -89 + ang_height / 2);
+                s->dec0 = gsl_min(s->dec0, 89 - ang_height / 2);
+            }
 
         } else {
             // Charts which cover less than 110 degrees should use a stereographic projection
-            s->projection = SW_PROJECTION_STEREOGRAPHIC;
+            if (!s->projection_is_set) s->projection = SW_PROJECTION_STEREOGRAPHIC;
 
             // Pick an attractive aspect ratio for this chart
-            s->aspect = ceil(fabs(dec_max - dec_min) / (fabs(ra_max - ra_min) * 180 / 12) * 10.) / 10.;
-            if (s->aspect < 0.6) s->aspect = 0.6;
-            if (s->aspect > 1.5) s->aspect = 1.5;
+            if (!s->aspect_is_set) {
+                s->aspect = ceil(fabs(dec_max - dec_min) / (fabs(ra_max - ra_min) * 180 / 12) * 10.) / 10.;
+                if (s->aspect < 0.6) s->aspect = 0.6;
+                if (s->aspect > 1.5) s->aspect = 1.5;
+            }
 
             // Fix angular width to take account of the aspect ratio of the plotting area
-            double angular_width = gsl_max((ra_max - ra_min) * 180 / 12, (dec_max - dec_min) / s->aspect) * 1.1;
-            if (angular_width > 350) angular_width = 360;
-            s->angular_width = angular_width;
+            if (!s->angular_width_is_set) {
+                double angular_width = gsl_max((ra_max - ra_min) * 180 / 12, (dec_max - dec_min) / s->aspect) * 1.1;
+                if (angular_width > 350) angular_width = 360;
+                s->angular_width = angular_width;
+            }
         }
     }
 
@@ -466,6 +570,11 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     free(dec_list);
     free(ra_usage);
     free(dec_usage);
+
+    // If debugging, then display the configuration settings we chose
+    if (DEBUG) {
+        ephemerides_autoscale_show_config(s);
+    }
 }
 
 //! ephemerides_add_manual_text_labels - Add text labels at manually-specified points along the ephemeris tracks

@@ -113,6 +113,12 @@ int main(int argc, char **argv) {
     if (DEBUG) stch_log("Setting up default star chart parameters.");
     default_config(&chart_defaults);
 
+    if (DEBUG) {
+        char buffer[FNAME_LENGTH];
+        snprintf(buffer, FNAME_LENGTH, "Size of configuration data structure: %ld bytes", sizeof(chart_config));
+        stch_log(buffer);
+    }
+
     // Open and read the input configuration file
     read_configuration_file(have_filename ? filename : NULL, 0,
                             &got_chart, &chart_defaults,
