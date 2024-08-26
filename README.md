@@ -83,6 +83,17 @@ star charts.
 The total download size will be around 500 MB, and it will take around 10-15
 minutes to process the downloaded files.
 
+Note that once you have built `StarCharter`, you must not change its location
+within your file system.  During the build process, the absolute path to the
+downloaded data files is stored, and the code will be unable to find these data
+files if their path changes. If you move the code, you must fully rebuild the
+code:
+
+```
+make clean
+./setup.sh
+```
+
 ### Docker container
 
 If you would rather run `StarCharter` within a Docker container, then a
@@ -92,7 +103,7 @@ to make the build process as simple as possible. Additionally, a `docker
 compose` script is provided, which automatically build a selection of example
 star charts.
 
-To build the `StarCharter` container (this takes 20 minutes):
+To build the `StarCharter` container (this takes 15 minutes):
 
 ```
 docker compose build
@@ -359,8 +370,17 @@ celestial coordinates for the centre of the star chart, and the specified
 angular width, and scales the star chart to automatically show the requested
 ephemerides.
 
+## Change history
+
+**Version 6.0** (26 Aug 2024) - Removed external dependency on [ephemerisCompute](https://github.com/dcf21/ephemeris-compute-de430) to show the positions of solar system objects. This can now be done natively by `StarCharter`.
+
+**Version 5.0** (24 Aug 2024) - Added a huge array of new configuration options. The default projection has been changed to `stereographic`, which can display fields of view as wide as 360 degrees. A new option for the setting `coords` - `alt_az` - allows the local sky to be drawn for a particular location.
+
+**Version 4.0** (16 Oct 2022) - Bugfix release.
+
+**Version 3.0** (14 Dec 2021) - Initial public release.
+
 ## Author
 
 This code was developed by Dominic Ford <https://dcford.org.uk>. It is
 distributed under the Gnu General Public License V3.
-
