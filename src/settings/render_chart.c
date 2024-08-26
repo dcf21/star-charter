@@ -62,8 +62,7 @@ void render_chart(chart_config *s) {
     // If we're plotting ephemerides for solar system objects, fetch the data now
     // We do this first, as auto-scaling plots use this data to determine which sky area to show
     const int total_ephemeris_points = ephemerides_fetch(
-            &s->ephemeris_data, s->ephemeris_final_count, &s->ephemeris_definitions,
-            s->ephemeris_compute_path);
+            &s->ephemeris_data, s->ephemeris_final_count, &s->ephemeris_definitions);
 
     // Automatically scale plot to contain all the computed ephemeris tracks
     ephemerides_autoscale_plot(s, total_ephemeris_points);
@@ -80,7 +79,7 @@ void render_chart(chart_config *s) {
         solar_system_write_ephemeris_definitions(&s->solar_system_ids, s->julian_date, s->solar_system_final_count,
                                                  &s->solar_system_ephemeris_definitions);
         ephemerides_fetch(&s->solar_system_ephemeris_data, s->solar_system_final_count,
-                          &s->solar_system_ephemeris_definitions, s->ephemeris_compute_path);
+                          &s->solar_system_ephemeris_definitions);
     }
 
     // Check star chart configuration, and insert any computed quantities

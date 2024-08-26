@@ -225,24 +225,26 @@ The following settings can be included in a `StarCharter` configuration file:
 * `dec_central` - The declination of the centre of the plot; degrees. This setting is only used if `coords=ra_dec`.
 * `draw_ephemeris` - Definitions of ephemerides to draw. Each definition should take the form of: `<bodyId>,<jdMin>,<jdMax>` (see above). To draw multiple ephemeride, specify this setting multiple times within your configuration file.
 * `dso_cluster_col` - Colour to use when drawing star clusters
+* `dso_display_style` - Select which style to use for deep sky objects. Set to either `coloured` or `fuzzy`. Default is `coloured`.
 * `dso_galaxy_col` - Colour to use when drawing galaxies
 * `dso_label_col` - Colour to use when writing the labels for deep sky objects
 * `dso_label_mag_min` - Do not label stars fainter than this magnitude limit (default: unlimited)
-* `dso_mag_min` - Only show NGC objects down to this faintest magnitude
-* `dso_mags` - Boolean (0 or 1) indicating whether we label the magnitudes of NGC objects
-* `dso_names` - Boolean (0 or 1) indicating whether we label the names of NGC objects
+* `dso_mag_min` - Only show deep-sky objects down to this faintest magnitude
+* `dso_mags` - Boolean (0 or 1) indicating whether we label the magnitudes of deep-sky objects
+* `dso_names` - Boolean (0 or 1) indicating whether we label the names of deep-sky objects
 * `dso_nebula_col` - Colour to use when drawing nebulae
-* `dso_outline_col` - Colour to use when drawing the outline of deep sky objects
-* `dso_point_size_scaling` - Size scaling of deep sky object symbols. Default 1.
-* `dso_symbol_key` - Boolean (0 or 1) indicating whether we include a key to the symbols used to represent deep sky objects
+* `dso_outline_col` - Colour to use when drawing the outline of deep-sky objects
+* `dso_point_size_scaling` - Size scaling of deep-sky object symbols. Default 1.
+* `dso_symbol_key` - Boolean (0 or 1) indicating whether we include a key to the symbols used to represent deep-sky objects
 * `ecliptic_col` - Colour to use when drawing a line along the ecliptic
-* `ephemeris_autoscale` - Boolean (0 or 1) indicating whether to auto-scale the star chart to contain the requested ephemerides. This overrides settings for ra_central, dec_central and angular_width.
+* `ephemeris_arrow_col` - Colours to use when drawing ephemeris arrows drawn when `ephemeris_style` = `side_by_side_with_arrow`. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
+* `ephemeris_arrow_shadow` - Boolean (0 or 1) indicating whether the ephemeris arrows drawn when `ephemeris_style` = `side_by_side_with_arrow` should have a shadow to make them more visible.
+* `ephemeris_autoscale` - Boolean (0 or 1) indicating whether to auto-scale the star chart to contain the requested ephemerides. This overrides settings for `ra_central`, `dec_central`, `angular_width`, as well as other parameters. Run the code in debugging mode to see a list of the values assigned to all these automatically-set parameters.
 * `ephemeris_col` - Colours to use when drawing ephemerides for solar system objects. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
-* `ephemeris_compute_path` - The path to the tool `ephemerisCompute`, used to compute paths for solar system objects. See <https://github.com/dcf21/ephemeris-compute-de430>. If this tool is installed in the same directory as StarCharter, the default value should be <../ephemerisCompute/bin/ephem.bin>.
 * `ephemeris_epochs` - List of JD time epochs for which we should create points along each solar system ephemeris. If empty, then points are created automatically. This list must have the same length as <ephemeris_epoch_labels>. To draw multiple epochs, specify this setting multiple times within your configuration file.
 * `ephemeris_epoch_labels` - List of text labels for the points we create along each solar system ephemeris. If empty, then points are created automatically. This list must have the same length as <ephemeris_epochs>. To draw multiple epochs, specify this setting multiple times within your configuration file.
 * `ephemeris_label_col` - Colours to use when labelling ephemerides for solar system objects. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
-* `ephemeris_style` - Select the style to use when showing the tracks of solar system objects. Set to `track`, `side_by_side` or `side_by_side_with_track`.
+* `ephemeris_style` - Select the style to use when showing the tracks of solar system objects. Set to `track`, `side_by_side`, `side_by_side_with_track` or `side_by_side_with_arrow`.
 * `equator_col` - Colour to use when drawing a line along the equator
 * `font_family` - The font family to use when rendering all text labels.
 * `font_size` - A normalisation factor to apply to the font size of all text (default 1.0)
@@ -278,11 +280,11 @@ The following settings can be included in a `StarCharter` configuration file:
 * `magnitude_key` - Boolean (0 or 1) indicating whether to draw a key to the magnitudes of stars under the star chart
 * `mag_size_norm` - The radius of a star of magnitude `mag_max` (default 1.0)
 * `mag_step` - The magnitude interval between the samples shown on the magnitude key under the chart
-* `maximum_dso_count` - The maximum number of deep sky objects to draw. If this is exceeded, only the brightest objects are shown.
-* `maximum_dso_label_count` - The maximum number of deep sky objects which may be labelled
+* `maximum_dso_count` - The maximum number of deep-sky objects to draw. If this is exceeded, only the brightest objects are shown.
+* `maximum_dso_label_count` - The maximum number of deep-sky objects which may be labelled
 * `maximum_star_count` - The maximum number of stars to draw. If this is exceeded, only the brightest stars are shown.
 * `maximum_star_label_count` - The maximum number of stars which may be labelled
-* `messier_only` - Boolean (0 or 1) indicating whether we plot only Messier objects, and no other deep sky objects
+* `messier_only` - Boolean (0 or 1) indicating whether we plot only Messier objects, and no other deep-sky objects
 * `meteor_radiant` - Specify that the radiant of a meteor shower should be marked. This should be set to a string of the form `<shower_label>,<ra_radiant/deg>,<dec_radiant/deg>`. To mark multiple shower radiants, supply this setting multiple times.
 * `meteor_radiant_marker_size` - Scaling factor to apply to the size of the markers at the radiants of meteor showers. Default 1.
 * `meteor_radiant_colour` - Colour to use for the markers at the radiants of meteor showers.

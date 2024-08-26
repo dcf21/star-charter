@@ -30,6 +30,7 @@ angular_width=180.0
 width=28.0
 aspect=0.7
 projection=stereographic
+dso_mag_min=7
 horizon_latitude=52
 horizon_longitude=0
 horizon_cardinal_points_marker_col=0,0,0

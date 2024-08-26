@@ -241,7 +241,7 @@ void plot_background_image(chart_config *s) {
 
     // Read the pixel dimensions of the image we are to paint
     const int width = cairo_image_surface_get_width(surface);
-    const int height = cairo_image_surface_get_width(surface);
+    const int height = cairo_image_surface_get_height(surface);
 
     // We need to do some coordinate transformations in order to display the image at the right scale...
     cairo_save(s->cairo_draw);

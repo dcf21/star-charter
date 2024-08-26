@@ -71,10 +71,11 @@ ra_central=8.5
 dec_central=10
 angular_width=140
 aspect=0.4
-mag_size_norm=0.3
+mag_size_norm=0.75
 mag_min=4.9
 output_filename=output/demo_chart_2023_mars.png
 ephemeris_col=1,0.7,0.6  # Mars
+ephemeris_arrow_col=1,0.7,0.6  # Mars
 solar_system_col=1,0.7,0.6  # Mars
 
 # Remaining ephemerides extend to the end of 2023
@@ -101,10 +102,11 @@ ra_central=1.5
 dec_central=5
 angular_width=60
 aspect=0.4
-mag_size_norm=0.2
+mag_size_norm=0.5
 mag_min=6.8
 output_filename=output/demo_chart_2023_jupiter.png
 ephemeris_col=1,0.7,1  # Jupiter
+ephemeris_arrow_col=1,0.7,1  # Jupiter
 solar_system_col=1,0.7,1  # Jupiter
 
 # Chart for Saturn
@@ -117,9 +119,10 @@ dec_central=-12
 angular_width=20
 aspect=0.75
 mag_min=7.6
-mag_size_norm=0.3
+mag_size_norm=0.75
 output_filename=output/demo_chart_2023_saturn.png
 ephemeris_col=1,1,0.6  # Saturn
+ephemeris_arrow_col=1,1,0.6  # Saturn
 solar_system_col=1,1,0.6  # Saturn
 
 # Chart for Uranus
@@ -132,9 +135,10 @@ dec_central=17
 angular_width=10
 aspect=0.8
 mag_min=9.0
-mag_size_norm=0.2
+mag_size_norm=0.5
 output_filename=output/demo_chart_2023_uranus.png
 ephemeris_col=0.9,0.9,1
+ephemeris_arrow_col=0.9,0.9,1
 solar_system_col=0.9,0.9,1
 
 # Chart for Neptune
@@ -147,8 +151,9 @@ dec_central=-3
 angular_width=8.5
 aspect=0.8
 mag_min=9.4
-mag_size_norm=0.3
+mag_size_norm=0.75
 star_flamsteed_labels=1
 output_filename=output/demo_chart_2023_neptune.png
 ephemeris_col=0.9,0.9,1
+ephemeris_arrow_col=0.9,0.9,1
 solar_system_col=0.9,0.9,1

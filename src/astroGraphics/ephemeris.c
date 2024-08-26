@@ -113,8 +113,7 @@ int convert_body_name_to_int_id(const char *object_name) {
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 
 int ephemerides_fetch(ephemeris **ephemeris_data_out, int ephemeris_count,
-                      const char (*ephemeris_definitions)[N_TRACES_MAX][FNAME_LENGTH],
-                      const char *ephemeris_compute_path) {
+                      const char (*ephemeris_definitions)[N_TRACES_MAX][FNAME_LENGTH]) {
     int total_ephemeris_points = 0;
 
     // Allocate storage for the ephemeris of each solar system object
@@ -393,7 +392,9 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     while (!ra_usage[ra_bin_min]) {
         // If we reach the centroid of the chart, something has gone wrong
         if (ra_bin_min == ra_centre_bin) {
-            stch_error("Plot autoscaling failure: could not determine minimum RA for plot.");
+            if (s->ephemeris_autoscale) {
+                stch_error("Plot autoscaling failure: could not determine minimum RA for plot.");
+            }
             s->ephemeris_autoscale = 0;
             break;
         }
@@ -405,7 +406,9 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     while (!ra_usage[ra_bin_max]) {
         // If we reach the centroid of the chart, something has gone wrong
         if (ra_bin_max == ra_centre_bin) {
-            stch_error("Plot autoscaling failure: could not determine maximum RA for plot.");
+            if (s->ephemeris_autoscale) {
+                stch_error("Plot autoscaling failure: could not determine maximum RA for plot.");
+            }
             s->ephemeris_autoscale = 0;
             break;
         }
@@ -417,7 +420,9 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     while (!dec_usage[dec_bin_min]) {
         // If we reach the centroid of the chart, something has gone wrong
         if (dec_bin_min == dec_bins - 1) {
-            stch_error("Plot autoscaling failure: could not determine minimum declination for plot.");
+            if (s->ephemeris_autoscale) {
+                stch_error("Plot autoscaling failure: could not determine minimum declination for plot.");
+            }
             s->ephemeris_autoscale = 0;
             break;
         }
@@ -429,7 +434,9 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     while (!dec_usage[dec_bin_max]) {
         // If we reach the centroid of the chart, something has gone wrong
         if (dec_bin_max == 0) {
-            stch_error("Plot autoscaling failure: could not determine maximum declination for plot.");
+            if (s->ephemeris_autoscale) {
+                stch_error("Plot autoscaling failure: could not determine maximum declination for plot.");
+            }
             s->ephemeris_autoscale = 0;
             break;
         }
@@ -730,7 +737,8 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
     // Work out what colour to use
     const int ephemeris_colour_index = trace_num % s->ephemeris_col_final_count;
     const colour colour_final = s->ephemeris_col[ephemeris_colour_index];
-    const colour colour_label_final = s->ephemeris_label_col[ephemeris_colour_index];
+    const int ephemeris_label_index = trace_num % s->ephemeris_label_col_final_count;
+    const colour colour_label_final = s->ephemeris_label_col[ephemeris_label_index];
 
     const int solar_system_colour_index = trace_num % s->solar_system_colour_final_count;
     const colour colour_planet_final = s->solar_system_colour[solar_system_colour_index];
@@ -929,9 +937,12 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
                     draw_moon(s, page, colour_label_final, x, y, e->data[i].ra, e->data[i].dec,
                               e->data[i].jd, e->data[i].text_label);
                 } else {
+                    // If object is fainter than mag 4, then ensure the splodge we draw is not too small
+                    const double mag_size = gsl_min(e->data[i].mag, 3);
+
                     // Draw a circular splodge on the star chart
                     draw_solar_system_object(s, page, colour_planet_final, colour_label_final,
-                                             e->data[i].mag, x, y, e->data[i].text_label);
+                                             mag_size, x, y, e->data[i].text_label);
                 }
             }
         }
@@ -941,8 +952,15 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
     if (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE_WITH_ARROW) {
         const double line_width = 2;
 
-        // Disabled pass 2; currently only draw black arrow
-        for (int pass = 0; pass < 2; pass++) {
+        // Work out what colour to use for the arrow
+        const int ephemeris_arrow_colour_index = trace_num % s->ephemeris_arrow_col_final_count;
+        const colour arrow_colour_final = s->ephemeris_arrow_col[ephemeris_arrow_colour_index];
+
+        // Check whether we're drawing a shadow behind the arrow
+        const int start_at_pass = (s->ephemeris_show_arrow_shadow) ? 0 : 1;
+
+        // On first pass, draw black shadow. On second pass, draw arrow itself.
+        for (int pass = start_at_pass; pass < 2; pass++) {
             // Set line colour and line width
             if (pass == 0) {
                 ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
@@ -951,7 +969,8 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
             } else {
                 ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
                 cairo_set_line_width(s->cairo_draw, line_width * s->line_width_base);
-                cairo_set_source_rgb(s->cairo_draw, colour_final.red, colour_final.grn, colour_final.blu);
+                cairo_set_source_rgb(s->cairo_draw, arrow_colour_final.red,
+                                     arrow_colour_final.grn, arrow_colour_final.blu);
             }
             ld_label(ld, NULL, 1, 1);
 

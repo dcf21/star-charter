@@ -116,6 +116,7 @@ void default_config(chart_config *i) {
     i->star_allow_multiple_labels = 0;
     i->star_mag_labels = 0;
     i->star_label_mag_min = 9999;
+    i->dso_style = SW_DSO_STYLE_COLOURED;
     i->dso_label_mag_min = 9999;
     i->dso_names = 1;
     i->dso_mags = 0;
@@ -169,6 +170,10 @@ void default_config(chart_config *i) {
     i->ephemeris_col_default_count = 1;
     i->ephemeris_col_custom_count = 0;
     i->ephemeris_col_final_count = 0;
+    i->ephemeris_arrow_col[0] = (colour) {0, 0, 0};
+    i->ephemeris_arrow_col_default_count = 1;
+    i->ephemeris_arrow_col_custom_count = 0;
+    i->ephemeris_arrow_col_final_count = 0;
     i->ephemeris_label_col[0] = (colour) {0, 0, 0};
     i->ephemeris_label_col_default_count = 1;
     i->ephemeris_label_col_custom_count = 0;
@@ -186,7 +191,6 @@ void default_config(chart_config *i) {
     i->cardinals = 1;
     i->label_font_size_scaling = 1;
     strcpy(i->constellation_highlight, "---");
-    strcpy(i->ephemeris_compute_path, SRCDIR "../../ephemeris-compute-de430/bin/ephem.bin");
     strcpy(i->galaxy_map_filename, SRCDIR "../data/milkyWay/process/output/galaxymap.dat");
     strcpy(i->photo_filename, "");
     strcpy(i->output_filename, "chart");
@@ -197,6 +201,7 @@ void default_config(chart_config *i) {
     i->horizon_zenith_marker_size = 1;
     i->horizon_zenith_colour = (colour) {1, 1, 1};
     i->ephemeris_style = SW_EPHEMERIS_TRACK;
+    i->ephemeris_show_arrow_shadow = 1;
     i->meteor_radiants_default_count = 0;
     i->meteor_radiants_custom_count = 0;
     i->meteor_radiants_final_count = 0;
@@ -307,6 +312,13 @@ void config_init_arrays(chart_config *i) {
         i->ephemeris_col_final_count = i->ephemeris_col_custom_count;
     } else {
         i->ephemeris_col_final_count = i->ephemeris_col_default_count;
+    }
+
+    // Number of colour to use in cyclic loop for drawing ephemeris arrows for solar system objects.
+    if (i->ephemeris_arrow_col_custom_count > 0) {
+        i->ephemeris_arrow_col_final_count = i->ephemeris_arrow_col_custom_count;
+    } else {
+        i->ephemeris_arrow_col_final_count = i->ephemeris_arrow_col_default_count;
     }
 
     // Number of colour to use in cyclic loop for labelling ephemerides for solar system objects.

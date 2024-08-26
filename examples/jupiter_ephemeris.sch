@@ -23,12 +23,9 @@
 # Default settings which affect all the charts below
 DEFAULTS
 width=32.0
-aspect=1
 show_grid_lines=1
-dso_names=0
 constellation_boundaries=1
 constellation_sticks=1
-projection=stereographic
 star_names=1
 star_flamsteed_labels=0
 constellation_names=1

@@ -56,10 +56,3 @@ output_filename=output/orion.pdf
 # Produce an EPS copy of this star chart
 CHART
 output_filename=output/orion.eps
-
-# Produce a smaller version of this chart
-CHART
-width=12
-font_size=1.1
-output_filename=output/orion_mini.png
-

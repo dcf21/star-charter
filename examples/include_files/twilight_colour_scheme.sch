@@ -33,6 +33,7 @@ show_grid_lines=0
 plot_equator=0
 plot_galactic_plane=0
 mag_min=4.5
+dso_display_style=fuzzy
 show_solar_system=1
 show_horizon=1
 horizon_cardinal_points_marker_col=1,1,0.7

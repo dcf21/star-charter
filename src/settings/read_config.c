@@ -559,6 +559,19 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         x->ephemeris_col[x->ephemeris_col_custom_count] = colour_from_string(key_val);
         x->ephemeris_col_custom_count++;
         return 0;
+    } else if (strcmp(key, "ephemeris_arrow_col") == 0) {
+        //! ephemeris_arrow_col - Colours to use when drawing ephemeris arrows drawn when
+        //! `ephemeris_style` = `side_by_side_with_arrow`. If this setting is supplied multiple times, then the list
+        //! of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
+        if (x->ephemeris_arrow_col_custom_count > N_TRACES_MAX - 4) {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. Too many entries for <ephemeris_arrow_col>.");
+            stch_error(temp_err_string);
+            return 1;
+        }
+        x->ephemeris_arrow_col[x->ephemeris_arrow_col_custom_count] = colour_from_string(key_val);
+        x->ephemeris_arrow_col_custom_count++;
+        return 0;
     } else if (strcmp(key, "ephemeris_label_col") == 0) {
         //! ephemeris_label_col - Colours to use when labelling ephemerides for solar system objects. If this setting
         //! is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar
@@ -606,6 +619,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         x->projection_is_set = 1;
         if (strcmp(key_val, "flat") == 0) {
             x->projection = SW_PROJECTION_FLAT;
+            if (!x->aspect_is_set) x->aspect = 0.5;
         } else if (strcmp(key_val, "peters") == 0) {
             x->projection = SW_PROJECTION_PETERS;
             if (!x->aspect_is_set) x->aspect = 4 / (2 * M_PI);
@@ -798,6 +812,19 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! star_label_mag_min - Do not label stars fainter than this magnitude limit
         CHECK_VALUE_NUMERIC("star_label_mag_min")
         x->star_label_mag_min = key_val_num;
+        return 0;
+    } else if (strcmp(key, "dso_display_style") == 0) {
+        //! dso_display_style - Select which style to use for deep sky objects. Set to either 'coloured' or 'fuzzy'.
+        if (strcmp(key_val, "coloured") == 0) {
+            x->dso_style = SW_DSO_STYLE_COLOURED;
+        } else if (strcmp(key_val, "fuzzy") == 0) {
+            x->dso_style = SW_DSO_STYLE_FUZZY;
+        } else {
+            snprintf(temp_err_string, FNAME_LENGTH, "Bad input file. "
+                                                    "dso_display_style should equal 'coloured' or 'fuzzy'.");
+            stch_error(temp_err_string);
+            return 1;
+        }
         return 0;
     } else if (strcmp(key, "dso_label_mag_min") == 0) {
         //! dso_label_mag_min - Do not label DSOs fainter than this magnitude limit
@@ -1002,7 +1029,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         return 0;
     } else if (strcmp(key, "ephemeris_style") == 0) {
         //! ephemeris_style - Select the style to use when showing the tracks of solar system objects.
-        //! Set to `track`, `side_by_side` or `side_by_side_with_track`.
+        //! Set to `track`, `side_by_side`, `side_by_side_with_track` or `side_by_side_with_arrow`.
         if (strcmp(key_val, "track") == 0) {
             x->ephemeris_style = SW_EPHEMERIS_TRACK;
         } else if (strcmp(key_val, "side_by_side") == 0) {
@@ -1018,9 +1045,17 @@ int process_configuration_file_line(char *line, const char *filename, const int 
             return 1;
         }
         return 0;
+    } else if (strcmp(key, "ephemeris_arrow_shadow") == 0) {
+        //! ephemeris_arrow_shadow - Boolean (0 or 1) indicating whether the ephemeris arrows drawn when
+        //! `ephemeris_style` = `side_by_side_with_arrow` should have a shadow to make them more visible.
+        CHECK_VALUE_NUMERIC("ephemeris_arrow_shadow")
+        x->ephemeris_show_arrow_shadow = (int) key_val_num;
+        return 0;
     } else if (strcmp(key, "ephemeris_autoscale") == 0) {
         //! ephemeris_autoscale - Boolean (0 or 1) indicating whether to auto-scale the star chart to contain the
-        //! requested ephemerides. This overrides settings for ra_central, dec_central and angular_width.
+        //! requested ephemerides. This overrides settings for `ra_central`, `dec_central`, `angular_width`, as well as
+        //! other parameters. Run the code in debugging mode to see a list of the values assigned to all these
+        //! automatically-set parameters.
         CHECK_VALUE_NUMERIC("ephemeris_autoscale")
         x->ephemeris_autoscale = (int) key_val_num;
         return 0;
@@ -1034,12 +1069,6 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! even if they collide with other text.
         CHECK_VALUE_NUMERIC("must_show_all_ephemeris_labels")
         x->must_show_all_ephemeris_labels = (int) key_val_num;
-        return 0;
-    } else if (strcmp(key, "ephemeris_compute_path") == 0) {
-        //! ephemeris_compute_path - The path to the tool <ephemerisCompute>, used to compute paths for solar
-        //! system objects. See <https://github.com/dcf21/ephemeris-compute-de430>. If this tool is installed in the
-        //! same directory as StarCharter, the default value should be <../ephemeris-compute-de430/bin/ephem.bin>.
-        strcpy(x->ephemeris_compute_path, key_val);
         return 0;
     } else if (strcmp(key, "scale_bar") == 0) {
         //! scale_bar - List of scale bars we should super-impose over the star chart. Each should be specified as:

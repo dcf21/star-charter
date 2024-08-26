@@ -64,6 +64,10 @@
 #define SW_EPHEMERIS_SIDE_BY_SIDE_WITH_TRACK 2
 #define SW_EPHEMERIS_SIDE_BY_SIDE_WITH_ARROW 3
 
+// Options for designs of constellation stick figures
+#define SW_DSO_STYLE_COLOURED 0
+#define SW_DSO_STYLE_FUZZY 1
+
 //! The maximum number of text labels we can buffer
 #define MAX_LABELS 65536
 
@@ -290,6 +294,10 @@ typedef struct chart_config {
     //! Boolean indicating whether we label the magnitudes of stars
     int star_mag_labels;
 
+    //! Select which style to use for deep sky objects
+    //! Set to either SW_DSO_STYLE_COLOURED or SW_DSO_STYLE_FUZZY
+    int dso_style;
+
     //! Boolean indicating whether we label the names of NGC objects
     int dso_names;
 
@@ -389,9 +397,12 @@ typedef struct chart_config {
     //! Boolean indicating whether we auto-scale the star chart to the requested ephemerides
     int ephemeris_autoscale;
 
-    // Enum indicating how ephemeris tracks should be drawn.
-    // Allowed settings are SW_EPHEMERIS_TRACK, SW_EPHEMERIS_SIDE_BY_SIDE, SW_EPHEMERIS_SIDE_BY_SIDE_WITH_TRACK
+    //! Enum indicating how ephemeris tracks should be drawn.
+    //! Allowed settings are SW_EPHEMERIS_TRACK, SW_EPHEMERIS_SIDE_BY_SIDE, SW_EPHEMERIS_SIDE_BY_SIDE_WITH_TRACK
     int ephemeris_style;
+
+    //! Boolean indicating whether to draw a shadow around ephemeris arrows
+    int ephemeris_show_arrow_shadow;
 
     //! Boolean indicating whether to include a table of the object's magnitude
     int ephemeris_table;
@@ -436,10 +447,6 @@ typedef struct chart_config {
     //! Colour to use for scale bars
     colour scale_bar_colour;
 
-    //! The path to the binary tool `ephemeris_compute`, used to compute paths for solar system objects.
-    //! See <https://github.com/dcf21/ephemeris-compute-de430>
-    char ephemeris_compute_path[FNAME_LENGTH];
-
     //! The target filename for the star chart. The file type (svg, png, eps or pdf) is inferred from the file extension.
     char output_filename[FNAME_LENGTH];
 
@@ -466,6 +473,15 @@ typedef struct chart_config {
 
     //! The number of colours in the custom sequence used for drawing ephemerides for solar system objects.
     int ephemeris_col_custom_count;
+
+    //! Colours to use when drawing ephemeris arrows for solar system objects. These colours are used in a cyclic loop.
+    colour ephemeris_arrow_col[N_TRACES_MAX];
+
+    //! The number of colours in the default sequence used for drawing ephemeris arrows for solar system objects.
+    int ephemeris_arrow_col_default_count;
+
+    //! The number of colours in the custom sequence used for drawing ephemeris arrows for solar system objects.
+    int ephemeris_arrow_col_custom_count;
 
     //! Colours to use when labelling ephemerides for solar system objects. These colours are used in a cyclic loop.
     colour ephemeris_label_col[N_TRACES_MAX];
@@ -638,6 +654,9 @@ typedef struct chart_config {
 
     //! The final number of colours in the sequence used for drawing ephemerides for solar system objects.
     int ephemeris_col_final_count;
+
+    //! The final number of colours in the sequence used for drawing ephemeris arrows for solar system objects.
+    int ephemeris_arrow_col_final_count;
 
     //! The final number of colours in the sequence used for labelling ephemerides for solar system objects.
     int ephemeris_label_col_final_count;

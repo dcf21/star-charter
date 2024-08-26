@@ -25,6 +25,12 @@ ephemeris_col=1,0.7,0.6  # Mars
 ephemeris_col=1,0.7,1  # Jupiter
 ephemeris_col=1,1,0.6  # Saturn
 
+ephemeris_arrow_col=1,1,1  # Mercury
+ephemeris_arrow_col=1,1,0.6  # Venus
+ephemeris_arrow_col=1,0.7,0.6  # Mars
+ephemeris_arrow_col=1,0.7,1  # Jupiter
+ephemeris_arrow_col=1,1,0.6  # Saturn
+
 solar_system_col=1,1,1  # Mercury
 solar_system_col=1,1,0.6  # Venus
 solar_system_col=1,0.7,0.6  # Mars

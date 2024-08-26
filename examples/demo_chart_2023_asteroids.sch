@@ -31,8 +31,6 @@ star_names=1
 constellation_names=1
 shade_twilight=0
 shade_not_observable=0
-horizon_latitude=49
-horizon_longitude=0
 plot_equator=0
 plot_ecliptic=0
 plot_dso=1
@@ -45,22 +43,24 @@ constellation_boundaries=1
 star_bayer_labels=1
 star_flamsteed_labels=1
 ephemeris_style=side_by_side_with_arrow
+ephemeris_autoscale=1
+ephemeris_col=0.9,0.9,1
+ephemeris_arrow_col=0.9,0.9,1
+solar_system_col=0.9,0.9,1
 
 # Chart for 4 Vesta
 CHART
 copyright=The path of 4 Vesta
 text=0.52,0.36,0,0,1.5,0.9,0.9,1,VESTA
 draw_ephemeris=A4,2460249.5,2460364.5  # Vesta
-ra_central=6
-dec_central=20
-angular_width=22
+# ra_central=6
+# dec_central=20
+# angular_width=22
 aspect=0.5
 mag_min=7.5
-mag_size_norm=0.28
+mag_size_norm=0.7
 star_flamsteed_labels=1
 output_filename=output/demo_chart_2023_vesta.png
-ephemeris_col=0.9,0.9,1
-solar_system_col=0.9,0.9,1
 
 ephemeris_epochs=2460249.5  # 2023 Nov 1 00:00:00
 ephemeris_epoch_labels=1 Nov
@@ -76,16 +76,14 @@ CHART
 copyright=The path of 1 Ceres
 text=0.52,0.36,0,0,1.5,0.9,0.9,1,CERES
 draw_ephemeris=A1,2459989.5,2460074.5 # Ceres
-ra_central=12.4
-dec_central=13
-angular_width=19
+# ra_central=12.4
+# dec_central=13
+# angular_width=19
 aspect=0.5
 mag_min=7.5
-mag_size_norm=0.22
+mag_size_norm=0.55
 star_flamsteed_labels=1
 output_filename=output/demo_chart_2023_ceres.png
-ephemeris_col=0.9,0.9,1
-solar_system_col=0.9,0.9,1
 
 ephemeris_epochs=2459989.5  # 2023 Feb 14 00:00:00
 ephemeris_epoch_labels=14 Feb
