@@ -77,10 +77,10 @@ int convert_body_name_to_int_id(const char *object_name) {
         output_body_id = 10;
     else if (((name[0] == 'a') || (name[0] == 'A')) && valid_float(name + 1, NULL)) {
         // Asteroid, e.g. A1
-        output_body_id = 1000000 + (int) get_float(name + 1, NULL);
+        output_body_id = 10000000 + (int) get_float(name + 1, NULL);
     } else if (((name[0] == 'c') || (name[0] == 'C')) && valid_float(name + 1, NULL)) {
         // Comet, e.g. C1 (first in datafile)
-        output_body_id = 2000000 + (int) get_float(name + 1, NULL);
+        output_body_id = 20000000 + (int) get_float(name + 1, NULL);
     } else {
         // Search for comets with matching names
 
@@ -94,7 +94,7 @@ int convert_body_name_to_int_id(const char *object_name) {
             orbitalElements *item = orbitalElements_comets_fetch(index);
 
             if ((str_cmp_no_case(name, item->name) == 0) || (str_cmp_no_case(name, item->name2) == 0)) {
-                output_body_id = 2000000 + index;
+                output_body_id = 20000000 + index;
                 break;
             }
         }

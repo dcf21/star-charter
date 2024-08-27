@@ -774,9 +774,9 @@ void orbitalElements_asteroids_init() {
     }
 }
 
-//! orbitalElements_asteroids_fetch - Fetch the orbitalElements record for bodyId (1000000 + index). If needed, load
+//! orbitalElements_asteroids_fetch - Fetch the orbitalElements record for bodyId (10000000 + index). If needed, load
 //! them from disk.
-//! \param index - The index of the object whose orbital elements are to be loaded (bodyId = 1000000 + index)
+//! \param index - The index of the object whose orbital elements are to be loaded (bodyId = 10000000 + index)
 //! \return - An orbitalElements structure for bodyId
 
 orbitalElements *orbitalElements_asteroids_fetch(int index) {
@@ -808,9 +808,9 @@ void orbitalElements_comets_init() {
     }
 }
 
-//! orbitalElements_comets_fetch - Fetch the orbitalElements record for bodyId (2000000 + index). If needed, load
+//! orbitalElements_comets_fetch - Fetch the orbitalElements record for bodyId (20000000 + index). If needed, load
 //! them from disk.
-//! \param index - The index of the object whose orbital elements are to be loaded (bodyId = 2000000 + index)
+//! \param index - The index of the object whose orbital elements are to be loaded (bodyId = 20000000 + index)
 //! \return - An orbitalElements structure for bodyId
 
 orbitalElements *orbitalElements_comets_fetch(int index) {
@@ -849,7 +849,7 @@ void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, do
     // const double epsilon = (23.4393 - 3.563E-7 * (jd - 2451544.5)) * M_PI / 180;
 
     // Case 1: Object is a planet
-    if (body_id < 1000000) {
+    if (body_id < 10000000) {
         // Planets occupy body numbers 1-19
         const int index = body_id;
 
@@ -866,9 +866,9 @@ void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, do
     }
 
         // Case 2: Object is an asteroid
-    else if (body_id < 2000000) {
-        // Asteroids occupy body numbers 1e6 - 2e6
-        const int index = body_id - 1000000;
+    else if (body_id < 20000000) {
+        // Asteroids occupy body numbers 1e7 - 2e7
+        const int index = body_id - 10000000;
 
         orbitalElements_asteroids_init();
 
@@ -884,8 +884,8 @@ void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, do
 
         // Case 3: Object is a comet
     else {
-        // Comets occupy body numbers 2e6 - 3e6
-        const int index = body_id - 2000000;
+        // Comets occupy body numbers 2e7 - 3e7
+        const int index = body_id - 20000000;
 
         orbitalElements_comets_init();
 

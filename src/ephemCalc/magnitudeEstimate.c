@@ -109,7 +109,7 @@ void magnitudeEstimate_init() {
 
 //! magnitudeEstimate
 //! \param [in] body_id - Id number of body to have ephemeris computed. 0=Mercury. 2=Earth/Moon barycentre. 9=Pluto.
-//! 10=Sun. 19=Geocentre. 1e6+n=Asteroid n. 2e6+n=Comet n.
+//! 10=Sun. 19=Geocentre. 1e7+n=Asteroid n. 2e7+n=Comet n.
 //! \param [in] xo - x,y,z position of body, in AU relative to solar system barycentre.
 //! \param [in] yo - negative x points to vernal equinox. z points to celestial north pole (i.e. J2000.0).
 //! \param [in] zo
@@ -155,7 +155,7 @@ void magnitudeEstimate(int body_id, double xo, double yo, double zo, double xe, 
     *phase = (1 + cos(theta)) / 2;
 
     // For comets, we always assume full phase when calculating magnitudes
-    if (body_id >= 2e6) *phase = 1;
+    if (body_id >= 2e7) *phase = 1;
 
     // Body is a planet, the Moon or Sun
     if (body_id < MAX_BODYID) {
@@ -203,20 +203,20 @@ void magnitudeEstimate(int body_id, double xo, double yo, double zo, double xe, 
     }
 
         // Routine for estimating the magnitudes of asteroids and comets
-    else if (body_id >= 1e6) {
+    else if (body_id >= 1e7) {
         orbitalElements *item;
         int fail = 0;
         albedo = GSL_NAN;
         Ro = GSL_NAN;
 
-        if (body_id < 2e6) {
+        if (body_id < 2e7) {
             // Asteroid
 
             // Open asteroid database
             orbitalElements_asteroids_init();
 
             // Fetch asteroid's record
-            item = orbitalElements_asteroids_fetch(body_id - 1000000);
+            item = orbitalElements_asteroids_fetch(body_id - 10000000);
             if (item == NULL) fail = 1;
         } else {
             // Comet
@@ -225,7 +225,7 @@ void magnitudeEstimate(int body_id, double xo, double yo, double zo, double xe, 
             orbitalElements_comets_init();
 
             // Fetch comet's record
-            item = orbitalElements_comets_fetch(body_id - 2000000);
+            item = orbitalElements_comets_fetch(body_id - 20000000);
             if (item == NULL) fail = 1;
         }
 

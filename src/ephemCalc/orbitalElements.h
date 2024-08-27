@@ -25,12 +25,12 @@
 #include "coreUtils/strConstants.h"
 
 #define MAX_ASTEROIDS 1500000
-#define MAX_COMETS     100000
+#define MAX_COMETS     200000
 #define MAX_PLANETS        50
 
 typedef struct {
     char name[24], name2[24];
-    int number;  // bodyId for planets; bodyId-1000000 for asteroids; bodyId-2000000 for comets
+    int number;  // bodyId for planets; bodyId-10000000 for asteroids; bodyId-20000000 for comets
     int secureOrbit;  // boolean flag indicating whether orbit is deemed secure
     double epochOsculation;  // Julian date
     double epochPerihelion;  // Julian date

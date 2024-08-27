@@ -693,8 +693,8 @@ void jpl_computeEphemeris(int bodyId, double jd, double *x, double *y, double *z
         is_sun = 1;
     }
 
-    // We give asteroids body numbers which start at 1e6 + 1 (Ceres). These aren't in DE430, so use orbital elements.
-    if (bodyId > 1000000) {
+    // We give asteroids body numbers which start at 1e7 + 1 (Ceres). These aren't in DE430, so use orbital elements.
+    if (bodyId > 10000000) {
         orbitalElements_computeEphemeris(bodyId, jd, x, y, z, ra, dec, mag, phase, angSize, phySize, albedo, sunDist,
                                          earthDist, sunAngDist, theta_ESO, eclipticLongitude, eclipticLatitude,
                                          eclipticDistance);
