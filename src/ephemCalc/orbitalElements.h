@@ -22,6 +22,8 @@
 #ifndef ORBITALELEMENTS_H
 #define ORBITALELEMENTS_H 1
 
+#include "coreUtils/strConstants.h"
+
 #define MAX_ASTEROIDS 1500000
 #define MAX_COMETS     100000
 #define MAX_PLANETS        50
@@ -30,15 +32,15 @@ typedef struct {
     char name[24], name2[24];
     int number;  // bodyId for planets; bodyId-1000000 for asteroids; bodyId-2000000 for comets
     int secureOrbit;  // boolean flag indicating whether orbit is deemed secure
-    double epochOsculation;  // Julian day number
-    double epochPerihelion;  // Julian day number
+    double epochOsculation;  // Julian date
+    double epochPerihelion;  // Julian date
     double absoluteMag;  // Absolute magnitude H
     double meanAnomaly;  // mean anomaly at epoch of osculation; radians
-    double argumentPerihelion;  // argument of perihelion at epoch of osculation; radians
+    double argumentPerihelion;  // argument of perihelion at epoch of osculation; radians; J2000.0
     double argumentPerihelion_dot;  // rate of change; radians per day
-    double longAscNode;  // longitude of ascending node; radians
+    double longAscNode;  // longitude of ascending node; radians; J2000.0
     double longAscNode_dot;  // rate of change; radians per day
-    double inclination;  // radians
+    double inclination;  // radians; J2000.0
     double inclination_dot;  // rate of change; radians per day
     double eccentricity;
     double eccentricity_dot; // rate of change; per day
@@ -52,6 +54,11 @@ typedef struct {
 extern FILE *planet_database_file;
 extern FILE *asteroid_database_file;
 extern FILE *comet_database_file;
+
+// Filenames of binary files
+extern char planet_database_filename[FNAME_LENGTH];
+extern char asteroid_database_filename[FNAME_LENGTH];
+extern char comet_database_filename[FNAME_LENGTH];
 
 // Blocks of memory used to hold the orbital elements
 extern orbitalElements *planet_database;

@@ -62,6 +62,7 @@ static int JPL_EphemArrayRecords = 0; // The number of blocks needed to go from 
 
 static int JPL_EphemData_offset = -1; // The offset of the start of the ephmeris binary data from the start of the binary file
 static FILE *JPL_EphemFile = NULL; // File pointer used to read binary data from DE430 (we don't read whole binary ephemeris into memory)
+static char jpl_ephem_filename[FNAME_LENGTH];  // File name of binary ephemeris file
 
 static double *JPL_EphemData = NULL; // Buffer to hold the ephemeris data, as we load it
 static unsigned char *JPL_EphemData_items_loaded = NULL; // Record of which ephemeris data records we have loaded
@@ -77,42 +78,43 @@ int JPL_ReadBinaryData() {
 
     // Work out the filename of the binary file that we are to open
     snprintf(fname, FNAME_LENGTH, "%s/../data/dcfbinary.%d", SRCDIR, JPL_EphemNumber);
+    snprintf(jpl_ephem_filename, FNAME_LENGTH, "%s", fname);
     if (DEBUG) {
         snprintf(temp_err_string, FNAME_LENGTH, "Trying to fetch binary data from file <%s>.", fname);
         ephem_log(temp_err_string);
     }
 
     // Open binary data
-    JPL_EphemFile = fopen(fname, "r");
+    JPL_EphemFile = fopen(fname, "rb");
     if (JPL_EphemFile == NULL) return 1; // Failed to open binary file
 
     // Read headers to binary file
-    dcffread((void *) &JPL_EphemStart, sizeof(double), 1, JPL_EphemFile);
+    dcf_fread((void *) &JPL_EphemStart, sizeof(double), 1, JPL_EphemFile, fname, __FILE__, __LINE__);
     if (DEBUG) {
         snprintf(temp_err_string, FNAME_LENGTH, "JPL_EphemStart        = %10f", JPL_EphemStart);
         ephem_log(temp_err_string);
     }
-    dcffread((void *) &JPL_EphemEnd, sizeof(double), 1, JPL_EphemFile);
+    dcf_fread((void *) &JPL_EphemEnd, sizeof(double), 1, JPL_EphemFile, fname, __FILE__, __LINE__);
     if (DEBUG) {
         snprintf(temp_err_string, FNAME_LENGTH, "JPL_EphemEnd          = %10f", JPL_EphemEnd);
         ephem_log(temp_err_string);
     }
-    dcffread((void *) &JPL_EphemStep, sizeof(double), 1, JPL_EphemFile);
+    dcf_fread((void *) &JPL_EphemStep, sizeof(double), 1, JPL_EphemFile, fname, __FILE__, __LINE__);
     if (DEBUG) {
         snprintf(temp_err_string, FNAME_LENGTH, "JPL_EphemStep         = %10f", JPL_EphemStep);
         ephem_log(temp_err_string);
     }
-    dcffread((void *) &JPL_AU, sizeof(double), 1, JPL_EphemFile);
+    dcf_fread((void *) &JPL_AU, sizeof(double), 1, JPL_EphemFile, fname, __FILE__, __LINE__);
     if (DEBUG) {
         snprintf(temp_err_string, FNAME_LENGTH, "JPL_AU                = %10f", JPL_AU);
         ephem_log(temp_err_string);
     }
-    dcffread((void *) &JPL_EphemArrayLen, sizeof(int), 1, JPL_EphemFile);
+    dcf_fread((void *) &JPL_EphemArrayLen, sizeof(int), 1, JPL_EphemFile, fname, __FILE__, __LINE__);
     if (DEBUG) {
         snprintf(temp_err_string, FNAME_LENGTH, "JPL_EphemArrayLen     = %10d", JPL_EphemArrayLen);
         ephem_log(temp_err_string);
     }
-    dcffread((void *) &JPL_EphemArrayRecords, sizeof(int), 1, JPL_EphemFile);
+    dcf_fread((void *) &JPL_EphemArrayRecords, sizeof(int), 1, JPL_EphemFile, fname, __FILE__, __LINE__);
     if (DEBUG) {
         snprintf(temp_err_string, FNAME_LENGTH, "JPL_EphemArrayRecords = %10d", JPL_EphemArrayRecords);
         ephem_log(temp_err_string);
@@ -125,7 +127,7 @@ int JPL_ReadBinaryData() {
     }
 
     // Read shape data array
-    dcffread((void *) JPL_ShapeData, sizeof(int), 13 * 3, JPL_EphemFile);
+    dcf_fread((void *) JPL_ShapeData, sizeof(int), 13 * 3, JPL_EphemFile, fname, __FILE__, __LINE__);
 
     // We have now reached the actual ephemeris data. We don't load this into RAM since it is large and this would
     // take time. Instead, store a pointer to the offset of the start of the ephemeris from the beginning of file.
@@ -229,7 +231,7 @@ void jpl_readAsciiData() {
             }
 
             // Open the file -- first time around the header files; subsequently, the ephemeris itself
-            input = fopen(fname, "r");
+            input = fopen(fname, "rt");
             if (input == NULL) {
                 ephem_fatal(__FILE__, __LINE__, "Could not open ephemeris file.");
                 exit(1);
@@ -566,8 +568,9 @@ void jpl_computeXYZ(int body_id, double jd, double *x, double *y, double *z) {
 #pragma omp critical (jpl_fetch)
         {
             fseek(JPL_EphemFile, data_position_needed, SEEK_SET);
-            dcffread((void *) &JPL_EphemData[record_index * JPL_EphemArrayLen],
-                     sizeof(double), JPL_EphemArrayLen, JPL_EphemFile);
+            dcf_fread((void *) &JPL_EphemData[record_index * JPL_EphemArrayLen],
+                      sizeof(double), JPL_EphemArrayLen, JPL_EphemFile,
+                      jpl_ephem_filename, __FILE__, __LINE__);
             JPL_EphemData_items_loaded[record_index] = 1;
         }
     }

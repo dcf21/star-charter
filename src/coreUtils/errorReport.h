@@ -36,6 +36,7 @@ void stch_report(char *msg);
 
 void stch_log(char *msg);
 
-void dcf_fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
+void dcf_fread(void *ptr, size_t size, size_t n_requested, FILE *stream,
+               const char *input_filename, const char *source_file, int source_line);
 
 #endif

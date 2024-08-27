@@ -55,12 +55,12 @@ void read_galaxy_map(chart_config *s) {
     if (galaxy_data != NULL) return;
 
     in = fopen(s->galaxy_map_filename, "r");
-    if (in == NULL) stch_fatal(__FILE__, __LINE__, "Could not open galaxy map datafile");
-    dcf_fread((void *) &map_h_size, sizeof(int), 1, in);
-    dcf_fread((void *) &map_v_size, sizeof(int), 1, in);
+    if (in == NULL) stch_fatal(__FILE__, __LINE__, "Could not open galaxy map data file");
+    dcf_fread((void *) &map_h_size, sizeof(int), 1, in, s->galaxy_map_filename, __FILE__, __LINE__);
+    dcf_fread((void *) &map_v_size, sizeof(int), 1, in, s->galaxy_map_filename, __FILE__, __LINE__);
     galaxy_data = (unsigned char *) lt_malloc(map_h_size * map_v_size);
     if (galaxy_data == NULL) stch_fatal(__FILE__, __LINE__, "Malloc fail");
-    dcf_fread((void *) galaxy_data, sizeof(char), map_h_size * map_v_size, in);
+    dcf_fread((void *) galaxy_data, sizeof(char), map_h_size * map_v_size, in, s->galaxy_map_filename, __FILE__, __LINE__);
     fclose(in);
 }
 
