@@ -329,6 +329,14 @@ maximum_star_label_count=%d  # %s\n\
 void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_points) {
     int i, j, k;
 
+    // If we have no ephemerides, do not attempt autoscaling
+    if (s->ephemeris_final_count < 1) {
+        if (s->ephemeris_autoscale) {
+            stch_error("Plot autoscaling failure: there are no ephemerides to autoscale to.");
+        }
+        return;
+    }
+
     // Track the sky coverage of each ephemeris in RA and Dec
     // Create a coarse grid of RA and Declination where we set Boolean flags for whether the solar system object passes
     // through each cell.
