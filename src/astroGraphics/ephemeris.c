@@ -354,9 +354,18 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
             ra_list[j] = s->ephemeris_data[i].data[k].ra;
             dec_list[j] = s->ephemeris_data[i].data[k].dec;
 
+            if ((!gsl_finite(ra_list[j])) || (!gsl_finite(dec_list[j]))) {
+                stch_error("Non-finite RA/Dec point detected within ephemeris");
+            }
+
             // Work out which grid cell this ephemeris point falls within in the grids <ra_usage> and <dec_usage>
             int ra_bin = (int) (ra_list[j] / (2 * M_PI) * ra_bins);
             int dec_bin = (int) ((dec_list[j] + (M_PI / 2)) / M_PI * dec_bins);
+
+            if ((ra_bin < 0) || (ra_bin >= ra_bins) || (dec_bin < 0) || (dec_bin >= dec_bins)) {
+                stch_error("RA/Dec bin is outside allowed range");
+                continue;
+            }
 
             // Mark this point on the map of usage of RA and Dec
             ra_usage[ra_bin] = 1;
@@ -368,6 +377,11 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     double ra_centroid, dec_centroid;
     find_mean_position(&ra_centroid, &dec_centroid, ra_list, dec_list, total_ephemeris_points);
     // printf("centroid: %.3f %.3f\n", ra_centroid * 12 / M_PI, dec_centroid * 180 / M_PI);
+
+    if ((!gsl_finite(ra_centroid)) || (!gsl_finite(dec_centroid))) {
+        stch_error("Non-finite RA/Dec centroid");
+        goto clean_up;
+    }
 
     // Work out which bin the centroid falls within
     int ra_centre_bin = (int) (ra_centroid / (2 * M_PI) * ra_bins);
@@ -572,11 +586,12 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
         }
     }
 
+    clean_up:
     // Free up storage
-    free(ra_list);
-    free(dec_list);
-    free(ra_usage);
-    free(dec_usage);
+    if (ra_list != NULL) free(ra_list);
+    if (dec_list != NULL) free(dec_list);
+    if (ra_usage != NULL) free(ra_usage);
+    if (dec_usage != NULL) free(dec_usage);
 
     // If debugging, then display the configuration settings we chose
     if (DEBUG) {

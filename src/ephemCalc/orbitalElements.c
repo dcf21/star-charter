@@ -430,9 +430,6 @@ void orbitalElements_asteroids_readAsciiData() {
     // Read through astorb.dat, line by line
     while ((!feof(input)) && (!ferror(input))) {
         char line[FNAME_LENGTH];
-        const char *line_ptr;
-        int n, day_obs_span, obs_count;
-        double tmp;
 
         // Read a line from the input file
         file_readline(input, line);
@@ -447,7 +444,8 @@ void orbitalElements_asteroids_readAsciiData() {
 
         // Unnumbered asteroid; don't bother adding to catalogue
         if (i >= 6) continue;
-        else n = (int) get_float(line + i, NULL);
+
+        const int n = (int) get_float(line + i, NULL);
 
         // asteroid_count should be the highest number asteroid we have encountered
         if (asteroid_count <= n) asteroid_count = n + 1;
@@ -457,55 +455,67 @@ void orbitalElements_asteroids_readAsciiData() {
         for (i = 25; (i > 7) && (line[i] > '\0') && (line[i] <= ' '); i--);
         strncpy(asteroid_database[n].name, line + 7, i - 6);
         asteroid_database[n].name[i - 6] = '\0';
-        for (i = 42; (line[i] > '\0') && (line[i] <= ' '); i++);
 
         // Read absolute magnitude
+        for (i = 42; (line[i] > '\0') && (line[i] <= ' '); i++);
         asteroid_database[n].absoluteMag = get_float(line + i, NULL);
-        line_ptr = next_word(line + i);
 
         // Read slope parameter
-        asteroid_database[n].slopeParam_G = get_float(line_ptr, NULL);
-        for (i = 94; (line[i] > '\0') && (line[i] <= ' '); i++);
+        for (i = 48; (line[i] > '\0') && (line[i] <= ' '); i++);
+        asteroid_database[n].slopeParam_G = get_float(line + i, NULL);
 
         // Read number of days spanned by data used to derive orbit
-        day_obs_span = (int) get_float(line + i, NULL);
-        line_ptr = next_word(line + i);
+        int day_obs_span;
+        {
+            int j;
+            char buffer[8];
+            snprintf(buffer, 7, "%s", line + 94);
+            for (j = 0; (buffer[j] > '\0') && (buffer[j] <= ' '); j++);
+            day_obs_span = (int) get_float(buffer + j, NULL);
+        }
 
         // Read number of observations used to derive orbit
-        obs_count = (int) get_float(line_ptr, NULL);
+        for (i = 100; (line[i] > '\0') && (line[i] <= ' '); i++);
+        const int obs_count = (int) get_float(line + i, NULL);
 
         // Orbit deemed secure if more than 10 yrs data
         asteroid_database[n].secureOrbit = (day_obs_span > 3650) && (obs_count > 500);
 
         // Count how many objects we've seen with secure orbits
         if (asteroid_database[n].secureOrbit) asteroid_secure_count++;
-        line_ptr = next_word(line_ptr);
 
         // Now start reading orbital elements of object
-
-        tmp = get_float(line_ptr, NULL);
-        // julian date
-        asteroid_database[n].epochOsculation = julian_day((int) floor(tmp / 10000), ((int) floor(tmp / 100)) % 100,
-                                                          ((int) floor(tmp)) % 100, 0, 0, 0, &i, temp_err_string);
-        line_ptr = next_word(line_ptr);
+        {
+            for (i = 106; (line[i] > '\0') && (line[i] <= ' '); i++);
+            const double tmp = get_float(line + i, NULL);
+            // julian date
+            asteroid_database[n].epochOsculation = julian_day((int) floor(tmp / 10000), ((int) floor(tmp / 100)) % 100,
+                                                              ((int) floor(tmp)) % 100, 0, 0, 0, &i, temp_err_string);
+        }
 
         // Read mean anomaly -- radians; J2000.0
-        asteroid_database[n].meanAnomaly = get_float(line_ptr, NULL) * M_PI / 180;
-        line_ptr = next_word(line_ptr);
+        for (i = 115; (line[i] > '\0') && (line[i] <= ' '); i++);
+        asteroid_database[n].meanAnomaly = get_float(line + i, NULL) * M_PI / 180;
+
         // Read argument of perihelion -- radians; J2000.0
-        asteroid_database[n].argumentPerihelion = get_float(line_ptr, NULL) * M_PI / 180;
-        line_ptr = next_word(line_ptr);
+        for (i = 126; (line[i] > '\0') && (line[i] <= ' '); i++);
+        asteroid_database[n].argumentPerihelion = get_float(line + i, NULL) * M_PI / 180;
+
         // Read longitude of ascending node -- radians; J2000.0
-        asteroid_database[n].longAscNode = get_float(line_ptr, NULL) * M_PI / 180;
-        line_ptr = next_word(line_ptr);
+        for (i = 137; (line[i] > '\0') && (line[i] <= ' '); i++);
+        asteroid_database[n].longAscNode = get_float(line + i, NULL) * M_PI / 180;
+
         // Read inclination of orbit -- radians; J2000.0
-        asteroid_database[n].inclination = get_float(line_ptr, NULL) * M_PI / 180;
-        line_ptr = next_word(line_ptr);
+        for (i = 147; (line[i] > '\0') && (line[i] <= ' '); i++);
+        asteroid_database[n].inclination = get_float(line + i, NULL) * M_PI / 180;
+
         // Read eccentricity of orbit -- dimensionless
-        asteroid_database[n].eccentricity = get_float(line_ptr, NULL);
-        line_ptr = next_word(line_ptr);
+        for (i = 157; (line[i] > '\0') && (line[i] <= ' '); i++);
+        asteroid_database[n].eccentricity = get_float(line + i, NULL);
+
         // Read semi-major axis of orbit -- AU
-        asteroid_database[n].semiMajorAxis = get_float(line_ptr, NULL);
+        for (i = 168; (line[i] > '\0') && (line[i] <= ' '); i++);
+        asteroid_database[n].semiMajorAxis = get_float(line + i, NULL);
     }
     fclose(input);
 
@@ -532,7 +542,6 @@ void orbitalElements_asteroids_readAsciiData() {
     asteroid_database_file = fopen(filename_with_path, "rb");
     snprintf(asteroid_database_filename, FNAME_LENGTH, "%s", filename_with_path);
 }
-
 
 
 //! orbitalElements_comets_readAsciiData - Read the comet orbital elements contained in the ASCII file downloaded
