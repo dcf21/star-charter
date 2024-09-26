@@ -26,7 +26,6 @@
 #include <math.h>
 #include <string.h>
 
-#include <gsl/gsl_const_mksa.h>
 #include <gsl/gsl_math.h>
 
 #include "coreUtils/asciiDouble.h"
@@ -41,6 +40,11 @@
 #include "jpl.h"
 #include "orbitalElements.h"
 #include "magnitudeEstimate.h"
+
+// Numerical constants
+const static double ORBIT_CONST_SPEED_OF_LIGHT = 299792458.; // m/s
+const static double ORBIT_CONST_ASTRONOMICAL_UNIT = 149597870700.; // m
+const static double ORBIT_CONST_GM_SOLAR = 1.32712440041279419e20; // m^3 s^-2
 
 // Binary files containing the orbital elements of solar system objects
 FILE *planet_database_file = NULL;
@@ -696,8 +700,8 @@ void orbitalElements_comets_readAsciiData() {
         comet_database[comet_count].semiMajorAxis = a = perihelion_dist / (1 - eccentricity);
         // radians; J2000.0
         comet_database[comet_count].meanAnomaly = fmod(
-                sqrt(GSL_CONST_MKSA_GRAVITATIONAL_CONSTANT * GSL_CONST_MKSA_SOLAR_MASS /
-                     gsl_pow_3(fabs(a) * GSL_CONST_MKSA_ASTRONOMICAL_UNIT)) * (epoch - perihelion_date) * 24 * 3600 +
+                sqrt(ORBIT_CONST_GM_SOLAR /
+                     gsl_pow_3(fabs(a) * ORBIT_CONST_ASTRONOMICAL_UNIT)) * (epoch - perihelion_date) * 24 * 3600 +
                 100 * M_PI, 2 * M_PI);
         // julian date
         comet_database[comet_count].epochPerihelion = perihelion_date;
@@ -909,8 +913,8 @@ void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, do
                                                              offset_from_epoch);
 
     // Mean Anomaly for desired epoch (convert rate of change per second into rate of change per day)
-    const double mean_motion = sqrt(GSL_CONST_MKSA_GRAVITATIONAL_CONSTANT * GSL_CONST_MKSA_SOLAR_MASS /
-                                    gsl_pow_3(fabs(a) * GSL_CONST_MKSA_ASTRONOMICAL_UNIT));
+    const double mean_motion = sqrt(ORBIT_CONST_GM_SOLAR /
+                                    gsl_pow_3(fabs(a) * ORBIT_CONST_ASTRONOMICAL_UNIT));
 
     const double M = orbital_elements->meanAnomaly +
                      (jd - orbital_elements->epochOsculation) * mean_motion * 24 * 3600;
@@ -972,9 +976,9 @@ void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, do
             ephem_log(temp_err_string);
             sprintf(temp_err_string, "delta_E = %.10e deg", delta_E * 180 / M_PI);
             ephem_log(temp_err_string);
-            sprintf(temp_err_string, "xv = %.10f km", xv * GSL_CONST_MKSA_ASTRONOMICAL_UNIT / 1e3);
+            sprintf(temp_err_string, "xv = %.10f km", xv * ORBIT_CONST_ASTRONOMICAL_UNIT / 1e3);
             ephem_log(temp_err_string);
-            sprintf(temp_err_string, "yv = %.10f km", yv * GSL_CONST_MKSA_ASTRONOMICAL_UNIT / 1e3);
+            sprintf(temp_err_string, "yv = %.10f km", yv * ORBIT_CONST_ASTRONOMICAL_UNIT / 1e3);
             ephem_log(temp_err_string);
             sprintf(temp_err_string, "j = %d iterations", j);
             ephem_log(temp_err_string);
@@ -1015,7 +1019,7 @@ void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, do
 
     // When debugging, show intermediate calculation
     if (DEBUG) {
-        sprintf(temp_err_string, "a = %.10e km", a * GSL_CONST_MKSA_ASTRONOMICAL_UNIT / 1e3);
+        sprintf(temp_err_string, "a = %.10e km", a * ORBIT_CONST_ASTRONOMICAL_UNIT / 1e3);
         ephem_log(temp_err_string);
         sprintf(temp_err_string, "e = %.10f", e);
         ephem_log(temp_err_string);
@@ -1031,7 +1035,7 @@ void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, do
         ephem_log(temp_err_string);
         sprintf(temp_err_string, "v = %.10f deg", v * 180 / M_PI);
         ephem_log(temp_err_string);
-        sprintf(temp_err_string, "r = %.10f km", r * GSL_CONST_MKSA_ASTRONOMICAL_UNIT / 1e3);
+        sprintf(temp_err_string, "r = %.10f km", r * ORBIT_CONST_ASTRONOMICAL_UNIT / 1e3);
         ephem_log(temp_err_string);
     }
 }
@@ -1131,7 +1135,7 @@ void orbitalElements_computeEphemeris(int bodyId, double jd, double *x, double *
         const double distance = gsl_hypot3(sun_pos_x - earth_pos_x,
                                            sun_pos_y - earth_pos_y,
                                            sun_pos_z - earth_pos_z);  // AU
-        const double light_travel_time = distance * GSL_CONST_MKSA_ASTRONOMICAL_UNIT / GSL_CONST_MKSA_SPEED_OF_LIGHT;
+        const double light_travel_time = distance * ORBIT_CONST_ASTRONOMICAL_UNIT / ORBIT_CONST_SPEED_OF_LIGHT;
 
         // Look up position of requested object at the time the light left the object
         jpl_computeXYZ(10, jd - light_travel_time / 86400, &sun_pos_x, &sun_pos_y, &sun_pos_z);
@@ -1175,7 +1179,7 @@ void orbitalElements_computeEphemeris(int bodyId, double jd, double *x, double *
         const double distance = gsl_hypot3(x_barycentric_0 - earth_pos_x,
                                            y_barycentric_0 - earth_pos_y,
                                            z_barycentric_0 - earth_pos_z);  // AU
-        const double light_travel_time = distance * GSL_CONST_MKSA_ASTRONOMICAL_UNIT / GSL_CONST_MKSA_SPEED_OF_LIGHT;
+        const double light_travel_time = distance * ORBIT_CONST_ASTRONOMICAL_UNIT / ORBIT_CONST_SPEED_OF_LIGHT;
 
         // Look up position of requested object at the time the light left the object
         orbitalElements_computeXYZ(bodyId, jd - light_travel_time / 86400,
@@ -1217,7 +1221,7 @@ void orbitalElements_computeEphemeris(int bodyId, double jd, double *x, double *
         };
 
         // Speed of light in AU per time step
-        const double c = GSL_CONST_MKSA_SPEED_OF_LIGHT / GSL_CONST_MKSA_ASTRONOMICAL_UNIT * eb_dot_timestep_sec;
+        const double c = ORBIT_CONST_SPEED_OF_LIGHT / ORBIT_CONST_ASTRONOMICAL_UNIT * eb_dot_timestep_sec;
         const double V[3] = {eb_dot[0] / c, eb_dot[1] / c, eb_dot[2] / c};
         const double V_mag = gsl_hypot3(V[0], V[1], V[2]);
         const double beta = sqrt(1 - gsl_pow_2(V_mag));
