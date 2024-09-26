@@ -104,13 +104,19 @@ void draw_solar_system_object(chart_config *s, cairo_page *page, const colour ob
     // How far should we move this label to the side of the planet, to avoid writing text on top of the planet?
     const double horizontal_offset = size * s->dpi + 0.075 * s->cm;
 
+    // Calculate priority for this label
+    const double priority = s->must_show_all_ephemeris_labels ? -1 : 0;
+
     // Label this solar system object
     chart_label_buffer(page, s, label_colour, label,
-                       (label_position[2]) {
-                               {x, y, 0, horizontal_offset,  0, -1, 0},
-                               {x, y, 0, -horizontal_offset, 0, 1,  0}
-                       }, 2,
-                       0, 0, 1.2 * s->label_font_size_scaling, 0, 0, 0, 0);
+                       (label_position[4]) {
+                               {x, y, 0, horizontal_offset,  0,                  -1, 0},
+                               {x, y, 0, -horizontal_offset, 0,                  1,  0},
+                               {x, y, 0, 0,                  horizontal_offset,  0,  -1},
+                               {x, y, 0, 0,                  -horizontal_offset, 0,  1}
+                       }, 4,
+                       0, 0, 1.2 * s->label_font_size_scaling,
+                       0, 0, 0, priority);
 }
 
 //! draw_moon - Draw a representation of the Moon's phase onto the chart.
@@ -238,9 +244,15 @@ void plot_solar_system(chart_config *s, cairo_page *page) {
             const double dec = s->solar_system_ephemeris_data[obj_id].data[0].dec;
             const double mag = s->solar_system_ephemeris_data[obj_id].data[0].mag;
 
+            // Check whether this is the Moon
+            const int is_moon = (str_cmp_no_case(s->solar_system_ephemeris_data[obj_id].obj_id, "P301") == 0);
+
+            // Check whether this is the Sun
+            const int is_sun = (str_cmp_no_case(s->solar_system_ephemeris_data[obj_id].obj_id, "sun") == 0);
+
             // Work out coordinates of this object on the star chart (tangent plane coordinates)
             double x, y;  // radians
-            plane_project(&x, &y, s, ra, dec);
+            plane_project(&x, &y, s, ra, dec, is_sun);
 
             // Ignore this object if it falls outside the plot area
             if ((!gsl_finite(x)) || (!gsl_finite(y)) ||
@@ -248,20 +260,21 @@ void plot_solar_system(chart_config *s, cairo_page *page) {
                 continue;
             }
 
-            // Check whether this is the Moon
-            const int is_moon = (strcmp(s->solar_system_ephemeris_data[obj_id].obj_id, "P301") == 0);
-
             // Work out which colour to use for this object
             const int colour_index = obj_id % s->solar_system_colour_final_count;
             const colour colour_final = s->solar_system_colour[colour_index];
 
+            const int colour_label_index = obj_id % s->solar_system_label_colour_final_count;
+            const colour colour_label_final = s->solar_system_label_colour[colour_label_index];
+
             // Draw this object
             if (is_moon && s->solar_system_show_moon_phase) {
                 // Show Moon with representation of phase
-                draw_moon(s, page, colour_final, x, y, ra, dec, jd, s->solar_system_labels[obj_id]);
+                draw_moon(s, page, colour_label_final, x, y, ra, dec, jd,
+                          s->solar_system_labels[obj_id]);
             } else {
                 // Draw a circular splodge on the star chart
-                draw_solar_system_object(s, page, colour_final, colour_final,
+                draw_solar_system_object(s, page, colour_final, colour_label_final,
                                          mag, x, y, s->solar_system_labels[obj_id]);
             }
         }

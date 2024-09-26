@@ -33,7 +33,10 @@ void magnitudeEstimate(int body_id, double xo, double yo, double zo, double xe, 
                        double ys, double zs, double *ra, double *dec, double *mag, double *phase, double *angSize,
                        double *phySize, double *albedoOut, double *sunDist, double *earthDist, double *sunAngDist,
                        double *theta_eso, double *eclipticLongitude, double *eclipticLatitude,
-                       double *eclipticDistance);
+                       double *eclipticDistance, double ra_dec_epoch, double julian_date,
+                       int do_topocentric_correction, double topocentric_latitude, double topocentric_longitude);
+
+void earthTopocentricPositionICRF(double *out, double lat, double lng, double radius_in_earth_radii,
+                                  const double *pos_earth, double epoch, double sidereal_time);
 
 #endif
-

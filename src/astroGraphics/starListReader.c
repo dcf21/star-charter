@@ -174,7 +174,7 @@ int test_if_tile_in_field_of_view(chart_config *s, int level, int ra_index, int 
             double x, y;
             const double ra = (ra_min * (steps - i) + ra_max * i) / steps;
             const double dec = (dec_min * (steps - i) + dec_max * i) / steps;
-            plane_project(&x, &y, s, ra, dec);
+            plane_project(&x, &y, s, ra, dec, 0);
 
             // Include this tile if this corner falls inside the plot area
             if (gsl_finite(x) && gsl_finite(y) &&

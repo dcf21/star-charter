@@ -60,7 +60,8 @@ void read_galaxy_map(chart_config *s) {
     dcf_fread((void *) &map_v_size, sizeof(int), 1, in, s->galaxy_map_filename, __FILE__, __LINE__);
     galaxy_data = (unsigned char *) lt_malloc(map_h_size * map_v_size);
     if (galaxy_data == NULL) stch_fatal(__FILE__, __LINE__, "Malloc fail");
-    dcf_fread((void *) galaxy_data, sizeof(char), map_h_size * map_v_size, in, s->galaxy_map_filename, __FILE__, __LINE__);
+    dcf_fread((void *) galaxy_data, sizeof(char), map_h_size * map_v_size, in, s->galaxy_map_filename,
+              __FILE__, __LINE__);
     fclose(in);
 }
 
@@ -110,13 +111,18 @@ void plot_galaxy_map(chart_config *s) {
 
             // If we're shading twilight, mix this into the base colour
             if (s->shade_twilight) {
+                // Calculate scale height of twilight shading above the horizon
+                double alt_scale_height = 20.;
+                const double angular_height_degrees = (s->angular_width * 180 / M_PI) * s->aspect;
+                alt_scale_height = gsl_min(alt_scale_height, angular_height_degrees * 0.5);
+
                 // Convert (RA, Dec) to local (Alt, Az)
                 double alt, az;
                 double ra_at_epoch, dec_at_epoch;
                 ra_dec_from_j2000(ra, dec, s->julian_date, &ra_at_epoch, &dec_at_epoch);
                 alt_az(ra_at_epoch, dec_at_epoch, s->julian_date, s->horizon_latitude, s->horizon_longitude, &alt, &az);
                 const double alt_degrees = alt * 180 / M_PI;
-                const double alt_normalised = gsl_min(1, alt_degrees / 20.);
+                const double alt_normalised = gsl_min(1, alt_degrees / alt_scale_height);
 
                 if (alt_normalised >= 0) {
                     // Above the horizon
@@ -154,7 +160,7 @@ void plot_galaxy_map(chart_config *s) {
 
             // If we're shading the region of sky that is not observable, mix this into the base colour
             if (s->shade_not_observable) {
-                double best_alt_normalised = 0.2;
+                double best_alt_normalised = 0;
 
                 for (int step = 0; step < 96; step++) {
                     // Unix time for this step

@@ -80,6 +80,10 @@ void cairo_init(cairo_page *p, chart_config *s);
 
 void plot_background_image(chart_config *s);
 
+void move_to_next_page(chart_config *s);
+
+void draw_chart_edge_line(chart_config *s);
+
 void draw_chart_edging(cairo_page *p, chart_config *s);
 
 void fetch_canvas_coordinates(double *x_out, double *y_out, double x_in, double y_in, const chart_config *s);

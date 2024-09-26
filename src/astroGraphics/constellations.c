@@ -108,7 +108,7 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
             continue;
         }
 
-        plane_project(&x, &y, s, ra * M_PI / 12, dec * M_PI / 180);
+        plane_project(&x, &y, s, ra * M_PI / 12, dec * M_PI / 180, 0);
 
         if (s->zodiacal_only && (strncmp(line + 23, "AQR ", 4) != 0) && (strncmp(line + 23, "ARI ", 4) != 0) &&
             (strncmp(line + 23, "LEO ", 4) != 0) && (strncmp(line + 23, "CNC ", 4) != 0) &&
@@ -202,8 +202,8 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
         ra1 = get_float(scan, NULL);
         scan = next_word(scan);
         dec1 = get_float(scan, NULL);
-        plane_project(&x0, &y0, s, ra0 * M_PI / 180, dec0 * M_PI / 180);
-        plane_project(&x1, &y1, s, ra1 * M_PI / 180, dec1 * M_PI / 180);
+        plane_project(&x0, &y0, s, ra0 * M_PI / 180, dec0 * M_PI / 180, 0);
+        plane_project(&x1, &y1, s, ra1 * M_PI / 180, dec1 * M_PI / 180, 0);
         ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
         ld_point(ld, x0, y0, NULL);
         ld_point(ld, x1, y1, NULL);
@@ -249,7 +249,7 @@ void plot_constellation_names(chart_config *s, cairo_page *page) {
             ra = get_float(scan, NULL);
             scan = next_word(scan);
             dec = get_float(scan, NULL);
-            plane_project(&x, &y, s, ra * M_PI / 12, dec * M_PI / 180);
+            plane_project(&x, &y, s, ra * M_PI / 12, dec * M_PI / 180, 0);
             if ((x < s->x_min) || (x > s->x_max) || (y < s->y_min) || (y > s->y_max)) {
                 scan = next_word(scan);
                 continue;

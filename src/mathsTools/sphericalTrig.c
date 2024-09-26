@@ -20,6 +20,7 @@
 // -------------------------------------------------
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 #include <string.h>
 
@@ -28,15 +29,15 @@
 #include "mathsTools/sphericalTrig.h"
 
 //! angDist_ABC - Calculate the angle between the lines BA and BC, measured at B
-//! \param xa - Cartesian coordinates of point A
-//! \param ya - Cartesian coordinates of point A
-//! \param za - Cartesian coordinates of point A
-//! \param xb - Cartesian coordinates of point B
-//! \param yb - Cartesian coordinates of point B
-//! \param zb - Cartesian coordinates of point B
-//! \param xc - Cartesian coordinates of point C
-//! \param yc - Cartesian coordinates of point C
-//! \param zc - Cartesian coordinates of point C
+//! \param [in] xa - Cartesian coordinates of point A
+//! \param [in] ya - Cartesian coordinates of point A
+//! \param [in] za - Cartesian coordinates of point A
+//! \param [in] xb - Cartesian coordinates of point B
+//! \param [in] yb - Cartesian coordinates of point B
+//! \param [in] zb - Cartesian coordinates of point B
+//! \param [in] xc - Cartesian coordinates of point C
+//! \param [in] yc - Cartesian coordinates of point C
+//! \param [in] zc - Cartesian coordinates of point C
 //! \return Angle ABC (radians)
 
 double angDist_ABC(double xa, double ya, double za, double xb, double yb, double zb, double xc, double yc, double zc) {
@@ -51,10 +52,10 @@ double angDist_ABC(double xa, double ya, double za, double xb, double yb, double
 }
 
 //! angDist_RADec - Calculate the angular distance between (RA0, Dec0) and (RA1, Dec1)
-//! \param ra0 - Right ascension of the first point (radians)
-//! \param dec0 - Declination of the first point (radians)
-//! \param ra1 - Right ascension of the second point (radians)
-//! \param dec1 - Declination of the second point (radians)
+//! \param [in] ra0 - Right ascension of the first point (radians)
+//! \param [in] dec0 - Declination of the first point (radians)
+//! \param [in] ra1 - Right ascension of the second point (radians)
+//! \param [in] dec1 - Declination of the second point (radians)
 //! \return Angular distance between two points (radians)
 
 double angDist_RADec(double ra0, double dec0, double ra1, double dec1) {
@@ -75,11 +76,11 @@ double angDist_RADec(double ra0, double dec0, double ra1, double dec1) {
 
 //! position_angle - Return the position angle (radians) of the great circle path from (RA1, Dec1) to (RA2, Dec2), as
 //! seen at the former point. All inputs/outputs in radians.
-//! \param ra1 - The right ascension of the first point, radians
-//! \param dec1 - The declination of the first point, radians
-//! \param ra2 - The right ascension of the second point, radians
-//! \param dec2 - The declination of the second point, radians
-//! \return - Position angle, radians
+//! \param [in] ra1 - The right ascension of the first point, radians
+//! \param [in] dec1 - The declination of the first point, radians
+//! \param [in] ra2 - The right ascension of the second point, radians
+//! \param [in] dec2 - The declination of the second point, radians
+//! \return - Position angle, radians, relative to (RA1, Dec1)
 
 double position_angle(double ra1, double dec1, double ra2, double dec2) {
     const double a[3] = {
@@ -96,10 +97,38 @@ double position_angle(double ra1, double dec1, double ra2, double dec2) {
     return azimuth;
 }
 
+//! inv_position_angle - Return the (RA, Dec) of the point that is at a distance of ang_dist from (RA1, Dec1) with
+//! a position angle of PA.  All inputs/outputs in radians.
+//! \param [in] ra1 - The right ascension of the first point, radians
+//! \param [in] dec1 - The declination of the first point, radians
+//! \param [in] pa - Position angle, radians, relative to (RA1, Dec1)
+//! \param [in] ang_dist - Angular distance of requested point from (RA1, Dec1), radians
+//! \param [out] ra2_out - The right ascension of the second point, radians
+//! \param [out] dec2_out - The declination of the second point, radians
+
+void inv_position_angle(const double ra1, const double dec1, const double pa, const double ang_dist,
+                        double *ra2_out, double *dec2_out) {
+    const double a3[3] = {
+            -cos(pa) * sin(ang_dist),
+            sin(pa) * sin(ang_dist),
+            cos(ang_dist)
+    };
+
+    double a2[3], a[3];
+    rotate_xz(a2, a3, dec1 - M_PI / 2);
+    rotate_xy(a, a2, ra1);
+
+    const double ra2 = atan2(a[1], a[0]);
+    const double dec2 = asin(a[2]);
+
+    *ra2_out = ra2;
+    *dec2_out = dec2;
+}
+
 //! rotate_xy - Rotate a three-component vector about the z axis
-//! \param [out] out Rotated vector
-//! \param [in] in Vector to rotate
-//! \param theta The angle to rotate around the z axis (radians)
+//! \param [out] out - Rotated vector
+//! \param [in] in - Vector to rotate
+//! \param [in] theta - The angle to rotate around the z axis (radians)
 
 void rotate_xy(double *out, const double *in, double theta) {
     double t[3];
@@ -110,9 +139,9 @@ void rotate_xy(double *out, const double *in, double theta) {
 }
 
 //! rotate_xz - Rotate a three-component vector about the y axis
-//! \param [out] out Rotated vector
-//! \param [in] in Vector to rotate
-//! \param theta The angle to rotate around the y axis (radians)
+//! \param [out] out - Rotated vector
+//! \param [in] in - Vector to rotate
+//! \param [in] theta - The angle to rotate around the y axis (radians)
 
 void rotate_xz(double *out, const double *in, double theta) {
     double t[3];
@@ -123,12 +152,12 @@ void rotate_xz(double *out, const double *in, double theta) {
 }
 
 //! make_zenithal - Convert a position on the sky into alt/az coordinates
-//! \param [out] zenith_angle The zenith angle of the point (radians); equals pi/2 - altitude
-//! \param [out] azimuth The azimuth of the point (radians)
-//! \param [in] ra The right ascension of the point to convert (radians)
-//! \param [in] dec The declination of the point to convert (radians)
-//! \param [in] ra0 The right ascension of the zenith (radians)
-//! \param [in] dec0 The declination of the zenith (radians)
+//! \param [out] zenith_angle - The zenith angle of the point (radians); equals pi/2 - altitude
+//! \param [out] azimuth - The azimuth of the point (radians)
+//! \param [in] ra - The right ascension of the point to convert (radians)
+//! \param [in] dec - The declination of the point to convert (radians)
+//! \param [in] ra0 - The right ascension of the zenith (radians)
+//! \param [in] dec0 - The declination of the zenith (radians)
 
 void make_zenithal(double *zenith_angle, double *azimuth, double ra, double dec, double ra0, double dec0) {
     double altitude;

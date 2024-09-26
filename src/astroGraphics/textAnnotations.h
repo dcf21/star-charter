@@ -27,6 +27,8 @@
 #include "settings/chart_config.h"
 #include "vectorGraphics/cairo_page.h"
 
+void plot_arrow_annotations(chart_config *s);
+
 void plot_text_annotations(chart_config *s, cairo_page *page);
 
 #endif

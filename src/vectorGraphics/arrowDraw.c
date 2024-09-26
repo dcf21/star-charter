@@ -19,25 +19,28 @@
 // along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------
 
+#include <stdlib.h>
 #include <math.h>
 
 #include <gsl/gsl_math.h>
 
+#include "coreUtils/errorReport.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/arrowDraw.h"
+#include "vectorGraphics/cairo_page.h"
 
 //! draw_arrow - Draw an arrow on the Cairo context.
 //! \param [in] s - A <chart_config> structure defining the properties of the star chart to be drawn.
 //! \param [in] lw - The line width to use when stroking the arrow stalk.
 //! \param [in] head_start - Boolean (0 or 1) indicating whether to put an arrow head at (x0, y0)
 //! \param [in] head_end - Boolean (0 or 1) indicating whether to put an arrow head at (x1, y1)
-//! \param [in] x0 - X coordinate of start of arrow
-//! \param [in] y0 - Y coordinate of start of arrow
-//! \param [in] x1 - X coordinate of end of arrow
-//! \param [in] y1 - Y coordinate of end of arrow
+//! \param [in] x0 - X coordinate of start of arrow (Cairo pixels)
+//! \param [in] y0 - Y coordinate of start of arrow (Cairo pixels)
+//! \param [in] x1 - X coordinate of end of arrow (Cairo pixels)
+//! \param [in] y1 - Y coordinate of end of arrow (Cairo pixels)
 
-void draw_arrow(chart_config *s, double lw, int head_start, int head_end,
-                double x0, double y0, double x1, double y1) {
+void draw_arrow(chart_config *s, const double lw, const int head_start, const int head_end,
+                const double x0, const double y0, const double x1, const double y1) {
     double x_start, y_start, x_end, y_end, direction;
 
     // Set line width
@@ -120,4 +123,180 @@ void draw_arrow(chart_config *s, double lw, int head_start, int head_end,
     cairo_move_to(s->cairo_draw, x_start, y_start);
     cairo_line_to(s->cairo_draw, x_end, y_end);
     cairo_stroke(s->cairo_draw);
+}
+
+//! draw_thick_arrow_segment - Draw a thick arrow on the Cairo context, whose outline can be stroked around.
+//! \param [in] s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param [in] lw - The line width to use when stroking the arrow stalk.
+//! \param [in] head_start - Boolean (0 or 1) indicating whether to put an arrow head at (x0, y0)
+//! \param [in] head_end - Boolean (0 or 1) indicating whether to put an arrow head at (x1, y1)
+//! \param [in] x_list - List of X coordinates of points along the arrow
+//! \param [in] y_list - List of Y coordinates of points along the arrow
+//! \param [in] theta - List of direction of travel at each point along the arrow
+//! \param [in] index_start - Index within array for the start of the arrow (inclusive of this index)
+//! \param [in] index_end - Index within array for the end of the arrow (inclusive of this index)
+
+void draw_thick_arrow_segment(
+        chart_config *s, const double lw, const int head_start, const int head_end,
+        const double *x_pixels, const double *y_pixels, const double *theta,
+        const int index_start, const int index_end) {
+    // We cannot draw segments with fewer than two points
+    if (index_end < index_start + 1) return;
+
+    // Arrow head geometry
+    const double arrow_angle = CONST_ARROW_ANGLE_THICK;
+    const double arrow_head_hypotenuse = CONST_ARROW_HEADSIZE_THICK * lw;
+    const double arrow_head_back_half_height = arrow_head_hypotenuse * sin(arrow_angle / 2);
+    const double arrow_head_total_length = arrow_head_hypotenuse * cos(arrow_angle / 2);
+    const double arrow_head_back_x_ingress = arrow_head_total_length * CONST_ARROW_CONSTRICT;
+    //const double arrow_head_back_angle = atan2(arrow_head_back_half_height, arrow_head_back_x_ingress);
+    const double arrow_head_back_fraction_hidden_by_line = lw / arrow_head_back_half_height;
+    const double arrow_head_back_x_ingress_unobscured = arrow_head_back_x_ingress *
+                                                        (1 - arrow_head_back_fraction_hidden_by_line);
+    const double arrow_head_distance_x0_to_tip = arrow_head_total_length - arrow_head_back_x_ingress_unobscured;
+
+    // Draw arrowhead on beginning of arrow if desired
+    if (head_start) {
+        const double direction = theta[index_start];
+        const double x0 = x_pixels[index_start] - arrow_head_distance_x0_to_tip * cos(direction);
+        const double y0 = y_pixels[index_start] - arrow_head_distance_x0_to_tip * sin(direction);
+
+        // Pointy back of arrowhead on one side
+        const double x3 = x0 - arrow_head_hypotenuse * cos((direction + M_PI) - arrow_angle / 2);
+        const double y3 = y0 - arrow_head_hypotenuse * sin((direction + M_PI) - arrow_angle / 2);
+
+        // Pointy back of arrowhead on other side
+        const double x5 = x0 - arrow_head_hypotenuse * cos((direction + M_PI) + arrow_angle / 2);
+        const double y5 = y0 - arrow_head_hypotenuse * sin((direction + M_PI) + arrow_angle / 2);
+
+        // Draw arrow head
+        cairo_move_to(s->cairo_draw, x3, y3);
+        cairo_line_to(s->cairo_draw, x0, y0);
+        cairo_line_to(s->cairo_draw, x5, y5);
+    } else {
+        // Start stalk from the supplied coordinates (there is no arrow head)
+        const double x0 = x_pixels[index_start];
+        const double y0 = y_pixels[index_start];
+        const double direction = theta[index_start];
+        cairo_move_to(s->cairo_draw, x0 + lw * cos(direction + M_PI / 2),
+                      y0 + lw * sin(direction + M_PI / 2));
+    }
+
+    // Stroke along top edge of the arrow
+    for (int i = index_start + 1; i <= index_end; i++) {
+        const double x0 = x_pixels[i];
+        const double y0 = y_pixels[i];
+        const double direction = theta[i];
+        cairo_line_to(s->cairo_draw, x0 + lw * cos(direction + M_PI / 2),
+                      y0 + lw * sin(direction + M_PI / 2));
+
+    }
+
+    // Draw arrowhead on end of arrow if desired
+    if (head_end) {
+        const double direction = theta[index_end];
+        const double x1 = x_pixels[index_end] + arrow_head_distance_x0_to_tip * cos(direction);
+        const double y1 = y_pixels[index_end] + arrow_head_distance_x0_to_tip * sin(direction);
+
+        // Pointy back of arrowhead on one side
+        const double x3 = x1 - arrow_head_hypotenuse * cos(direction - arrow_angle / 2);
+        const double y3 = y1 - arrow_head_hypotenuse * sin(direction - arrow_angle / 2);
+
+        // Pointy back of arrowhead on other side
+        const double x5 = x1 - arrow_head_hypotenuse * cos(direction + arrow_angle / 2);
+        const double y5 = y1 - arrow_head_hypotenuse * sin(direction + arrow_angle / 2);
+
+        // Draw arrow head
+        cairo_line_to(s->cairo_draw, x3, y3);
+        cairo_line_to(s->cairo_draw, x1, y1);
+        cairo_line_to(s->cairo_draw, x5, y5);
+    }
+
+    // Stroke along top edge of the arrow
+    for (int i = index_end; i >= index_start; i--) {
+        const double x0 = x_pixels[i];
+        const double y0 = y_pixels[i];
+        const double direction = theta[i];
+        cairo_line_to(s->cairo_draw, x0 + lw * cos(direction - M_PI / 2),
+                      y0 + lw * sin(direction - M_PI / 2));
+    }
+
+    // Close the path
+    cairo_close_path(s->cairo_draw);
+}
+
+//! draw_thick_arrow - Draw a thick arrow on the Cairo context, whose outline can be stroked around.
+//! \param [in] s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param [in] lw - The line width to use when stroking the arrow stalk.
+//! \param [in] head_start - Boolean (0 or 1) indicating whether to put an arrow head at (x0, y0)
+//! \param [in] head_end - Boolean (0 or 1) indicating whether to put an arrow head at (x1, y1)
+//! \param [in] x_list - List of X coordinates of points along the arrow
+//! \param [in] y_list - List of Y coordinates of points along the arrow
+//! \param [in] theta - List of direction of travel at each point along the arrow
+//! \param [in] point_count - Number of points along the arrow
+
+void draw_thick_arrow(chart_config *s, const double lw, const int head_start, const int head_end,
+                      const double *x_list, const double *y_list, const double *theta, const int point_count) {
+    // Start path
+    cairo_new_path(s->cairo_draw);
+
+    // We cannot draw arrows with fewer than two points
+    if (point_count < 2) return;
+
+    // Create arrays to convert tangent plane coordinates to pixels
+    const int array_max = point_count + 32;
+    int x_pixels_length = 0;
+    double *x_pixels = (double *) malloc(array_max * sizeof(double));
+    double *y_pixels = (double *) malloc(array_max * sizeof(double));
+    double *theta_pixels = (double *) malloc(array_max * sizeof(double));
+
+    if ((x_pixels == NULL) || (y_pixels == NULL) || (theta_pixels == NULL)) {
+        stch_fatal(__FILE__, __LINE__, "Malloc fail.");
+        exit(1);
+    }
+
+    // Convert tangent plane coordinates to pixels
+    for (int i_in = 0, i_out = 0; ((i_in < point_count) && (i_out < array_max - 1)); i_in++) {
+        double x, y;
+        fetch_canvas_coordinates(&x, &y, x_list[i_in], y_list[i_in], s);
+
+        // Check whether we've looped around left/right edge. If so, insert a NaN point to break the arrow
+        if (i_out > 0) {
+            const double x_last = x_pixels[i_out - 1];
+            //const double y_last = y_pixels[i_out - 1];
+
+            const double x_fraction = (x / s->cm - s->canvas_offset_x) / s->width;
+            const double x_fraction_last = (x_last / s->cm - s->canvas_offset_x) / s->width;
+
+            if (((x_fraction > 0.8) && (x_fraction_last < 0.2)) || ((x_fraction_last > 0.8) && (x_fraction < 0.2))) {
+                x_pixels[i_out] = GSL_NAN;
+                y_pixels[i_out] = GSL_NAN;
+                theta_pixels[i_out] = GSL_NAN;
+                i_out++;
+            }
+        }
+
+        // Output pixel coordinates
+        x_pixels[i_out] = x;
+        y_pixels[i_out] = y;
+        theta_pixels[i_out] = theta[i_in];
+        i_out++;
+        x_pixels_length = i_out;
+    }
+
+    // Loop along arrow path looking for segments that are separated by NaN segments
+    for (int i = 0, start_i = 0; i <= x_pixels_length; i++) {
+        if ((i >= x_pixels_length) || (!gsl_finite(x_pixels[i])) || (!gsl_finite(y_pixels[i]))) {
+            if (start_i < i - 1) {
+                draw_thick_arrow_segment(s, lw, head_start, head_end, x_pixels, y_pixels, theta_pixels,
+                                         start_i, i - 1);
+            }
+            start_i = i + 1;
+        }
+    }
+
+    // Free arrays
+    if (x_pixels != NULL) free(x_pixels);
+    if (y_pixels != NULL) free(y_pixels);
+    if (theta_pixels != NULL) free(theta_pixels);
 }

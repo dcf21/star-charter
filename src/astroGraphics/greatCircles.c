@@ -65,7 +65,7 @@ void plot_great_circle(double ra0, double dec0, chart_config *s, line_drawer *ld
 
         dec = asin(a[2]);
         ra = atan2(a[1], a[0]);
-        plane_project(&x, &y, s, ra, dec);
+        plane_project(&x, &y, s, ra, dec, 0);
         ld_point(ld, x, y, NULL);
     }
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
@@ -81,7 +81,7 @@ void plot_great_circle(double ra0, double dec0, chart_config *s, line_drawer *ld
 
             dec = asin(a[2]);
             ra = atan2(a[1], a[0]);
-            plane_project(&x, &y, s, ra, dec);
+            plane_project(&x, &y, s, ra, dec, 0);
             ld_point(ld, x, y + 0.035, NULL);
             ld_point(ld, x, y - 0.035, NULL);
             ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);

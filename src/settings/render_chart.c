@@ -62,7 +62,9 @@ void render_chart(chart_config *s) {
     // If we're plotting ephemerides for solar system objects, fetch the data now
     // We do this first, as auto-scaling plots use this data to determine which sky area to show
     const int total_ephemeris_points = ephemerides_fetch(
-            &s->ephemeris_data, s->ephemeris_final_count, &s->ephemeris_definitions);
+            &s->ephemeris_data, s->ephemeris_final_count, &s->ephemeris_definitions, s->ephemeris_resolution,
+            s->ephemeris_coords, s->julian_date,
+            s->solar_system_topocentric_correction, s->horizon_latitude, s->horizon_longitude);
 
     // Automatically scale plot to contain all the computed ephemeris tracks
     ephemerides_autoscale_plot(s, total_ephemeris_points);
@@ -79,7 +81,9 @@ void render_chart(chart_config *s) {
         solar_system_write_ephemeris_definitions(&s->solar_system_ids, s->julian_date, s->solar_system_final_count,
                                                  &s->solar_system_ephemeris_definitions);
         ephemerides_fetch(&s->solar_system_ephemeris_data, s->solar_system_final_count,
-                          &s->solar_system_ephemeris_definitions);
+                          &s->solar_system_ephemeris_definitions, s->ephemeris_resolution,
+                          s->ephemeris_coords, s->julian_date,
+                          s->solar_system_topocentric_correction, s->horizon_latitude, s->horizon_longitude);
     }
 
     // Check star chart configuration, and insert any computed quantities
@@ -95,6 +99,7 @@ void render_chart(chart_config *s) {
             stch_log(line);
         }
         plot_galaxy_map(s);
+        if (s->output_multiple_pages) move_to_next_page(s);
     }
 
     // If we're showing a PNG image behind the star chart, insert that next
@@ -126,6 +131,7 @@ void render_chart(chart_config *s) {
 
     // Draw deep sky object outlines
     if (s->plot_dso) {
+        if (s->output_multiple_pages) move_to_next_page(s);
         plot_deep_sky_outlines(s, &page);
     }
 
@@ -135,16 +141,25 @@ void render_chart(chart_config *s) {
     }
 
     // Draw stars
-    if (s->plot_stars) plot_stars(s, &page);
+    if (s->plot_stars) {
+        if (s->output_multiple_pages) move_to_next_page(s);
+        plot_stars(s, &page);
+    }
 
     // Write the names of the constellations
     if (s->constellation_names) plot_constellation_names(s, &page);
 
     // If we're plotting ephemerides for solar system objects, draw these now
-    for (i = 0; i < s->ephemeris_final_count; i++) plot_ephemeris(s, &ld, &page, i);
+    for (i = 0; i < s->ephemeris_final_count; i++) {
+        if (s->output_multiple_pages) move_to_next_page(s);
+        plot_ephemeris(s, &ld, &page, i);
+    }
 
     // If we're showing the positions of solar system objects, draw these now
-    if (s->show_solar_system) plot_solar_system(s, &page);
+    if (s->show_solar_system) {
+        if (s->output_multiple_pages) move_to_next_page(s);
+        plot_solar_system(s, &page);
+    }
 
     // If we're showing the zenith, label it now
     if (s->show_horizon_zenith) plot_zenith(s, &page);
@@ -152,13 +167,20 @@ void render_chart(chart_config *s) {
     // If we're showing scale bars, do so now
     if (s->scale_bars_final_count > 0) plot_scale_bars(s, &page);
 
+    // If we're drawing arrow/line annotations, do so now
+    if (s->arrow_labels_final_count > 0) plot_arrow_annotations(s);
+
     // If we're writing text labels, do so now
     if (s->text_labels_final_count > 0) plot_text_annotations(s, &page);
 
     // If we're drawing the horizon, do so now
-    if (s->show_horizon) plot_horizon(s, &ld, &page);
+    if (s->show_horizon) {
+        if (s->output_multiple_pages) move_to_next_page(s);
+        plot_horizon(s, &ld, &page);
+    }
 
     // Render labels onto the chart while the clipping region is still in force
+    if (s->output_multiple_pages) move_to_next_page(s);
     chart_label_unbuffer(&page);
 
     // Draw axes around the edge of the star chart

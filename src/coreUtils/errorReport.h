@@ -24,6 +24,8 @@
 #ifndef ERRORREPORT_H
 #define ERRORREPORT_H 1
 
+#include <stdio.h>
+
 extern char temp_err_string[];
 
 void stch_error(char *msg);

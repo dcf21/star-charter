@@ -51,7 +51,7 @@ void plot_zenith(chart_config *s, cairo_page *page) {
 
     // Project onto the plotting canvas
     double x, y;
-    plane_project(&x, &y, s, ra_zenith_j2000, dec_zenith_j2000);
+    plane_project(&x, &y, s, ra_zenith_j2000, dec_zenith_j2000, 0);
 
     // Ignore this star if it falls outside the plot area
     if ((!gsl_finite(x)) || (!gsl_finite(y)) ||

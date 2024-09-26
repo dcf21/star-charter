@@ -650,11 +650,16 @@ void jpl_computeXYZ(int body_id, double jd, double *x, double *y, double *z) {
 //! \param [out] eclipticLongitude - The ecliptic longitude of the object (J2000.0 radians)
 //! \param [out] eclipticLatitude - The ecliptic latitude of the object (J2000.0 radians)
 //! \param [out] eclipticDistance - The separation of the object from the Sun, in ecliptic longitude (radians)
+//! \param [in] ra_dec_epoch - The epoch of the RA/Dec coordinates to output. Supply 2451545.0 for J2000.0.
+//! \param [in] do_topocentric_correction - Boolean indicating whether to apply topocentric correction to (ra, dec)
+//! \param [in] topocentric_latitude - Latitude (deg) of observer on Earth, if topocentric correction is applied.
+//! \param [in] topocentric_longitude - Longitude (deg) of observer on Earth, if topocentric correction is applied.
 
 void jpl_computeEphemeris(int bodyId, double jd, double *x, double *y, double *z, double *ra, double *dec,
                           double *mag, double *phase, double *angSize, double *phySize, double *albedo, double *sunDist,
                           double *earthDist, double *sunAngDist, double *theta_ESO, double *eclipticLongitude,
-                          double *eclipticLatitude, double *eclipticDistance) {
+                          double *eclipticLatitude, double *eclipticDistance, double ra_dec_epoch,
+                          int do_topocentric_correction, double topocentric_latitude, double topocentric_longitude) {
     // Position of the Sun relative to the solar system barycentre, J2000.0 equatorial coordinates, AU
     double sun_pos_x, sun_pos_y, sun_pos_z;
 
@@ -697,7 +702,8 @@ void jpl_computeEphemeris(int bodyId, double jd, double *x, double *y, double *z
     if (bodyId > 10000000) {
         orbitalElements_computeEphemeris(bodyId, jd, x, y, z, ra, dec, mag, phase, angSize, phySize, albedo, sunDist,
                                          earthDist, sunAngDist, theta_ESO, eclipticLongitude, eclipticLatitude,
-                                         eclipticDistance);
+                                         eclipticDistance, ra_dec_epoch,
+                                         do_topocentric_correction, topocentric_latitude, topocentric_longitude);
         return;
     }
 
@@ -819,5 +825,6 @@ void jpl_computeEphemeris(int bodyId, double jd, double *x, double *y, double *z
     magnitudeEstimate(bodyId, *x, *y, *z, earth_pos_x, earth_pos_y, earth_pos_z, sun_pos_x, sun_pos_y, sun_pos_z, ra,
                       dec, mag, phase, angSize, phySize,
                       albedo, sunDist, earthDist, sunAngDist, theta_ESO, eclipticLongitude, eclipticLatitude,
-                      eclipticDistance);
+                      eclipticDistance, ra_dec_epoch, jd,
+                      do_topocentric_correction, topocentric_latitude, topocentric_longitude);
 }

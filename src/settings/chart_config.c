@@ -54,6 +54,9 @@ void default_config(chart_config *i) {
     i->text_labels_default_count = 0;
     i->text_labels_custom_count = 0;
     i->text_labels_final_count = 0;
+    i->arrow_labels_default_count = 0;
+    i->arrow_labels_custom_count = 0;
+    i->arrow_labels_final_count = 0;
     i->show_horizon = 0;
     i->horizon_latitude = 0;
     i->horizon_longitude = 0;
@@ -62,7 +65,7 @@ void default_config(chart_config *i) {
     i->horizon_cardinal_points_marker_size = 1;
     i->horizon_cardinal_points_marker_count = 8;
     i->horizon_cardinal_points_marker_elevate = 0;
-    i->julian_date = 0.0;
+    i->julian_date = 2451544.5;
     i->show_solar_system = 0;
     strcpy(i->solar_system_labels[0], "Mercury");
     strcpy(i->solar_system_labels[1], "Venus");
@@ -86,14 +89,19 @@ void default_config(chart_config *i) {
     i->solar_system_colour_default_count = 1;
     i->solar_system_colour_custom_count = 0;
     i->solar_system_colour_final_count = 0;
+    i->solar_system_label_colour[0] = (colour) {1, 0.9, 0.75};
+    i->solar_system_label_colour_default_count = 1;
+    i->solar_system_label_colour_custom_count = 0;
+    i->solar_system_label_colour_final_count = 0;
     i->solar_system_show_moon_phase = 1;
     i->solar_system_moon_earthshine_intensity = 0.12;
     i->solar_system_moon_colour = (colour) {1, 1, 0.8};
+    i->solar_system_topocentric_correction = 0;
     i->shade_twilight = 0;
     i->shade_near_sun = 0;
     i->shade_not_observable = 0;
-    i->twilight_zenith_col = (colour) {0.2, 0.2, 0.5};
-    i->twilight_horizon_col = (colour) {0.9, 0.9, 0.7};
+    i->twilight_zenith_col = (colour) {0.337, 0.547, 0.820};
+    i->twilight_horizon_col = (colour) {0.506, 0.765, 0.929};
     i->font_size = 1.0;
     i->axis_ticks_value_only = 1;
     i->show_grid_lines = 1;
@@ -137,6 +145,8 @@ void default_config(chart_config *i) {
     i->scale_bars_final_count = 0;
     i->scale_bar_colour = (colour) {0, 0, 0};
     i->ephemeris_autoscale = 0;
+    i->ephemeris_coords = SW_COORDS_EPHEMERIS_RADEC;
+    i->ephemeris_resolution = 0.5;
     i->ephemeris_table = 0;
     i->must_show_all_ephemeris_labels = 0;
     i->mag_min = 6.0;
@@ -144,6 +154,7 @@ void default_config(chart_config *i) {
     i->mag_step = 0.5;
     i->mag_alpha = 1.1727932;
     i->mag_size_norm = 1.0;
+    i->mag_size_maximum_permitted = 1e4; // effectively no limit
     i->maximum_star_count = 1693;
     i->minimum_star_count = 0;
     i->maximum_star_label_count = 1000;
@@ -190,10 +201,11 @@ void default_config(chart_config *i) {
     i->dso_symbol_key = 1;
     i->cardinals = 1;
     i->label_font_size_scaling = 1;
+    i->output_multiple_pages = 0;
     strcpy(i->constellation_highlight, "---");
     strcpy(i->galaxy_map_filename, SRCDIR "../data/milkyWay/process/output/galaxymap.dat");
     strcpy(i->photo_filename, "");
-    strcpy(i->output_filename, "chart");
+    strcpy(i->output_filename, "starchart.png");
     strcpy(i->copyright, "Produced with StarCharter. https://github.com/dcf21/star-charter");
     strcpy(i->title, "");
 
@@ -261,6 +273,13 @@ void config_init_arrays(chart_config *i) {
         i->text_labels_final_count = i->text_labels_default_count;
     }
 
+    // Number of arrow/line labels to display
+    if (i->arrow_labels_custom_count > 0) {
+        i->arrow_labels_final_count = i->arrow_labels_custom_count;
+    } else {
+        i->arrow_labels_final_count = i->arrow_labels_default_count;
+    }
+
     // Number of meteor shower radiants to display
     if (i->meteor_radiants_custom_count > 0) {
         i->meteor_radiants_final_count = i->meteor_radiants_custom_count;
@@ -307,6 +326,13 @@ void config_init_arrays(chart_config *i) {
         i->solar_system_colour_final_count = i->solar_system_colour_default_count;
     }
 
+    // Number of colour to use in cyclic loop when labelling solar system objects
+    if (i->solar_system_label_colour_custom_count > 0) {
+        i->solar_system_label_colour_final_count = i->solar_system_label_colour_custom_count;
+    } else {
+        i->solar_system_label_colour_final_count = i->solar_system_label_colour_default_count;
+    }
+
     // Number of colour to use in cyclic loop for drawing ephemerides for solar system objects.
     if (i->ephemeris_col_custom_count > 0) {
         i->ephemeris_col_final_count = i->ephemeris_col_custom_count;
@@ -333,6 +359,52 @@ void config_init_arrays(chart_config *i) {
         i->scale_bars_final_count = i->scale_bars_custom_count;
     } else {
         i->scale_bars_final_count = i->scale_bars_default_count;
+    }
+
+    // Check that colour lists have at least one member
+    if (i->solar_system_colour_final_count < 1) {
+        char buffer[FNAME_LENGTH];
+        snprintf(buffer, FNAME_LENGTH,
+                 "Bad input file. There zero entries for <solar_system_col>, but this list must have at "
+                 "least one member.");
+        stch_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    if (i->solar_system_label_colour_final_count < 1) {
+        char buffer[FNAME_LENGTH];
+        snprintf(buffer, FNAME_LENGTH,
+                 "Bad input file. There zero entries for <solar_system_label_col>, but this list must have at "
+                 "least one member.");
+        stch_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    if (i->ephemeris_col_final_count < 1) {
+        char buffer[FNAME_LENGTH];
+        snprintf(buffer, FNAME_LENGTH,
+                 "Bad input file. There zero entries for <ephemeris_col>, but this list must have at "
+                 "least one member.");
+        stch_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    if (i->ephemeris_arrow_col_final_count < 1) {
+        char buffer[FNAME_LENGTH];
+        snprintf(buffer, FNAME_LENGTH,
+                 "Bad input file. There zero entries for <ephemeris_arrow_col>, but this list must have at "
+                 "least one member.");
+        stch_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    if (i->ephemeris_label_col_final_count < 1) {
+        char buffer[FNAME_LENGTH];
+        snprintf(buffer, FNAME_LENGTH,
+                 "Bad input file. There zero entries for <ephemeris_label_col>, but this list must have at "
+                 "least one member.");
+        stch_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
     }
 }
 
@@ -400,6 +472,8 @@ void config_init_pointing(chart_config *i) {
         i->wlin = 2 * tan(i->angular_width / 2);
     } else if (i->projection == SW_PROJECTION_STEREOGRAPHIC) {
         i->wlin = 2 * tan(i->angular_width / 4);
+    } else if (i->projection == SW_PROJECTION_MULTILATITUDE) {
+        i->wlin = i->angular_width;
     } else if (i->projection == SW_PROJECTION_SPHERICAL) {
         i->wlin = 2 * sin(i->angular_width / 2) * 1.12; // margin specified here
     } else if (i->projection == SW_PROJECTION_ALTAZ) {

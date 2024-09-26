@@ -30,6 +30,7 @@
 
 #include "coreUtils/errorReport.h"
 #include "listTools/ltMemory.h"
+#include "mathsTools/julianDate.h"
 #include "mathsTools/sphericalTrig.h"
 
 #include "alias.h"
@@ -133,12 +134,18 @@ void magnitudeEstimate_init() {
 //! \param [out] eclipticLongitude - The ecliptic longitude of the object
 //! \param [out] eclipticLatitude - The ecliptic latitude of the object
 //! \param [out] eclipticDistance - The separation of the object from the Sun, in ecliptic longitude
+//! \param [in] ra_dec_epoch - The epoch of the RA/Dec coordinates to output. Supply 2451545.0 for J2000.0.
+//! \param [in] julian_date - The epoch of this data point, used to calculate the required topocentric correction.
+//! \param [in] do_topocentric_correction - Boolean indicating whether to apply topocentric correction to (ra, dec)
+//! \param [in] topocentric_latitude - Latitude (deg) of observer on Earth, if topocentric correction is applied.
+//! \param [in] topocentric_longitude - Longitude (deg) of observer on Earth, if topocentric correction is applied.
 
 void magnitudeEstimate(int body_id, double xo, double yo, double zo, double xe, double ye, double ze, double xs,
                        double ys, double zs, double *ra, double *dec, double *mag, double *phase, double *angSize,
                        double *phySize, double *albedoOut, double *sunDist, double *earthDist, double *sunAngDist,
                        double *theta_eso, double *eclipticLongitude, double *eclipticLatitude,
-                       double *eclipticDistance) {
+                       double *eclipticDistance, double ra_dec_epoch, double julian_date,
+                       int do_topocentric_correction, double topocentric_latitude, double topocentric_longitude) {
     // Distance of object from Sun
     const double Dso = sqrt(gsl_pow_2(xs - xo) + gsl_pow_2(ys - yo) + gsl_pow_2(zs - zo));
 
@@ -275,11 +282,23 @@ void magnitudeEstimate(int body_id, double xo, double yo, double zo, double xe, 
         *mag = GSL_NAN;
     }
 
+    // If requested, then apply topocentric correction to (xe, ye, ze), moving our frame of reference from the centre
+    // of the Earth to a point on the surface
+    double topocentric_offset[3] = {0, 0, 0};
+    if (do_topocentric_correction) {
+        const double utc = unix_from_jd(julian_date);
+        const double st = sidereal_time(utc) * 180 / 12; // degrees
+        const double pos_earth[3] = {0, 0, 0};
+        earthTopocentricPositionICRF(topocentric_offset, topocentric_latitude, topocentric_longitude,
+                                     1, pos_earth, julian_date, st);
+    }
+
     // Compute RA and Dec from J2000.0 coordinates
     {
-        const double x2 = xo - xe; // Position of object relative to the geocentre, in J2000.0 coordinates
-        const double y2 = yo - ye;
-        const double z2 = zo - ze;
+        // Position of object relative to the geocentre, in J2000.0 coordinates
+        const double x2 = xo - (xe + topocentric_offset[0]);
+        const double y2 = yo - (ye + topocentric_offset[1]);
+        const double z2 = zo - (ze + topocentric_offset[2]);
         *ra = atan2(y2, x2);
         *dec = asin(z2 / sqrt(gsl_pow_2(x2) + gsl_pow_2(y2) + gsl_pow_2(z2)));
         // Clamp RA within range 0 to 2pi radians
@@ -288,12 +307,15 @@ void magnitudeEstimate(int body_id, double xo, double yo, double zo, double xe, 
 
     // Compute ecliptic distance from J2000.0 coordinates
     {
-        const double xo2 = xo - xe; // Position of object relative to the geocentre
-        const double yo2 = yo - ye;
-        const double zo2 = zo - ze;
-        const double xs2 = xs - xe; // Position of Sun relative to the geocentre
-        const double ys2 = ys - ye;
-        const double zs2 = zs - ze;
+        // Position of object relative to the geocentre
+        const double xo2 = xo - (xe + topocentric_offset[0]);
+        const double yo2 = yo - (ye + topocentric_offset[1]);
+        const double zo2 = zo - (ze + topocentric_offset[2]);
+
+        // Position of Sun relative to the geocentre
+        const double xs2 = xs - (xe + topocentric_offset[0]);
+        const double ys2 = ys - (ye + topocentric_offset[1]);
+        const double zs2 = zs - (ze + topocentric_offset[2]);
 
         const double epsilon = (23. + 26. / 60. + 21.448 / 3600.) / 180. * M_PI; // Meeus (22.2)
         // negative x-axis points to the vernal equinox;
@@ -318,5 +340,71 @@ void magnitudeEstimate(int body_id, double xo, double yo, double zo, double xe, 
 
         if (*eclipticDistance < 0) (*theta_eso) *= -1;
     }
+
+    // Convert RA and Dec to requested epoch
+    if (ra_dec_epoch != 2451545.0) {
+        const double ra_j2000 = *ra;  // radians
+        const double dec_j2000 = *dec;  // radians
+        double ra_epoch, dec_epoch;
+        ra_dec_from_j2000(ra_j2000, dec_j2000, ra_dec_epoch, &ra_epoch, &dec_epoch);
+        *ra = ra_epoch;  // radians
+        *dec = dec_epoch;  // radians
+    }
 }
 
+/**
+ * Physical constants
+ */
+
+#define AU            149597871e3 /* metres */
+
+// Values taken from WGS84
+// https://en.wikipedia.org/wiki/World_Geodetic_System
+#define RADIUS_EARTH_EQUATOR 6378137. /* metres */
+#define RADIUS_EARTH_POLE    6356752.314245 /* metres */
+
+/**
+ * earthTopocentricPositionICRF - Return the 3D position of a point on the Earth's surface, in ICRF coordinates,
+ * relative to the solar system barycentre (the origin and coordinate system used by DE430).
+ * @param out [out] - A three-component Cartesian vector.
+ * @param lat [in] - Latitude, degrees
+ * @param lng [in] - Longitude, degrees
+ * @param radius_in_earth_radii [in] - The radial position, in Earth radii, of the location to query. Set to 1 for
+ * Earth's surface.
+ * @param pos_earth [in] - The 3D position of the centre of the Earth at the epoch, as quoted by DE430
+ * @param epoch [in] - The Julian Day number when the calculation is to be performed
+ * @param sidereal_time [in] - Sidereal time in degrees
+ */
+void earthTopocentricPositionICRF(double *out, double lat, double lng, double radius_in_earth_radii,
+                                  const double *pos_earth, double epoch, double sidereal_time) {
+
+    // In radians, the geodetic coordinates of the requested point, rotated to place RA=0 at longitude 0
+    const double lat_geodetic = lat * M_PI / 180;
+    const double lng_geodetic = (lng + sidereal_time) * M_PI / 180;
+
+    // Position in WGS84 coordinate system
+    // See <https://en.wikipedia.org/wiki/Reference_ellipsoid>
+    const double altitude = 0;  // metres
+
+    const double n = gsl_pow_2(RADIUS_EARTH_EQUATOR) / sqrt(gsl_pow_2(RADIUS_EARTH_EQUATOR * cos(lat_geodetic)) +
+                                                            gsl_pow_2(RADIUS_EARTH_POLE * sin(lat_geodetic)));
+    const double x = (n + altitude) * cos(lng_geodetic) * cos(lat_geodetic);
+    const double y = (n + altitude) * sin(lng_geodetic) * cos(lat_geodetic);
+    const double z = (gsl_pow_2(RADIUS_EARTH_POLE / RADIUS_EARTH_EQUATOR) * n + altitude) * sin(lat_geodetic);
+
+    // Work out RA and Dec of star above this point, for ecliptic of epoch
+    const double radius_geoid = sqrt(gsl_pow_2(x) + gsl_pow_2(y) + gsl_pow_2(z));  // metres
+
+    const double lat_at_epoch = asin(z / radius_geoid);  // planetocentric coordinates; radians
+    const double lng_at_epoch = atan2(y, x);  // planetocentric coordinates; radians
+
+    // Transform into J2000.0
+    double lat_j2000, lng_j2000; // radians
+    ra_dec_to_j2000(lng_at_epoch, lat_at_epoch, epoch, &lng_j2000, &lat_j2000);
+
+    // Output position relative to the solar system barycentre, in ICRF coordinates
+    const double radius_requested = radius_geoid * radius_in_earth_radii / AU;  // AU
+    out[0] = cos(lat_j2000) * cos(lng_j2000) * radius_requested + pos_earth[0];
+    out[1] = cos(lat_j2000) * sin(lng_j2000) * radius_requested + pos_earth[1];
+    out[2] = sin(lat_j2000) * radius_requested + pos_earth[2];
+}

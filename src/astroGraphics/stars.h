@@ -25,11 +25,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "astroGraphics/starListReader.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
 
 void tweak_magnitude_limits(chart_config *s);
+
+void plot_stars_calculate_magnitude_range(chart_config *s, FILE *stars_data_file, const tiling_information *tiles,
+                                          int *star_counter, double *star_mag_faintest, double *star_mag_brightest);
+
+int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, const tiling_information *tiles);
 
 double get_star_size(const chart_config *s, double mag);
 

@@ -33,11 +33,16 @@
 #define SW_PROJECTION_ALTAZ         4
 #define SW_PROJECTION_PETERS        5
 #define SW_PROJECTION_STEREOGRAPHIC 6
+#define SW_PROJECTION_MULTILATITUDE 7
 
 // Options for coordinate systems to use when charting the sky
 #define SW_COORDS_RADEC     1
 #define SW_COORDS_GALACTIC  2
 #define SW_COORDS_ALTAZ     3
+
+// Options for coordinate systems to use when drawing ephemeris tracks
+#define SW_COORDS_EPHEMERIS_RADEC 1
+#define SW_COORDS_EPHEMERIS_SOLAR 2
 
 // Options for output image formats
 #define SW_FORMAT_SVG 1
@@ -68,6 +73,11 @@
 #define SW_DSO_STYLE_COLOURED 0
 #define SW_DSO_STYLE_FUZZY 1
 
+// Options for coordinate systems when specifying the positions of text annotations and arrows
+#define SW_ANNOTATION_COORDS_PAGE 0
+#define SW_ANNOTATION_COORDS_RADEC 1
+#define SW_ANNOTATION_COORDS_ALTAZ 2
+
 //! The maximum number of text labels we can buffer
 #define MAX_LABELS 65536
 
@@ -75,7 +85,7 @@
 #define MAX_EXCLUSION_REGIONS 65536
 
 //! The maximum number of objects we're allowed to draw ephemeris lines for on a single chart
-#define N_TRACES_MAX 32
+#define N_TRACES_MAX 128
 
 //! Maximum allowed iteration depth when including configuration files
 #define MAX_INCLUSION_DEPTH 8
@@ -107,7 +117,7 @@ typedef struct ephemeris {
 
 typedef struct chart_config {
     //! Select projection to use. Set to SW_PROJECTION_STEREOGRAPHIC, SW_PROJECTION_FLAT, SW_PROJECTION_GNOMONIC,
-    //! SW_PROJECTION_SPHERICAL, SW_PROJECTION_ALTAZ or SW_PROJECTION_PETERS.
+    //! SW_PROJECTION_MULTILATITUDE, SW_PROJECTION_SPHERICAL, SW_PROJECTION_ALTAZ or SW_PROJECTION_PETERS.
     int projection;
 
     //! Select whether to specify centre of field of view in RA/Dec, galactic coordinates, or local alt/az.
@@ -160,6 +170,15 @@ typedef struct chart_config {
 
     //! The number of custom text labels to overlay over the star chart
     int text_labels_custom_count;
+
+    //! The list of arrow/line labels to overlay over the star chart
+    char arrow_labels[N_TRACES_MAX][FNAME_LENGTH];
+
+    //! The number of default arrow/line labels to overlay over the star chart
+    int arrow_labels_default_count;
+
+    //! The number of custom arrow/line labels to overlay over the star chart
+    int arrow_labels_custom_count;
 
     //! Boolean indicating whether we show the local horizon and clip objects below the horizon at `julian_date`
     int show_horizon;
@@ -217,6 +236,15 @@ typedef struct chart_config {
     //! The number of colours in the custom sequence used for solar system objects.
     int solar_system_colour_custom_count;
 
+    //! The colours to use when labelling solar system objects. These colours are used in a cyclic loop.
+    colour solar_system_label_colour[N_TRACES_MAX];
+
+    //! The number of colours in the default sequence used for labelling solar system objects.
+    int solar_system_label_colour_default_count;
+
+    //! The number of colours in the custom sequence used for labelling solar system objects.
+    int solar_system_label_colour_custom_count;
+
     //! Boolean flag (0 or 1) indicating whether to show the Moon's phase (1), or show a simple marker (0).
     int solar_system_show_moon_phase;
 
@@ -225,6 +253,10 @@ typedef struct chart_config {
 
     //! The colour to use to represent the illuminated portion of the Moon.
     colour solar_system_moon_colour;
+
+    //! Boolean flag (0 or 1) indicating whether to apply topocentric correction to the positions of solar system
+    //! objects, based on `horizon_latitude` and `horizon_longitude`.
+    int solar_system_topocentric_correction;
 
     //! Boolean flag indicating whether we shade the sky according to the altitude in the local sky at `julian_date`.
     int shade_twilight;
@@ -376,6 +408,9 @@ typedef struct chart_config {
     //! The radius of a star of magnitude <mag_max>
     double mag_size_norm;
 
+    //! The maximum permitted radius of a star, mm. If this is exceeded, all stars are made smaller.
+    double mag_size_maximum_permitted;
+
     //! Only show deep sky objects down to this faintest magnitude
     double dso_mag_min;
 
@@ -396,6 +431,16 @@ typedef struct chart_config {
 
     //! Boolean indicating whether we auto-scale the star chart to the requested ephemerides
     int ephemeris_autoscale;
+
+    //! The coordinate system to use when drawing the tracks of planets - either `ra_dec` or `solar`. Default `ra_dec`.
+    //! If `solar` is selected, the positions of planets are shown relative to the moving Sun, whose static position is
+    //! drawn at epoch `julian_date`. This is useful for showing the paths of planets close to the horizon at sunset on
+    //! a range of evenings, but will give nonsense results otherwise.
+    int ephemeris_coords;
+
+    //! The time resolution of ephemeris tracks, in days. Default 0.5 days. This is the spacing of the points sampled
+    //! along the planet's track, not the spacing of the labels placed along it.
+    double ephemeris_resolution;
 
     //! Enum indicating how ephemeris tracks should be drawn.
     //! Allowed settings are SW_EPHEMERIS_TRACK, SW_EPHEMERIS_SIDE_BY_SIDE, SW_EPHEMERIS_SIDE_BY_SIDE_WITH_TRACK
@@ -645,12 +690,18 @@ typedef struct chart_config {
     //! The final number of text labels to overlay over the star chart
     int text_labels_final_count;
 
+    //! The final number of arrow/line labels to overlay over the star chart
+    int arrow_labels_final_count;
+
     //! The final number of solar system objects listed within the data structures `solar_system_labels` and
     //! `solar_system_ids`
     int solar_system_final_count;
 
     //! The final number of colours in the sequence used for solar system objects.
     int solar_system_colour_final_count;
+
+    //! The final number of colours in the sequence used for labelling solar system objects.
+    int solar_system_label_colour_final_count;
 
     //! The final number of colours in the sequence used for drawing ephemerides for solar system objects.
     int ephemeris_col_final_count;
@@ -686,6 +737,9 @@ typedef struct chart_config {
 
     //! Image format to use for the output. One of SW_FORMAT_SVG, SW_FORMAT_PNG, SW_FORMAT_EPS or SW_FORMAT_PDF
     int output_format;
+
+    //! Boolean flag indicating whether to generate a multi-page PDF, with layers on different pages
+    int output_multiple_pages;
 
     double canvas_width, canvas_height, canvas_offset_x, canvas_offset_y, dpi, pt, cm, mm, line_width_base;
     double wlin, x_min, x_max, y_min, y_max;

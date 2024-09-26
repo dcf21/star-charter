@@ -119,7 +119,7 @@ docker compose run star-charter
 To make other star charts, open a shell within the Docker container as follows:
 
 ```
-docker run -it star-charter:v6 /bin/bash
+docker run -it star-charter:v7 /bin/bash
 ```
 
 ## Generating your own star charts
@@ -201,6 +201,7 @@ The following settings can be included in a `StarCharter` configuration file:
 
 * `alt_central` - The local altitude of the centre of the plot; degrees. This setting is only used if `coords=alt_az`.
 * `angular_width` - The angular width of the star chart on the sky; degrees
+* `arrow` - Overlay a line or arrow over the star chart. Each label should be specified in the format `<coordinates_0>,<xpos_0>,<ypos_0>,<coordinates_1>,<xpos_1>,<ypos_1>,<head_start>,<end_start>,<colour r>,<colour g>,<colour b>,<line width>`, where `coordinates` should be `page` or `ra_dec`. If `page` is selected, then `xpos` and `ypos` are in the range 0-1; if `ra_dec` is selected then `xpos` is RA/hours and `ypos` is Dec/degs. Different coordinate systems can be used for the two ends of the line. `head_start` and `head_end` are booleans indicating whether to draw arrow heads on the two ends of the line. The colour components are in the range 0-1. To overlay multiple arrow, specify this setting multiple times within your configuration file.
 * `aspect` - The aspect ratio of the star chart: i.e. the ratio height/width
 * `axis_label` - Boolean (0 or 1) indicating whether to write "Right ascension" and "Declination" on the vertical/horizontal axes
 * `axis_ticks_value_only` - If 1, axis labels will appear as simply "5h" or "30 deg". If 0, these labels will be preceded by alpha= or delta=
@@ -241,9 +242,11 @@ The following settings can be included in a `StarCharter` configuration file:
 * `ephemeris_arrow_shadow` - Boolean (0 or 1) indicating whether the ephemeris arrows drawn when `ephemeris_style` = `side_by_side_with_arrow` should have a shadow to make them more visible.
 * `ephemeris_autoscale` - Boolean (0 or 1) indicating whether to auto-scale the star chart to contain the requested ephemerides. This overrides settings for `ra_central`, `dec_central`, `angular_width`, as well as other parameters. Run the code in debugging mode to see a list of the values assigned to all these automatically-set parameters.
 * `ephemeris_col` - Colours to use when drawing ephemerides for solar system objects. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
+* `ephemeris_coords` - The coordinate system to use when drawing the tracks of planets - either `ra_dec` or `solar`. Default `ra_dec`. If `solar` is selected, the positions of planets are shown relative to the moving Sun, whose static position is drawn at epoch `julian_date`. This is useful for showing the paths of planets close to the horizon at sunset on a range of evenings, but will give nonsense results otherwise.
 * `ephemeris_epochs` - List of JD time epochs for which we should create points along each solar system ephemeris. If empty, then points are created automatically. This list must have the same length as <ephemeris_epoch_labels>. To draw multiple epochs, specify this setting multiple times within your configuration file.
 * `ephemeris_epoch_labels` - List of text labels for the points we create along each solar system ephemeris. If empty, then points are created automatically. This list must have the same length as <ephemeris_epochs>. To draw multiple epochs, specify this setting multiple times within your configuration file.
 * `ephemeris_label_col` - Colours to use when labelling ephemerides for solar system objects. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
+* `ephemeris_resolution` - The time resolution of ephemeris tracks, in days. Default 0.5 days. This is the spacing of the points sampled along the planet's track, not the spacing of the labels placed along it.
 * `ephemeris_style` - Select the style to use when showing the tracks of solar system objects. Set to `track`, `side_by_side`, `side_by_side_with_track` or `side_by_side_with_arrow`.
 * `equator_col` - Colour to use when drawing a line along the equator
 * `font_family` - The font family to use when rendering all text labels.
@@ -278,6 +281,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `mag_max` - Used to regulate the size of stars. A star of this magnitude is drawn with size mag_size_norm. Also, this is the brightest magnitude of star which is shown in the magnitude key below the chart.
 * `mag_min` - The faintest magnitude of star which we draw
 * `magnitude_key` - Boolean (0 or 1) indicating whether to draw a key to the magnitudes of stars under the star chart
+* `mag_size_maximum_permitted` - The maximum permitted radius of a star, mm. If this is exceeded, all stars are made smaller.
 * `mag_size_norm` - The radius of a star of magnitude `mag_max` (default 1.0)
 * `mag_step` - The magnitude interval between the samples shown on the magnitude key under the chart
 * `maximum_dso_count` - The maximum number of deep-sky objects to draw. If this is exceeded, only the brightest objects are shown.
@@ -299,7 +303,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `plot_galaxy_map` - Boolean (0 or 1) indicating whether to draw a shaded map of the Milky Way behind the star chart
 * `plot_stars` - Boolean (0 or 1) indicating whether we plot any stars
 * `position_angle` - The position angle of the plot - i.e. the tilt of north in degrees, counter-clockwise from up, at the centre of the plot
-* `projection` - Select projection to use. Set to `stereographic` (default; maximum width 360 degrees), `flat` (a rectangular map of RA/Dec), `peters` (a rectangular map in a Peters projection), `gnomonic` (maximum width 180 degrees), `sphere` (a celestial globe viewed from the outside) or `alt_az` (a hemisphere of a sky above a location, viewed from the output).
+* `projection` - Select projection to use. Set to `stereographic` (default; maximum width 360 degrees), `flat` (a rectangular map of RA/Dec), `peters` (a rectangular map in a Peters projection), `gnomonic` (maximum width 180 degrees), `sphere` (a celestial globe viewed from the outside), `multilatitude`, or `alt_az` (a hemisphere of a sky above a location, viewed from the output).
 * `ra_central` - The right ascension of the centre of the plot; hours, J2000.0.  This setting is only used if `coords=ra_dec`.
 * `scale_bar` - List of scale bars we should super-impose over the star chart. Each should be specified as: <x_pos>,<y_pos>,<position_angle>,<degrees> where <x_pos> and <y_pos> are 0-1, the position angle is a clockwise rotation in degrees, and degrees is the length of the scale bar on the sky. To draw multiple scale bars, specify this setting multiple times within your configuration file.
 * `scale_bar_col` - Colour to use for scale bars.
@@ -312,10 +316,12 @@ The following settings can be included in a `StarCharter` configuration file:
 * `show_zenith` - Boolean (0 or 1) indicating whether we mark the local zenith at `julian_date`
 * `solar_system_col` - The colour to use when drawing solar-system objects. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
 * `solar_system_ids` - The list of the ID strings of the solar system bodies to show (e.g. `P1` for Mercury). If multiple solar system bodies are to be displayed/labelled, then specify this setting multiple times, once for each body. The number of values of <solar_system_ids> must equal the number of values of <solar_system_labels>.
+* `solar_system_label_col` - The colour to use when labelling solar-system objects. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
 * `solar_system_labels` - The list of labels to show next to the selected solar system bodies. If multiple solar system bodies are to be displayed/labelled, then specify this setting multiple times, once for each body. The number of values of <solar_system_ids> must equal the number of values of <solar_system_labels>.
-* `solar_system_show_moon_phase` - Boolean flag (0 or 1) indicating whether to show the Moon's phase (1), or show a simple marker (0).
 * `solar_system_moon_earthshine_intensity` - The fractional intensity of Earthshine on the Moon's unilluminated portion, compared to the illuminated Moon. Default: 0.12.
 * `solar_system_moon_colour` - The colour to use to represent the illuminated portion of the Moon.
+* `solar_system_show_moon_phase` - Boolean flag (0 or 1) indicating whether to show the Moon's phase (1), or show a simple marker (0).
+* `solar_system_topocentric_correction` - Boolean flag (0 or 1) indicating whether to apply topocentric correction to the positions of solar system objects, based on `horizon_latitude` and `horizon_longitude`.
 * `star_allow_multiple_labels` - Boolean (0 or 1) indicating whether we allow multiple labels next to a single star. If false, we only include the highest-priority label for each object.
 * `star_bayer_labels` - Boolean (0 or 1) indicating whether we label the Bayer numbers of stars
 * `star_catalogue_numbers` - Boolean (0 or 1) indicating whether we label the catalogue numbers of stars
@@ -326,7 +332,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `star_mag_labels` - Boolean (0 or 1) indicating whether we label the magnitudes of stars
 * `star_names` - Boolean (0 or 1) indicating whether we label the English names of stars
 * `star_variable_labels` - Boolean (0 or 1) indicating whether we label the variable-star designations of stars, e.g. V337_Car
-* `text` - Overlay a custom text label on the star chart. Each label should be specified in the format `<xpos>,<ypos>,<xalign>,<yalign>,<font_size>,<colour r>,<colour g>,<colour b>,<label string>`, where `xpos` and `ypos` are in the range 0-1, `xalign` and `yalign` are in the range -1 (left) to 1 (right), and colour components are in the range 0-1. To overlay multiple text labels, specify this setting multiple times within your configuration file. 
+* `text` - Overlay a custom text label on the star chart. Each label should be specified in the format `<coordinates>,<xpos>,<ypos>,<xalign>,<yalign>,<font_size>,<font_bold>,<font_italic>,<colour r>,<colour g>,<colour b>,<label string>`, where `coordinates` should be `page` or `ra_dec`. If `page` is selected, then `xpos` and `ypos` are in the range 0-1; if `ra_dec` is selected then `xpos` is RA/hours and `ypos` is Dec/degs. `xalign` and `yalign` are in the range -1 (left) to 1 (right), and colour components are in the range 0-1. To overlay multiple text labels, specify this setting multiple times within your configuration file. 
 * `title` - The heading to write at the top of the star chart
 * `twilight_zenith_col` - The colour to use to shade twilight at the zenith
 * `twilight_horizon_col` - The colour to use to shade twilight at the horizon
@@ -373,6 +379,8 @@ angular width, and scales the star chart to automatically show the requested
 ephemerides.
 
 ## Change history
+
+**Version 7.0** (6 Sept 2024) - Added further new configuration options.
 
 **Version 6.0** (26 Aug 2024) - Removed external dependency on [ephemerisCompute](https://github.com/dcf21/ephemeris-compute-de430) to show the positions of solar system objects. This can now be done natively by `StarCharter`.
 

@@ -414,15 +414,22 @@ void sun_pos(double julian_date, double *ra_j2000_out, double *dec_j2000_out) {
     const double epsilon =
             23 + 26. / 60 + 21.448 / 3600 + 46.8150 / 3600 * t + 0.00059 / 3600 * t * t + 0.001813 / 3600 * t * t * t;
 
-    double ra = 12 / M_PI * atan2(cos(epsilon * deg) * sin(tl * deg), cos(tl * deg));  // hours
-    const double dec = 180 / M_PI * asin(sin(epsilon * deg) * sin(tl * deg)); // degrees
+    // Calculate RA and Dec at the epoch of the observation
+    const double ra_epoch = atan2(cos(epsilon * deg) * sin(tl * deg), cos(tl * deg));  // radians
+    const double dec_epoch = asin(sin(epsilon * deg) * sin(tl * deg)); // radians
+
+    // Convert to J2000.0 coordinates
+    double ra_j2000, dec_j2000; // radians
+    ra_dec_to_j2000(ra_epoch, dec_epoch, jd, &ra_j2000, &dec_j2000);
 
     // Ensure right ascension is in the range 0-24 hours
-    while (ra < 0) {
-        ra += 24;
+    double ra_j2000_hours = ra_j2000 * 12 / M_PI;
+    double dec_j2000_deg = dec_j2000 * 180 / M_PI;
+    while (ra_j2000_hours < 0) {
+        ra_j2000_hours += 24;
     }
 
     // Return output
-    *ra_j2000_out = ra;
-    *dec_j2000_out = dec;
+    *ra_j2000_out = ra_j2000_hours;
+    *dec_j2000_out = dec_j2000_deg;
 }

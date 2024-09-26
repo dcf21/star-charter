@@ -27,7 +27,7 @@ void jpl_computeXYZ(int body_id, double jd, double *x, double *y, double *z);
 void jpl_computeEphemeris(int bodyId, double jd, double *x, double *y, double *z, double *ra, double *dec,
                           double *mag, double *phase, double *angSize, double *phySize, double *albedo, double *sunDist,
                           double *earthDist, double *sunAngDist, double *theta_ESO, double *eclipticLongitude,
-                          double *eclipticLatitude, double *eclipticDistance);
+                          double *eclipticLatitude, double *eclipticDistance, double ra_dec_epoch,
+                          int do_topocentric_correction, double topocentric_latitude, double topocentric_longitude);
 
 #endif
-

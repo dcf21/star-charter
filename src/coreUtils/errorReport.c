@@ -120,11 +120,21 @@ void dcf_fread(void *ptr, size_t size, size_t n_requested, FILE *stream,
     const size_t items_read = fread(ptr, size, n_requested, stream);
     if (items_read != n_requested) {
         char buffer[LSTR_LENGTH];
+
+        const int file_end = feof(stream);
+        const int file_error = ferror(stream);
+        const long file_position = ftell(stream);
+
+        fseek(stream, 0L, SEEK_END);
+        const long file_end_position = ftell(stream);
+
         snprintf(buffer, LSTR_LENGTH, "\
 Failure while trying to read file <%s>\n\
 Requested read of %ld records of size %ld; only received %ld records\n\
-Read was requested by <%s:%d>\
-", input_filename, n_requested, size, items_read, source_file, source_line);
+Error code %d. EOF flag %d. File position %ld/%ld.\n\
+Read was requested by <%s:%d>\n\
+", input_filename, n_requested, size, items_read, file_error, file_end, file_position, file_end_position,
+                 source_file, source_line);
         stch_fatal(__FILE__, __LINE__, buffer);
         exit(1);
     }

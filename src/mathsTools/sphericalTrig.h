@@ -28,6 +28,9 @@ double angDist_RADec(double ra0, double dec0, double ra1, double dec1);
 
 double position_angle(double ra1, double dec1, double ra2, double dec2);
 
+void inv_position_angle(double ra1, double dec1, double pa, double ang_dist,
+                        double *ra2_out, double *dec2_out);
+
 void rotate_xy(double *out, const double *in, double theta);
 
 void rotate_xz(double *out, const double *in, double theta);

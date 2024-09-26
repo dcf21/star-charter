@@ -165,7 +165,7 @@ void plot_grid_lines(chart_config *s, line_drawer *ld) {
 
             // Project this point onto the drawing canvas
             double x, y;
-            plane_project(&x, &y, s, ra, dec);
+            plane_project(&x, &y, s, ra, dec, 0);
 
             // Add this point to the line we are drawing
             ld_point(ld, x, y, NULL);
@@ -244,7 +244,7 @@ void plot_grid_lines(chart_config *s, line_drawer *ld) {
 
             // Project this point onto the drawing canvas
             double x, y;
-            plane_project(&x, &y, s, ra, dec);
+            plane_project(&x, &y, s, ra, dec, 0);
 
             // Add this point to the line we are drawing
             ld_point(ld, x, y, NULL);

@@ -53,6 +53,9 @@ void plot_deep_sky_outlines(chart_config *s, cairo_page *page) {
     wordexp_t w;
     glob_t g;
 
+    // We only plot DSO outlines in the 'coloured' plot style
+    if (s->dso_style == SW_DSO_STYLE_FUZZY) return;
+
     // Path to where deep sky object outlines are stored
     const char *outlines_path = SRCDIR "/../data/deepSky/ngc/outlines/*.txt";
 
@@ -104,7 +107,7 @@ void plot_deep_sky_outlines(chart_config *s, cairo_page *page) {
 
                 // Project RA and Dec of object into physical coordinates on the star chart
                 plane_project(&x[point_counter], &y[point_counter], s,
-                              ra[point_counter] * M_PI / 180, dec[point_counter] * M_PI / 180);
+                              ra[point_counter] * M_PI / 180, dec[point_counter] * M_PI / 180, 0);
 
                 // Reject this object if it falls outside the plot area
                 if ((!gsl_finite(x[point_counter])) || (!gsl_finite(y[point_counter]))) {

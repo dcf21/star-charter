@@ -104,6 +104,8 @@ void orbitalElements_computeEphemeris(int bodyId, double jd, double *x, double *
                                       double *dec, double *mag, double *phase, double *angSize, double *phySize,
                                       double *albedo, double *sunDist, double *earthDist, double *sunAngDist,
                                       double *theta_eso, double *eclipticLongitude, double *eclipticLatitude,
-                                      double *eclipticDistance);
+                                      double *eclipticDistance, double ra_dec_epoch,
+                                      int do_topocentric_correction,
+                                      double topocentric_latitude, double topocentric_longitude);
 
 #endif

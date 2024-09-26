@@ -274,6 +274,44 @@ void plane_project_peters(double *x, double *y, const chart_config *s, double ra
     *y = y1;
 }
 
+//! plane_project_multilatitude - Project a pair of celestial coordinates (RA, Dec) onto a multi-latitude plot
+//! \param [out] x The output x position of the point (radians in tangent plane)
+//! \param [out] y The output y position of the point (radians in tangent plane)
+//! \param [in] s - Settings for the star chart we are drawing, including projection information
+//! \param [in] ra - The right ascension of the point to project (radians)
+//! \param [in] dec - The declination of the point to project (radians)
+
+void plane_project_multilatitude(double *x, double *y, const chart_config *s, double ra, double dec) {
+    // Fetch sidereal time at epoch
+    const double st_hr = sidereal_time(unix_from_jd(s->julian_date)); // hours
+    const double st_radians = st_hr * M_PI / 12;
+
+    // Longitude of point relative to the prime meridian
+    const double lng = ra - st_radians;
+    const double dec0 = dec;
+
+    // Project point into Cartesian coordinates
+    const double a[3] = {
+            cos(lng) * cos(dec0), // Directed towards the prime meridian at epoch
+            sin(lng) * cos(dec0),
+            sin(dec0) // Directed towards north celestial pole
+    };
+
+    // Latitude at which the point is on the local horizon
+    const double y_plane = -atan2(a[2], a[0]);  // radians
+
+    // Project point into alt/az coordinate at the latitude where it is on the horizon
+    double a_local[3];
+    rotate_xz(a_local, a, y_plane);
+
+    // Longitude of the point where it is on the horizon
+    const double x_plane = atan2(a_local[1], a_local[0]);
+
+    // We use RA/Dec as a shift in the image plane
+    *x = x_plane + s->ra0_final;
+    *y = -y_plane + s->dec0_final;
+}
+
 //! plane_project_spherical - Project a pair of celestial coordinates (RA, Dec) into pixel coordinates (x,y)
 //! \param [out] x The output x position of the point (radians in tangent plane)
 //! \param [out] y The output y position of the point (radians in tangent plane)
@@ -312,18 +350,22 @@ void plane_project_spherical(double *x, double *y, const chart_config *s, double
 //! \param [in] s - Settings for the star chart we are drawing, including projection information
 //! \param [in] ra - The right ascension of the point to project (radians)
 //! \param [in] dec - The declination of the point to project (radians)
+//! \param [in] allow_below_horizon - Return positions for objects below the horizon (bool)
 
-void plane_project(double *x, double *y, const chart_config *s, double ra, double dec) {
+void plane_project(double *x, double *y, const chart_config *s, const double ra, const double dec,
+                   const int allow_below_horizon) {
     if (s->projection == SW_PROJECTION_FLAT) {
         plane_project_flat(x, y, s, ra, dec);
     } else if (s->projection == SW_PROJECTION_PETERS) {
         plane_project_peters(x, y, s, ra, dec);
+    } else if (s->projection == SW_PROJECTION_MULTILATITUDE) {
+        plane_project_multilatitude(x, y, s, ra, dec);
     } else {
         plane_project_spherical(x, y, s, ra, dec);
     }
 
     // If we are showing the horizon, then hide all objects beneath the horizon
-    if (s->show_horizon) {
+    if (s->show_horizon && !allow_below_horizon) {
         // Find the coordinates of the zenith
         double ra_zenith_at_epoch, dec_zenith_at_epoch;
         double ra_zenith_j2000, dec_zenith_j2000;
@@ -382,6 +424,42 @@ void inv_plane_project_peters(double *ra, double *dec, const chart_config *s, do
     convert_selected_coordinates_to_ra_dec(s, s->coords, lng_out, lat_out, ra, dec);
 }
 
+//! inv_plane_project_multilatitude - Project a pair of pixel coordinates (x,y) into celestial coordinates (RA, Dec)
+//! \param [in] x The input x position of the point (radians in tangent plane)
+//! \param [in] y The input y position of the point (radians in tangent plane)
+//! \param [in] s - Settings for the star chart we are drawing, including projection information
+//! \param [out] ra - The output right ascension of the point to project (radians)
+//! \param [out] dec - The output declination of the point to project (radians)
+
+void inv_plane_project_multilatitude(double *ra, double *dec, const chart_config *s, double x, double y) {
+    // We use RA/Dec as a shift in the image plane
+    const double x_plane = x - s->ra0_final;
+    const double y_plane = -(y - s->dec0_final);
+
+    const double a_local[3] = {
+            cos(x_plane),
+            sin(x_plane),
+            0
+    };
+
+    // Project point from alt/az coordinate at the latitude where it is on the horizon
+    double a[3];
+    rotate_xz(a, a_local, -y_plane);
+
+    const double dec0 = asin(a[2]);
+    const double lng = atan2(a[1], a[0]);
+
+    // Fetch sidereal time at epoch
+    const double st_hr = sidereal_time(unix_from_jd(s->julian_date)); // hours
+    const double st_radians = st_hr * M_PI / 12;
+
+    // Longitude of point relative to the prime meridian
+    const double ra0 = lng + st_radians;
+
+    *ra = ra0;
+    *dec = dec0;
+}
+
 //! inv_plane_project_spherical - Project a pair of pixel coordinates (x,y) into celestial coordinates (RA, Dec)
 //! \param [in] x The input x position of the point (radians in tangent plane)
 //! \param [in] y The input y position of the point (radians in tangent plane)
@@ -431,6 +509,8 @@ void inv_plane_project(double *ra, double *dec, const chart_config *s, double x,
         inv_plane_project_flat(ra, dec, s, x, y);
     } else if (s->projection == SW_PROJECTION_PETERS) {
         inv_plane_project_peters(ra, dec, s, x, y);
+    } else if (s->projection == SW_PROJECTION_MULTILATITUDE) {
+        inv_plane_project_multilatitude(ra, dec, s, x, y);
     } else {
         inv_plane_project_spherical(ra, dec, s, x, y);
     }

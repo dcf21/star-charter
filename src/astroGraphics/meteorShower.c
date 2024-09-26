@@ -62,7 +62,7 @@ void plot_meteor_showers(chart_config *s, cairo_page *page) {
 
         // Project onto the plotting canvas
         double x, y;  // radians in tangent plane
-        plane_project(&x, &y, s, ra_radiant_j2000 * M_PI / 180, dec_radiant_j2000 * M_PI / 180);
+        plane_project(&x, &y, s, ra_radiant_j2000 * M_PI / 180, dec_radiant_j2000 * M_PI / 180, 0);
 
         // Ignore this star if it falls outside the plot area
         if ((!gsl_finite(x)) || (!gsl_finite(y)) ||

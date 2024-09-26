@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
     char help_string[LSTR_LENGTH], version_string[FNAME_LENGTH], version_string_underline[FNAME_LENGTH];
     char *filename = NULL;
     int have_filename = 0;
-    chart_config this_chart_config, chart_defaults, *settings_destination = NULL;
+    chart_config *settings_destination = NULL;
     int got_chart = 0;
 
     // Initialise sub-modules
@@ -109,9 +109,18 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    // Allocate chart configuration data structures
+    chart_config *chart_defaults = (chart_config *) malloc(sizeof(chart_config));
+    chart_config *this_chart_config = (chart_config *) malloc(sizeof(chart_config));
+
+    if ((chart_defaults == NULL) || (this_chart_config == NULL)) {
+        stch_fatal(__FILE__, __LINE__, "Malloc fail.");
+        exit(1);
+    }
+
     // Set up default settings for star charts
     if (DEBUG) stch_log("Setting up default star chart parameters.");
-    default_config(&chart_defaults);
+    default_config(chart_defaults);
 
     if (DEBUG) {
         char buffer[FNAME_LENGTH];
@@ -121,13 +130,15 @@ int main(int argc, char **argv) {
 
     // Open and read the input configuration file
     read_configuration_file(have_filename ? filename : NULL, 0,
-                            &got_chart, &chart_defaults,
-                            &this_chart_config, &settings_destination);
+                            &got_chart, chart_defaults,
+                            this_chart_config, &settings_destination);
 
     // Render final star chart
-    if (got_chart) render_chart(&this_chart_config);
+    if (got_chart) render_chart(this_chart_config);
 
     // Clean up and exit
+    free(this_chart_config);
+    free(chart_defaults);
     lt_freeAll(0);
     lt_memoryStop();
     if (DEBUG) stch_log("Terminating normally.");

@@ -21,8 +21,8 @@
 
 CWD=$(shell pwd)
 
-VERSION = 6.0
-DATE    = 26/08/2024
+VERSION = 7.0
+DATE    = 23/09/2024
 PATHLINK= /
 
 WARNINGS= -Wall -Wno-format-truncation -Wno-unused-result

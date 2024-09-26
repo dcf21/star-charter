@@ -43,17 +43,20 @@ void plane_project_flat(double *x, double *y, const chart_config *s, double ra, 
 
 void plane_project_peters(double *x, double *y, const chart_config *s, double ra, double dec);
 
+void plane_project_multilatitude(double *x, double *y, const chart_config *s, double ra, double dec);
+
 void plane_project_spherical(double *x, double *y, const chart_config *s, double ra, double dec);
 
-void plane_project(double *x, double *y, const chart_config *s, double ra, double dec);
+void plane_project(double *x, double *y, const chart_config *s, double ra, double dec, int allow_below_horizon);
 
 void inv_plane_project_flat(double *ra, double *dec, const chart_config *s, double x, double y);
 
 void inv_plane_project_peters(double *ra, double *dec, const chart_config *s, double x, double y);
+
+void inv_plane_project_multilatitude(double *ra, double *dec, const chart_config *s, double x, double y);
 
 void inv_plane_project_spherical(double *ra, double *dec, const chart_config *s, double x, double y);
 
 void inv_plane_project(double *ra, double *dec, const chart_config *s, double x, double y);
 
 #endif
-

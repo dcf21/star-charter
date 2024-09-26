@@ -86,6 +86,13 @@ void cairo_init(cairo_page *p, chart_config *s) {
         s->output_format = SW_FORMAT_EPS;
     } else if (str_cmp_no_case(s->output_filename + filename_extension_start, "pdf") == 0) {
         s->output_format = SW_FORMAT_PDF;
+
+        // If a PDF file ends with the magic suffix '.multipage.pdf', output a multi-layer PDF with each layer
+        // drawn on a separate page
+        const int multipage_extension_start = (int) gsl_max(filename_len - 14, 0);
+        if (str_cmp_no_case(s->output_filename + multipage_extension_start, ".multipage.pdf") == 0) {
+            s->output_multiple_pages = 1;
+        }
     } else {
         stch_fatal(__FILE__, __LINE__, "Could not determine output format from file extension.");
     }
@@ -211,22 +218,24 @@ void cairo_init(cairo_page *p, chart_config *s) {
 
     // While we're drawing the star chart, clip graphics operations to the plot area. This prevents text labels
     // spilling over the edges.
-    cairo_save(s->cairo_draw);
+    if (!s->output_multiple_pages) {
+        cairo_save(s->cairo_draw);
 
-    if ((s->projection == SW_PROJECTION_SPHERICAL) || (s->projection == SW_PROJECTION_ALTAZ)) {
-        cairo_arc(s->cairo_draw,
-                  (s->canvas_offset_x + s->width / 2) * s->cm,
-                  (s->canvas_offset_y + s->width / 2 * s->aspect) * s->cm,
-                  s->width * s->cm / s->wlin,
-                  0, 2 * M_PI);
+        if ((s->projection == SW_PROJECTION_SPHERICAL) || (s->projection == SW_PROJECTION_ALTAZ)) {
+            cairo_arc(s->cairo_draw,
+                      (s->canvas_offset_x + s->width / 2) * s->cm,
+                      (s->canvas_offset_y + s->width / 2 * s->aspect) * s->cm,
+                      s->width * s->cm / s->wlin,
+                      0, 2 * M_PI);
 
-    } else {
-        cairo_rectangle(s->cairo_draw,
-                        s->canvas_offset_x * s->cm, s->canvas_offset_y * s->cm,
-                        s->width * s->cm, s->width * s->aspect * s->cm);
+        } else {
+            cairo_rectangle(s->cairo_draw,
+                            s->canvas_offset_x * s->cm, s->canvas_offset_y * s->cm,
+                            s->width * s->cm, s->width * s->aspect * s->cm);
+        }
+
+        cairo_clip(s->cairo_draw);
     }
-
-    cairo_clip(s->cairo_draw);
 }
 
 //! plot_background_image - Render a PNG image in the background behind a star chart
@@ -238,6 +247,15 @@ void plot_background_image(chart_config *s) {
 
     // Load background image
     cairo_surface_t *surface = cairo_image_surface_create_from_png(s->photo_filename);
+
+    // Check that surface is OK
+    const int cairo_status = cairo_surface_status(surface);
+    if (cairo_status != 0) {
+        snprintf(temp_err_string, 4096, "Could not read background image <%s>. Error was: %s.",
+                 s->photo_filename, cairo_status_to_string(cairo_status));
+        stch_fatal(__FILE__, __LINE__, temp_err_string);
+        exit(1);
+    }
 
     // Read the pixel dimensions of the image we are to paint
     const int width = cairo_image_surface_get_width(surface);
@@ -264,6 +282,43 @@ void plot_background_image(chart_config *s) {
     cairo_surface_finish(surface);
 }
 
+//! move_to_next_page - When rendering a multi-page PDF, move to drawing the next page
+//! \param s - Settings for the star chart we are drawing
+void move_to_next_page(chart_config *s) {
+    // Super-impose a line around the edge of the plot
+    draw_chart_edge_line(s);
+
+    // Move to next page
+    cairo_surface_show_page(s->cairo_surface);
+}
+
+//! draw_chart_edge_line - Draw the line around the edge of the star chart.
+//! \param p - A structure describing the status of the drawing surface
+//! \param s - Settings for the star chart we are drawing
+
+void draw_chart_edge_line(chart_config *s) {
+    // Draw outline of chart
+    cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+    cairo_set_line_width(s->cairo_draw, s->chart_edge_line_width * s->line_width_base);
+    cairo_new_path(s->cairo_draw);
+
+    if ((s->projection == SW_PROJECTION_SPHERICAL) || (s->projection == SW_PROJECTION_ALTAZ)) {
+        // On alt/az charts, the chart has a circular shape
+        cairo_arc(s->cairo_draw,
+                  (s->canvas_offset_x + s->width / 2) * s->cm,
+                  (s->canvas_offset_y + s->width / 2 * s->aspect) * s->cm,
+                  s->width * s->cm / s->wlin,
+                  0, 2 * M_PI);
+        cairo_stroke(s->cairo_draw);
+    } else {
+        // On all other projections, the chart is rectangular
+        cairo_rectangle(s->cairo_draw,
+                        s->canvas_offset_x * s->cm, s->canvas_offset_y * s->cm,
+                        s->width * s->cm, s->width * s->aspect * s->cm);
+        cairo_stroke(s->cairo_draw);
+    }
+}
+
 //! draw_chart_edging - Draw the lines and labels around the edge of the star chart. First, we stop clipping the
 //! drawing context to the star chart area.
 //! \param p - A structure describing the status of the drawing surface
@@ -273,7 +328,7 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
     cairo_text_extents_t extents;
 
     // Stop clipping to the plot area
-    cairo_restore(s->cairo_draw);
+    if (!s->output_multiple_pages) cairo_restore(s->cairo_draw);
 
     // Select a font
     cairo_select_font_face(s->cairo_draw, s->font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
@@ -287,18 +342,10 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
     cairo_show_text(s->cairo_draw, s->title);
 
     // Draw outline of chart
-    cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
-    cairo_set_line_width(s->cairo_draw, s->chart_edge_line_width * s->line_width_base);
-    cairo_new_path(s->cairo_draw);
-    if ((s->projection == SW_PROJECTION_SPHERICAL) || (s->projection == SW_PROJECTION_ALTAZ)) {
-        // On alt/az charts, the chart has a circular shape
-        cairo_arc(s->cairo_draw,
-                  (s->canvas_offset_x + s->width / 2) * s->cm,
-                  (s->canvas_offset_y + s->width / 2 * s->aspect) * s->cm,
-                  s->width * s->cm / s->wlin,
-                  0, 2 * M_PI);
-        cairo_stroke(s->cairo_draw);
+    draw_chart_edge_line(s);
 
+    // Label the edges of the chart
+    if ((s->projection == SW_PROJECTION_SPHERICAL) || (s->projection == SW_PROJECTION_ALTAZ)) {
         // On alt/az charts, write the cardinal points around the edge of the chart
         if ((s->projection == SW_PROJECTION_ALTAZ) && (s->cardinals)) {
             const double dh = 1.05, dv = 1.08;
@@ -323,12 +370,6 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
         }
 
     } else {
-        // On all other projections, the chart is rectangular
-        cairo_rectangle(s->cairo_draw,
-                        s->canvas_offset_x * s->cm, s->canvas_offset_y * s->cm,
-                        s->width * s->cm, s->width * s->aspect * s->cm);
-        cairo_stroke(s->cairo_draw);
-
         // If requested, write "Right ascension" on the horizontal axis, and "Declination" on the vertical axis
         if (s->axis_label) {
             const char *x_label = "Right ascension";

@@ -60,7 +60,7 @@ void project_alt_az_to_xy(chart_config *s, double alt, double az,
 
     // Project this point onto the drawing canvas
     double x_tangent, y_tangent;
-    plane_project(&x_tangent, &y_tangent, s, ra, dec);
+    plane_project(&x_tangent, &y_tangent, s, ra, dec, 0);
 
     // Convert tangent-plane position into pixel coordinates
     double x_pixels, y_pixels;
@@ -101,63 +101,65 @@ void plot_horizon(chart_config *s, line_drawer *ld, cairo_page *page) {
                       s, ld, page, 0, NULL, horizon_colour);
 
     // Draw cardinal point markers
-    cairo_set_source_rgb(s->cairo_draw, s->horizon_cardinal_points_marker_colour.red,
-                         s->horizon_cardinal_points_marker_colour.grn,
-                         s->horizon_cardinal_points_marker_colour.blu);
-    for (int cardinal_index = 0; cardinal_index < 16; cardinal_index++) {
-        if ((s->horizon_cardinal_points_marker_count < 16) && ((cardinal_index % 2) != 0)) continue;
-        if ((s->horizon_cardinal_points_marker_count < 8) && ((cardinal_index % 4) != 0)) continue;
+    if (s->cardinals) {
+        cairo_set_source_rgb(s->cairo_draw, s->horizon_cardinal_points_marker_colour.red,
+                             s->horizon_cardinal_points_marker_colour.grn,
+                             s->horizon_cardinal_points_marker_colour.blu);
+        for (int cardinal_index = 0; cardinal_index < 16; cardinal_index++) {
+            if ((s->horizon_cardinal_points_marker_count < 16) && ((cardinal_index % 2) != 0)) continue;
+            if ((s->horizon_cardinal_points_marker_count < 8) && ((cardinal_index % 4) != 0)) continue;
 
-        const double azimuth_central = 2 * M_PI * cardinal_index / 16;
+            const double azimuth_central = 2 * M_PI * cardinal_index / 16;
 
-        // Project centre of marker and calculate position angle of upward vector
-        double x0, y0, x1, y1, x0_tangent, y0_tangent;
-        project_alt_az_to_xy(s, 0, azimuth_central, &x0, &y0, &x0_tangent, &y0_tangent);
-        project_alt_az_to_xy(s, 0.01, azimuth_central, &x1, &y1, NULL, NULL);
-        const double pa = atan2(x1 - x0, y1 - y0);
+            // Project centre of marker and calculate position angle of upward vector
+            double x0, y0, x1, y1, x0_tangent, y0_tangent;
+            project_alt_az_to_xy(s, 0, azimuth_central, &x0, &y0, &x0_tangent, &y0_tangent);
+            project_alt_az_to_xy(s, 0.01, azimuth_central, &x1, &y1, NULL, NULL);
+            const double pa = atan2(x1 - x0, y1 - y0);
 
-        // If markers fall off the bottom of the chart, we may be requested to elevate them to make them visible
-        const double x_centre = x0;
-        double y_centre = y0;
-        const double x_centre_tangent = x0_tangent;
-        double y_centre_tangent = y0_tangent;
-        if (s->horizon_cardinal_points_marker_elevate) {
-            const double y_bottom = (s->width * s->aspect + s->canvas_offset_y) * s->cm; // Cairo coordinates
-            if (y_centre > y_bottom) {
-                y_centre = y_bottom;
-                y_centre_tangent = s->y_max;
+            // If markers fall off the bottom of the chart, we may be requested to elevate them to make them visible
+            const double x_centre = x0;
+            double y_centre = y0;
+            const double x_centre_tangent = x0_tangent;
+            double y_centre_tangent = y0_tangent;
+            if (s->horizon_cardinal_points_marker_elevate) {
+                const double y_bottom = (s->width * s->aspect + s->canvas_offset_y) * s->cm; // Cairo coordinates
+                if (y_centre > y_bottom) {
+                    y_centre = y_bottom;
+                    y_centre_tangent = s->y_max;
+                }
             }
+
+            // Calculate vertices of triangular marker
+            const double marker_half_size = 0.25 * s->cm * s->horizon_cardinal_points_marker_size;
+            const double mx0 = x_centre + marker_half_size * sin(pa - M_PI / 2);
+            const double my0 = y_centre + marker_half_size * cos(pa - M_PI / 2);
+            const double mx1 = x_centre + marker_half_size * sin(pa + M_PI / 2);
+            const double my1 = y_centre + marker_half_size * cos(pa + M_PI / 2);
+            const double mx2 = x_centre + marker_half_size * sin(pa) * 1.5;
+            const double my2 = y_centre + marker_half_size * cos(pa) * 1.5;
+
+            const double label_rotation = 180 - pa * 180 / M_PI;
+            const double label_offset = marker_half_size * 3;
+
+            // Draw triangular marker
+            cairo_new_path(s->cairo_draw);
+            cairo_move_to(s->cairo_draw, mx0, my0);
+            cairo_line_to(s->cairo_draw, mx1, my1);
+            cairo_line_to(s->cairo_draw, mx2, my2);
+            cairo_close_path(s->cairo_draw);
+            cairo_fill(s->cairo_draw);
+
+            // Write label above marker
+            chart_label_buffer(page, s, s->horizon_cardinal_points_labels_colour, cardinal_label[cardinal_index],
+                               (label_position[1]) {
+                                       {x_centre_tangent, y_centre_tangent, label_rotation,
+                                        label_offset * sin(pa), label_offset * cos(pa),
+                                        0, 0}
+                               }, 1,
+                               0, 0, 2.5 * s->label_font_size_scaling,
+                               0, 0, 0, -10);
         }
-
-        // Calculate vertices of triangular marker
-        const double marker_half_size = 0.25 * s->cm * s->horizon_cardinal_points_marker_size;
-        const double mx0 = x_centre + marker_half_size * sin(pa - M_PI / 2);
-        const double my0 = y_centre + marker_half_size * cos(pa - M_PI / 2);
-        const double mx1 = x_centre + marker_half_size * sin(pa + M_PI / 2);
-        const double my1 = y_centre + marker_half_size * cos(pa + M_PI / 2);
-        const double mx2 = x_centre + marker_half_size * sin(pa) * 1.5;
-        const double my2 = y_centre + marker_half_size * cos(pa) * 1.5;
-
-        const double label_rotation = 180 - pa * 180 / M_PI;
-        const double label_offset = marker_half_size * 3;
-
-        // Draw triangular marker
-        cairo_new_path(s->cairo_draw);
-        cairo_move_to(s->cairo_draw, mx0, my0);
-        cairo_line_to(s->cairo_draw, mx1, my1);
-        cairo_line_to(s->cairo_draw, mx2, my2);
-        cairo_close_path(s->cairo_draw);
-        cairo_fill(s->cairo_draw);
-
-        // Write label above marker
-        chart_label_buffer(page, s, s->horizon_cardinal_points_labels_colour, cardinal_label[cardinal_index],
-                           (label_position[1]) {
-                                   {x_centre_tangent, y_centre_tangent, label_rotation,
-                                    label_offset * sin(pa), label_offset * cos(pa),
-                                    0, 0}
-                           }, 1,
-                           0, 0, 2.5 * s->label_font_size_scaling,
-                           0, 0, 0, -10);
     }
 
     // Re-enable horizon clipping

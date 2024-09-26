@@ -24,11 +24,21 @@
 
 #include "settings/chart_config.h"
 
-#define CONST_ARROW_ANGLE       ( 45.0 *M_PI/180 )
-#define CONST_ARROW_CONSTRICT   ( 0.2            )
-#define CONST_ARROW_HEADSIZE    ( 6.0            )
+#define CONST_ARROW_ANGLE           ( 45.0 *M_PI/180 )
+#define CONST_ARROW_ANGLE_THICK     ( 55.0 *M_PI/180 )
+#define CONST_ARROW_CONSTRICT       ( 0.2            )
+#define CONST_ARROW_HEADSIZE        ( 6.0            )
+#define CONST_ARROW_HEADSIZE_THICK  ( 8.0            )
 
 void draw_arrow(chart_config *s, double lw, int head_start, int head_end,
                 double x0, double y0, double x1, double y1);
+
+void draw_thick_arrow_segment(
+        chart_config *s, double lw, int head_start, int head_end,
+        const double *x_pixels, const double *y_pixels, const double *theta,
+        int index_start, int index_end);
+
+void draw_thick_arrow(chart_config *s, double lw, int head_start, int head_end,
+                      const double *x_list, const double *y_list, const double *theta, int point_count);
 
 #endif

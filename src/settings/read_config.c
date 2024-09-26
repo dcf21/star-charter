@@ -269,11 +269,12 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         x->position_angle = key_val_num;
         return 0;
     } else if (strcmp(key, "text") == 0) {
-        //! text - Overlay a custom text label on the star chart. Each label should be specified in the format:
-        //! `<xpos>,<ypos>,<xalign>,<yalign>,<font_size>,<colour r>,<colour g>,<colour b>,<label string>`
-        //! where `xpos` and `ypos` are in the range 0-1, `xalign` and `yalign` are in the range -1 (left) to 1 (right),
-        //! and colour components are in the range 0-1. To overlay multiple text labels, specify this setting multiple
-        //! times within your configuration file.
+        //! text - Overlay a custom text label on the star chart. Each label should be specified in the format
+        //! `<coordinates>,<xpos>,<ypos>,<xalign>,<yalign>,<font_size>,<colour r>,<colour g>,<colour b>,<label string>`,
+        //! where `coordinates` should be `page` or `ra_dec`. If `page` is selected, then `xpos` and `ypos` are in the
+        //! range 0-1; if `ra_dec` is selected then `xpos` is RA/hours and `ypos` is Dec/degs. `xalign` and `yalign`
+        //! are in the range -1 (left) to 1 (right), and colour components are in the range 0-1. To overlay multiple
+        //! text labels, specify this setting multiple times within your configuration file.
         if (x->text_labels_custom_count > N_TRACES_MAX - 4) {
             snprintf(temp_err_string, FNAME_LENGTH,
                      "Bad input file. Too many entries for <text>.");
@@ -282,6 +283,23 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         }
         strcpy(x->text_labels[x->text_labels_custom_count], key_val);
         x->text_labels_custom_count++;
+        return 0;
+    } else if (strcmp(key, "arrow") == 0) {
+        //! arrow - Overlay a line or arrow over the star chart. Each label should be specified in the format
+        //! `<coordinates_0>,<xpos_0>,<ypos_0>,<coordinates_1>,<xpos_1>,<ypos_1>,<head_start>,<end_start>,<colour r>,<colour g>,<colour b>,<line width>`,
+        //! where `coordinates` should be `page` or `ra_dec`. If `page` is selected, then `xpos` and `ypos` are in the
+        //! range 0-1; if `ra_dec` is selected then `xpos` is RA/hours and `ypos` is Dec/degs. Different coordinate
+        //! systems can be used for the two ends of the line. `head_start` and `head_end` are booleans indicating
+        //! whether to draw arrow heads on the two ends of the line. The colour components are in the range 0-1. To
+        //! overlay multiple arrow, specify this setting multiple times within your configuration file.
+        if (x->arrow_labels_custom_count > N_TRACES_MAX - 4) {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. Too many entries for <arrow>.");
+            stch_error(temp_err_string);
+            return 1;
+        }
+        strcpy(x->arrow_labels[x->arrow_labels_custom_count], key_val);
+        x->arrow_labels_custom_count++;
         return 0;
     } else if (strcmp(key, "axis_ticks_value_only") == 0) {
         //! axis_ticks_value_only - If 1, axis labels will appear as simply "5h" or "30 deg". If 0, these labels
@@ -477,6 +495,19 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         x->solar_system_colour[x->solar_system_colour_custom_count] = colour_from_string(key_val);
         x->solar_system_colour_custom_count++;
         return 0;
+    } else if (strcmp(key, "solar_system_label_col") == 0) {
+        //! solar_system_label_col - The colour to use when labelling solar-system objects. If this setting is supplied
+        //! multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system
+        //! objects to be drawn.
+        if (x->solar_system_label_colour_custom_count > N_TRACES_MAX - 4) {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. Too many entries for <solar_system_label_col>.");
+            stch_error(temp_err_string);
+            return 1;
+        }
+        x->solar_system_label_colour[x->solar_system_label_colour_custom_count] = colour_from_string(key_val);
+        x->solar_system_label_colour_custom_count++;
+        return 0;
     } else if (strcmp(key, "solar_system_show_moon_phase") == 0) {
         //! solar_system_show_moon_phase - Boolean flag (0 or 1) indicating whether to show the Moon's phase (1), or
         //! show a simple marker (0).
@@ -492,6 +523,12 @@ int process_configuration_file_line(char *line, const char *filename, const int 
     } else if (strcmp(key, "solar_system_moon_colour") == 0) {
         //! solar_system_moon_colour - The colour to use to represent the illuminated portion of the Moon.
         x->solar_system_moon_colour = colour_from_string(key_val);
+        return 0;
+    } else if (strcmp(key, "solar_system_topocentric_correction") == 0) {
+        //! solar_system_topocentric_correction - Boolean flag (0 or 1) indicating whether to apply topocentric
+        //! correction to the positions of solar system objects, based on `horizon_latitude` and `horizon_longitude`.
+        CHECK_VALUE_NUMERIC("solar_system_topocentric_correction")
+        x->solar_system_topocentric_correction = (int) key_val_num;
         return 0;
     } else if (strcmp(key, "shade_twilight") == 0) {
         //! shade_twilight - Boolean (0 or 1) indicating whether to shade the sky according to the altitude in
@@ -628,6 +665,8 @@ int process_configuration_file_line(char *line, const char *filename, const int 
             x->projection = SW_PROJECTION_GNOMONIC;
         } else if (strcmp(key_val, "stereographic") == 0) {
             x->projection = SW_PROJECTION_STEREOGRAPHIC;
+        } else if (strcmp(key_val, "multilatitude") == 0) {
+            x->projection = SW_PROJECTION_MULTILATITUDE;
         } else if (strcmp(key_val, "sphere") == 0) {
             x->projection = SW_PROJECTION_SPHERICAL;
             if (!x->aspect_is_set) x->aspect = 1.;
@@ -876,6 +915,11 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("mag_size_norm")
         x->mag_size_norm = key_val_num;
         return 0;
+    } else if (strcmp(key, "mag_size_maximum_permitted") == 0) {
+        //! mag_size_maximum_permitted - The maximum permitted radius of a star, mm. If this is exceeded, all stars are made smaller.
+        CHECK_VALUE_NUMERIC("mag_size_maximum_permitted")
+        x->mag_size_maximum_permitted = key_val_num;
+        return 0;
     } else if (strcmp(key, "maximum_star_count") == 0) {
         //! maximum_star_count - The maximum number of stars to draw. If this is exceeded, only the brightest stars
         //! are shown.
@@ -1058,6 +1102,32 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! automatically-set parameters.
         CHECK_VALUE_NUMERIC("ephemeris_autoscale")
         x->ephemeris_autoscale = (int) key_val_num;
+        return 0;
+    } else if (strcmp(key, "ephemeris_resolution") == 0) {
+        //! ephemeris_resolution - The time resolution of ephemeris tracks, in days. Default 0.5 days. This is the
+        //! spacing of the points sampled along the planet's track, not the spacing of the labels placed along it.
+        CHECK_VALUE_NUMERIC("ephemeris_resolution")
+        if (key_val_num < 1e-6) {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. ephemeris_resolution should be positive.");
+            stch_error(temp_err_string);
+            return 1;
+        }
+        x->ephemeris_resolution = key_val_num;
+        return 0;
+    } else if (strcmp(key, "ephemeris_coords") == 0) {
+        //! * ephemeris_coords - The coordinate system to use when drawing the tracks of planets - either `ra_dec` or
+        //! `solar`. Default `ra_dec`. If `solar` is selected, the positions of planets are shown relative to the
+        //! moving Sun, whose static position is drawn at epoch `julian_date`. This is useful for showing the paths of
+        //! planets close to the horizon at sunset on a range of evenings, but will give nonsense results otherwise.
+        if (strcmp(key_val, "ra_dec") == 0) x->ephemeris_coords = SW_COORDS_EPHEMERIS_RADEC;
+        else if (strcmp(key_val, "solar") == 0) x->ephemeris_coords = SW_COORDS_EPHEMERIS_SOLAR;
+        else {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. <ephemeris_coords> should equal 'ra_dec', or 'solar'.");
+            stch_error(temp_err_string);
+            return 1;
+        }
         return 0;
     } else if (strcmp(key, "ephemeris_table") == 0) {
         //! ephemeris_table - Boolean (0 or 1) indicating whether to include a table of the object's magnitude

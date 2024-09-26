@@ -128,7 +128,7 @@ void tweak_magnitude_limits(chart_config *s) {
 
                     // Work out where star appears on chart
                     double x, y;
-                    plane_project(&x, &y, s, sd.ra, sd.dec);
+                    plane_project(&x, &y, s, sd.ra, sd.dec, 0);
 
                     // Ignore this star if it falls outside the plot area
                     if ((!gsl_finite(x)) || (!gsl_finite(y)) || (x < s->x_min) || (x > s->x_max) || (y < s->y_min) ||
@@ -164,7 +164,7 @@ void tweak_magnitude_limits(chart_config *s) {
             new_mag_max = bin_mag_brightest + s->mag_step;
         }
 
-        // print debugging message
+        // Print debugging message
         if (DEBUG) {
             snprintf(temp_err_string, FNAME_LENGTH, "Number of stars brighter than mag %6.2f = %6d", bin_mag_brightest,
                      star_total_count);
@@ -212,25 +212,27 @@ double get_star_size(const chart_config *s, double mag) {
     return size;
 }
 
-//! plot_stars - Plot stars onto the star chart
-//! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
-//! \param page - A <cairo_page> structure defining the cairo drawing context.
+//! plot_stars_calculate_magnitude_range - Calculate the range of star magnitudes which will end up on this chart
+//! \param [in] s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param [in] stars_data_file - A file handle to the binary catalogue of star data.
+//! \param [in] tiles - A data structure defining the tiling scheme used for storing star data.
+//! \param [out] star_counter - The total number of stars which will end up on this star chart.
+//! \param [out] star_mag_faintest - The V-band magnitude of the faintest which will end up on this star chart.
+//! \param [out] star_mag_brightest - The V-band magnitude of the brightest which will end up on this star chart.
 
-void plot_stars(chart_config *s, cairo_page *page) {
-    // Start reading the binary star catalogue
-    FILE *file = open_binary_star_catalogue();
+void plot_stars_calculate_magnitude_range(chart_config *s, FILE *stars_data_file, const tiling_information *tiles,
+                                          int *star_counter, double *star_mag_faintest, double *star_mag_brightest) {
+    // Reset the star counter
+    *star_counter = 0;
 
-    // Read the header information from the binary catalogue
-    tiling_information tiles = read_binary_star_catalogue_headers(file);
-
-    // Count the number of stars we have labelled, and make sure it doesn't exceed <s->maximum_star_label_count>
-    int label_counter = 0;
-    int star_counter = 0;
+    // Initial values of the magnitude range
+    *star_mag_brightest = 30;
+    *star_mag_faintest = -4;
 
     // Loop over each tiling level
     for (int level = 0;
          (
-                 (level < tiles.total_level_count) && // Do not exceed deepest tiling level
+                 (level < (*tiles).total_level_count) && // Do not exceed deepest tiling level
                  ((level == 0) || (object_tilings[level - 1].faintest_mag < s->mag_min)) // Tiling level too faint?
          );
          level++
@@ -242,28 +244,28 @@ void plot_stars(chart_config *s, cairo_page *page) {
                 // Does this tile's sky area fall within field of view?
                 if (!test_if_tile_in_field_of_view(s, level, ra_index, dec_index)) continue;
 
-                // Work out position of this tile in the binary file
+                // Work out position of this tile in the binary stars_data_file
                 const int tile_index_in_level = dec_index * object_tilings[level].ra_bins + ra_index;
-                const int tile_index_in_array = tiles.tile_level_start_index[level] + tile_index_in_level;
-                const star_tile_info *tile = &tiles.tile_info[tile_index_in_array];
-                const unsigned long int tile_file_pos = (tiles.file_stars_start_position +
+                const int tile_index_in_array = (*tiles).tile_level_start_index[level] + tile_index_in_level;
+                const star_tile_info *tile = &(*tiles).tile_info[tile_index_in_array];
+                const unsigned long int tile_file_pos = ((*tiles).file_stars_start_position +
                                                          tile->file_position * sizeof(star_definition));
 
-                // Seek to correct position in the binary file
-                fseek(file, (long) tile_file_pos, SEEK_SET);
+                // Seek to correct position in the binary stars_data_file
+                fseek(stars_data_file, (long) tile_file_pos, SEEK_SET);
 
                 // Loop over each star in turn
                 for (int star_index = 0; star_index < tile->star_count; star_index++) {
                     // Read the star from disk
                     star_definition sd;
-                    fread(&sd, sizeof(star_definition), 1, file);
+                    fread(&sd, sizeof(star_definition), 1, stars_data_file);
 
                     // Stars are sorted in order of brightness, so can stop processing this tile if we find one that is too faint
                     if (sd.mag > s->mag_min) break;
 
                     // Work out coordinates of this star on the star chart
                     double x, y;
-                    plane_project(&x, &y, s, sd.ra, sd.dec);
+                    plane_project(&x, &y, s, sd.ra, sd.dec, 0);
 
                     // Ignore this star if it falls outside the plot area
                     if ((!gsl_finite(x)) || (!gsl_finite(y)) ||
@@ -271,17 +273,78 @@ void plot_stars(chart_config *s, cairo_page *page) {
                         continue;
                     }
 
-                    // Count number of stars
-                    star_counter++;
+                    // Count the total number of stars of the star chart
+                    (*star_counter)++;
 
-                    // Keep track of the brightest star in the field
+                    // Keep track of the range of star brightnesses
+                    if (sd.mag < (*star_mag_brightest)) *star_mag_brightest = sd.mag;
+                    if (sd.mag > (*star_mag_faintest)) *star_mag_faintest = sd.mag;
                     if (sd.mag < s->mag_highest) s->mag_highest = sd.mag;
+                }
+            }
+    }
+}
+
+//! plot_stars_draw - Draw stars onto the Cairo canvas
+//! \param [in] s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param [in|out] page - A <cairo_page> structure defining the cairo drawing context.
+//! \param [in] stars_data_file - A file handle to the binary catalogue of star data.
+//! \param [in] tiles - A data structure defining the tiling scheme used for storing star data.
+//! \return The total number of text labels we rendered onto the chart
+
+int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, const tiling_information *tiles) {
+    // Count the number of star labels we produce
+    int label_counter = 0;
+
+    // Now draw stars -- Loop over each tiling level
+    for (int level = 0;
+         (
+                 (level < (*tiles).total_level_count) && // Do not exceed deepest tiling level
+                 ((level == 0) || (object_tilings[level - 1].faintest_mag < s->mag_min)) // Tiling level too faint?
+         );
+         level++
+            ) {
+        // Loop over Dec tiles
+        for (int dec_index = 0; dec_index < object_tilings[level].dec_bins; dec_index++)
+            // Loop over RA tiles
+            for (int ra_index = 0; ra_index < object_tilings[level].ra_bins; ra_index++) {
+                // Does this tile's sky area fall within field of view?
+                if (!test_if_tile_in_field_of_view(s, level, ra_index, dec_index)) continue;
+
+                // Work out position of this tile in the binary stars_data_file
+                const int tile_index_in_level = dec_index * object_tilings[level].ra_bins + ra_index;
+                const int tile_index_in_array = (*tiles).tile_level_start_index[level] + tile_index_in_level;
+                const star_tile_info *tile = &(*tiles).tile_info[tile_index_in_array];
+                const unsigned long int tile_file_pos = ((*tiles).file_stars_start_position +
+                                                         tile->file_position * sizeof(star_definition));
+
+                // Seek to correct position in the binary stars_data_file
+                fseek(stars_data_file, (long) tile_file_pos, SEEK_SET);
+
+                // Loop over each star in turn
+                for (int star_index = 0; star_index < tile->star_count; star_index++) {
+                    // Read the star from disk
+                    star_definition sd;
+                    fread(&sd, sizeof(star_definition), 1, stars_data_file);
+
+                    // Stars are sorted in order of brightness, so can stop processing this tile if we find one that is too faint
+                    if (sd.mag > s->mag_min) break;
+
+                    // Work out coordinates of this star on the star chart
+                    double x, y;
+                    plane_project(&x, &y, s, sd.ra, sd.dec, 0);
+
+                    // Ignore this star if it falls outside the plot area
+                    if ((!gsl_finite(x)) || (!gsl_finite(y)) ||
+                        (x < s->x_min) || (x > s->x_max) || (y < s->y_min) || (y > s->y_max)) {
+                        continue;
+                    }
 
                     // Calculate the radius of this star on tha canvas
-                    const double size = get_star_size(s, sd.mag);
+                    const double size = get_star_size(s, sd.mag);  // inches
 
                     // Draw a circular splodge on the star chart
-                    const double size_canvas = size * s->dpi;
+                    const double size_canvas = size * s->dpi;  // Cairo pixels
                     double x_canvas, y_canvas;
                     fetch_canvas_coordinates(&x_canvas, &y_canvas, x, y, s);
                     cairo_set_source_rgb(s->cairo_draw, s->star_col.red, s->star_col.grn, s->star_col.blu);
@@ -341,10 +404,12 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                 if (temp_err_string[k] == '_') temp_err_string[k] = ' ';
 
                             chart_label_buffer(page, s, s->star_label_col, temp_err_string,
-                                               (label_position[2]) {
-                                                       {x, y, 0, horizontal_offset,  0, -1, 0},
-                                                       {x, y, 0, -horizontal_offset, 0, 1,  0}
-                                               }, 2,
+                                               (label_position[4]) {
+                                                       {x, y, 0, horizontal_offset,  0,                  -1, 0},
+                                                       {x, y, 0, -horizontal_offset, 0,                  1,  0},
+                                                       {x, y, 0, 0,                  horizontal_offset,  0,  -1},
+                                                       {x, y, 0, 0,                  -horizontal_offset, 0,  1}
+                                               }, 4,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                0, 0, 0, sd.mag);
                             label_counter++;
@@ -354,10 +419,12 @@ void plot_stars(chart_config *s, cairo_page *page) {
                         // Write a Bayer designation next to this star
                         if (show_name1) {
                             chart_label_buffer(page, s, s->star_label_col, sd.name1,
-                                               (label_position[2]) {
-                                                       {x, y, 0, horizontal_offset,  0, -1, 0},
-                                                       {x, y, 0, -horizontal_offset, 0, 1,  0}
-                                               }, 2,
+                                               (label_position[4]) {
+                                                       {x, y, 0, horizontal_offset,  0,                  -1, 0},
+                                                       {x, y, 0, -horizontal_offset, 0,                  1,  0},
+                                                       {x, y, 0, 0,                  horizontal_offset,  0,  -1},
+                                                       {x, y, 0, 0,                  -horizontal_offset, 0,  1}
+                                               }, 4,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                0, 0, 0, sd.mag);
                             label_counter++;
@@ -367,10 +434,12 @@ void plot_stars(chart_config *s, cairo_page *page) {
                         // Write a Flamsteed number next to this star
                         if (show_name5) {
                             chart_label_buffer(page, s, s->star_label_col, sd.name5,
-                                               (label_position[2]) {
-                                                       {x, y, 0, horizontal_offset,  0, -1, 0},
-                                                       {x, y, 0, -horizontal_offset, 0, 1,  0}
-                                               }, 2,
+                                               (label_position[4]) {
+                                                       {x, y, 0, horizontal_offset,  0,                  -1, 0},
+                                                       {x, y, 0, -horizontal_offset, 0,                  1,  0},
+                                                       {x, y, 0, 0,                  horizontal_offset,  0,  -1},
+                                                       {x, y, 0, 0,                  -horizontal_offset, 0,  1}
+                                               }, 4,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                0, 0, 0, sd.mag);
                             label_counter++;
@@ -386,10 +455,12 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                 if (temp_err_string[k] == '_') temp_err_string[k] = ' ';
 
                             chart_label_buffer(page, s, s->star_label_col, temp_err_string,
-                                               (label_position[2]) {
-                                                       {x, y, 0, horizontal_offset,  0, -1, 0},
-                                                       {x, y, 0, -horizontal_offset, 0, 1,  0}
-                                               }, 2,
+                                               (label_position[4]) {
+                                                       {x, y, 0, horizontal_offset,  0,                  -1, 0},
+                                                       {x, y, 0, -horizontal_offset, 0,                  1,  0},
+                                                       {x, y, 0, 0,                  horizontal_offset,  0,  -1},
+                                                       {x, y, 0, 0,                  -horizontal_offset, 0,  1}
+                                               }, 4,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                0, 0, 0, sd.mag);
                             label_counter++;
@@ -402,30 +473,36 @@ void plot_stars(chart_config *s, cairo_page *page) {
                                 // Write a Hipparcos number
                                 snprintf(temp_err_string, FNAME_LENGTH, "HIP%d", sd.hip_num);
                                 chart_label_buffer(page, s, s->star_label_col, temp_err_string,
-                                                   (label_position[2]) {
-                                                           {x, y, 0, horizontal_offset,  0, -1, 0},
-                                                           {x, y, 0, -horizontal_offset, 0, 1,  0}
-                                                   }, 2,
+                                                   (label_position[4]) {
+                                                           {x, y, 0, horizontal_offset,  0,                  -1, 0},
+                                                           {x, y, 0, -horizontal_offset, 0,                  1,  0},
+                                                           {x, y, 0, 0,                  horizontal_offset,  0,  -1},
+                                                           {x, y, 0, 0,                  -horizontal_offset, 0,  1}
+                                                   }, 4,
                                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                    0, 0, 0, sd.mag);
                             } else if ((s->star_catalogue == SW_CAT_YBSC) && (sd.ybsn_num > 0)) {
                                 // Write an HR number (i.e. Yale Bright Star Catalog number)
                                 snprintf(temp_err_string, FNAME_LENGTH, "HR%d", sd.ybsn_num);
                                 chart_label_buffer(page, s, s->star_label_col, temp_err_string,
-                                                   (label_position[2]) {
-                                                           {x, y, 0, horizontal_offset,  0, -1, 0},
-                                                           {x, y, 0, -horizontal_offset, 0, 1,  0}
-                                                   }, 2,
+                                                   (label_position[4]) {
+                                                           {x, y, 0, horizontal_offset,  0,                  -1, 0},
+                                                           {x, y, 0, -horizontal_offset, 0,                  1,  0},
+                                                           {x, y, 0, 0,                  horizontal_offset,  0,  -1},
+                                                           {x, y, 0, 0,                  -horizontal_offset, 0,  1}
+                                                   }, 4,
                                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                    0, 0, 0, sd.mag);
                             } else if ((s->star_catalogue == SW_CAT_HD) && (sd.hd_num > 0)) {
                                 // Write a Henry Draper number
                                 snprintf(temp_err_string, FNAME_LENGTH, "HD%d", sd.hd_num);
                                 chart_label_buffer(page, s, s->star_label_col, temp_err_string,
-                                                   (label_position[2]) {
-                                                           {x, y, 0, horizontal_offset,  0, -1, 0},
-                                                           {x, y, 0, -horizontal_offset, 0, 1,  0}
-                                                   }, 2,
+                                                   (label_position[4]) {
+                                                           {x, y, 0, horizontal_offset,  0,                  -1, 0},
+                                                           {x, y, 0, -horizontal_offset, 0,                  1,  0},
+                                                           {x, y, 0, 0,                  horizontal_offset,  0,  -1},
+                                                           {x, y, 0, 0,                  -horizontal_offset, 0,  1}
+                                                   }, 4,
                                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                    0, 0, 0, sd.mag);
                             }
@@ -435,12 +512,14 @@ void plot_stars(chart_config *s, cairo_page *page) {
 
                         // Write the magnitude of this star next to it
                         if (s->star_mag_labels) {
-                            snprintf(temp_err_string, FNAME_LENGTH, "mag %.1f", sd.mag);
+                            snprintf(temp_err_string, FNAME_LENGTH, "%.1f", sd.mag);
                             chart_label_buffer(page, s, s->star_label_col, temp_err_string,
-                                               (label_position[2]) {
-                                                       {x, y, 0, horizontal_offset,  0, -1, 0},
-                                                       {x, y, 0, -horizontal_offset, 0, 1,  0}
-                                               }, 2,
+                                               (label_position[4]) {
+                                                       {x, y, 0, horizontal_offset,  0,                  -1, 0},
+                                                       {x, y, 0, -horizontal_offset, 0,                  1,  0},
+                                                       {x, y, 0, 0,                  horizontal_offset,  0,  -1},
+                                                       {x, y, 0, 0,                  -horizontal_offset, 0,  1}
+                                               }, 4,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                                0, 0, 0, sd.mag - 0.000001);
                             label_counter++;
@@ -450,17 +529,62 @@ void plot_stars(chart_config *s, cairo_page *page) {
                 }
             }
     }
+    return label_counter;
+}
 
-    // Close the binary file listing all the stars
-    fclose(file);
+//! plot_stars - Plot stars onto the star chart
+//! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param page - A <cairo_page> structure defining the cairo drawing context.
+
+void plot_stars(chart_config *s, cairo_page *page) {
+    // Start reading the binary star catalogue
+    FILE *stars_data_file = open_binary_star_catalogue();
+
+    // Read the header information from the binary catalogue
+    tiling_information tiles = read_binary_star_catalogue_headers(stars_data_file);
+
+    // Count the number of stars we have labelled, and make sure it doesn't exceed <s->maximum_star_label_count>
+    int star_counter = 0;
+    double star_mag_faintest;
+    double star_mag_brightest;
+
+    // Calculate the range of magnitudes of stars we are going to render onto this chart
+    plot_stars_calculate_magnitude_range(s, stars_data_file, &tiles, &star_counter,
+                                         &star_mag_faintest, &star_mag_brightest);
+
+    // Work out radius of largest star on chart
+    double largest_star_radius = get_star_size(s, star_mag_brightest) * (s->dpi / s->mm);
+    if (largest_star_radius > s->mag_size_maximum_permitted) {
+        char buffer[LSTR_LENGTH];
+        snprintf(buffer, LSTR_LENGTH,
+                 "Reducing size of largest star on chart <%s> from %.2f mm to %.2f mm.",
+                 s->output_filename, largest_star_radius, s->mag_size_maximum_permitted);
+        stch_report(buffer);
+        s->mag_size_norm *= s->mag_size_maximum_permitted / largest_star_radius;
+
+        largest_star_radius = get_star_size(s, star_mag_brightest) * (s->dpi / s->mm);
+    }
+
+    // Now actually draw the stars onto the canvas
+    const int label_counter = plot_stars_draw(s, page, stars_data_file, &tiles);
+
+    // Close the binary stars_data_file listing all the stars
+    fclose(stars_data_file);
 
     // Free up tiling hierarchy information
     free_binary_star_catalogue_headers(&tiles);
 
     // print debugging message
     if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "Displayed %d stars and %d star labels", star_counter, label_counter);
-        stch_log(temp_err_string);
+        char buffer[LSTR_LENGTH];
+        snprintf(buffer, LSTR_LENGTH, "Displayed %d stars and %d star labels.", star_counter, label_counter);
+        stch_log(buffer);
+        snprintf(buffer, LSTR_LENGTH, "Star magnitudes range from %.3f to %.3f.",
+                 star_mag_brightest, star_mag_faintest);
+        stch_log(buffer);
+        snprintf(buffer, LSTR_LENGTH, "Largest star has a radius of %.3f mm.",
+                 largest_star_radius);
+        stch_log(buffer);
     }
 }
 

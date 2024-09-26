@@ -30,7 +30,10 @@
 #include "vectorGraphics/cairo_page.h"
 
 int ephemerides_fetch(ephemeris **ephemeris_data_out, int ephemeris_count,
-                      const char (*ephemeris_definitions)[N_TRACES_MAX][FNAME_LENGTH]);
+                      const char (*ephemeris_definitions)[N_TRACES_MAX][FNAME_LENGTH],
+                      double jd_step, int output_coordinates, double jd_central,
+                      int do_topocentric_correction,
+                      double topocentric_latitude, double topocentric_longitude);
 
 void ephemerides_free(chart_config *s);
 
