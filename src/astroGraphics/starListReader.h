@@ -66,7 +66,7 @@ typedef struct {
     int hd_num, hip_num, ybsn_num; // Catalogue numbers for this star; 0 for null
     double ra; // radians, J2000.0
     double dec; // radians, J2000.0
-    double mag;
+    double mag, mag_bv;
     double parallax, distance;
 } star_definition;
 

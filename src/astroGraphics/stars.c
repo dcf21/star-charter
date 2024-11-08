@@ -191,10 +191,10 @@ void tweak_magnitude_limits(chart_config *s) {
     s->mag_max = gsl_max(s->mag_max, new_mag_max);
 }
 
-//! get_star_size - Calculate the radius of this star, in canvas coordinates
+//! get_star_size - Calculate the radius of this star, in inches
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 //! \param mag - The magnitude of the star whose radius we are to calculate.
-//! \return The radius of the circle we should draw on the page
+//! \return The radius of the circle we should draw on the page; inches
 
 double get_star_size(const chart_config *s, double mag) {
     // Normalise the star's brightness into a number of <mag_step> intervals fainter than <mag_max>
@@ -601,8 +601,11 @@ double draw_magnitude_key(chart_config *s, double legend_y_pos) {
     // The width of each item in the magnitude key
     const double w_item = 1.5 * s->font_size;
 
+    // Round mag_min up to the nearest multiple of <mag_step>
+    const double mag_min_rounded = floor(s->mag_min / s->mag_step) * s->mag_step;
+
     // The number of items in the magnitude key
-    const int n_items = (int) ceil((s->mag_min - s->mag_highest) / s->mag_step);
+    const int n_items = (int) ceil((mag_min_rounded - s->mag_highest) / s->mag_step);
 
     // The number of columns we can fit in the magnitude key, spanning the full width of the star chart
     int n_columns = (int) floor((s->width - s->legend_right_column_width - w_tag) / w_item);
@@ -645,7 +648,7 @@ double draw_magnitude_key(chart_config *s, double legend_y_pos) {
 
     // Loop over each magnitude bin in turn
     for (int i = 0; i <= n_items; i++) {
-        const double magnitude = s->mag_min - i * s->mag_step;
+        const double magnitude = mag_min_rounded - i * s->mag_step;
 
         // Calculate the radius of this star on tha canvas
         const double size = get_star_size(s, magnitude);

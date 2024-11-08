@@ -29,4 +29,6 @@
 
 void plot_zenith(chart_config *s, cairo_page *page);
 
+void plot_celestial_poles(chart_config *s, cairo_page *page);
+
 #endif

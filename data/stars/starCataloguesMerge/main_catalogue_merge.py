@@ -1061,8 +1061,8 @@ def merge_star_catalogues(magnitude_limit: Optional[float] = None) -> None:
 
                 if (mag_reference is not None) and (mag_reference < mag_limit):
                     output_star_charter.write(
-                        "{:6d} {:6d} {:8d} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:s} {:s} {:s} {:s} {:s}\n"
-                        .format(hd_num, ybsn_num, hip_num, ra, decl, mag_reference, parallax, dist,
+                        "{:6d} {:6d} {:8d} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:17.12f} {:s} {:s} {:s} {:s} {:s}\n"
+                        .format(hd_num, ybsn_num, hip_num, ra, decl, mag_reference, mag_bv, parallax, dist,
                                 name_1, name_2, name_3, name_4, name_5)
                     )
 

@@ -276,7 +276,7 @@ void orbitalElements_planets_readAsciiData() {
         // Ignore blank lines and comment lines
         if (line[0] == '\0') continue;
         if (line[0] == '#') continue;
-        if (strlen(line) < 100) continue;
+        if (strlen(line) < 168) continue;
 
         // Read body id
         body_id = (int) get_float(line, NULL);
@@ -285,7 +285,7 @@ void orbitalElements_planets_readAsciiData() {
         planet_secure_count++;
 
         // Read planet name
-        for (i = 141, j = 0; (line[i] > ' '); i++, j++) planet_database[body_id].name[j] = line[i];
+        for (i = 166, j = 0; (line[i] > ' '); i++, j++) planet_database[body_id].name[j] = line[i];
         planet_database[body_id].name[j] = '\0';
 
         // Fill out dummy information
@@ -306,28 +306,28 @@ void orbitalElements_planets_readAsciiData() {
         // convert <per century> into <per day>
         planet_database[body_id].eccentricity_dot = get_float(line + i, NULL) / 36525.;
         for (i = 65; line[i] == ' '; i++);
-        // radians; J2000.0
+        // convert <degrees> to <radians; J2000.0>
         planet_database[body_id].longAscNode = get_float(line + i, NULL) * M_PI / 180;
-        for (i = 75; line[i] == ' '; i++);
-        // Convert <arcsec/century> into <radians/day>
-        planet_database[body_id].longAscNode_dot = get_float(line + i, NULL) / 36525. / 3600 * M_PI / 180;
-        for (i = 85; line[i] == ' '; i++);
+        for (i = 79; line[i] == ' '; i++);
+        // Convert <degrees/century> into <radians/day>
+        planet_database[body_id].longAscNode_dot = get_float(line + i, NULL) / 36525. * M_PI / 180;
+        for (i = 91; line[i] == ' '; i++);
         // radians; J2000.0
         planet_database[body_id].inclination = get_float(line + i, NULL) * M_PI / 180;
-        for (i = 94; line[i] == ' '; i++);
-        // Convert <arcsec/century> into <radians/day>
-        planet_database[body_id].inclination_dot = get_float(line + i, NULL) / 36525. / 3600 * M_PI / 180;
-        for (i = 101; line[i] == ' '; i++);
-        // radians; J2000.0
+        for (i = 104; line[i] == ' '; i++);
+        // Convert <degrees/century> into <radians/day>
+        planet_database[body_id].inclination_dot = get_float(line + i, NULL) / 36525. * M_PI / 180;
+        for (i = 116; line[i] == ' '; i++);
+        // convert <degrees> to <radians; J2000.0>
         const double longitude_perihelion = get_float(line + i, NULL) * M_PI / 180;
-        for (i = 111; line[i] == ' '; i++);
-        // Convert <arcsec/century> into <radians/day>
-        const double longitude_perihelion_dot = get_float(line + i, NULL) / 36525. / 3600 * M_PI / 180;
-        for (i = 120; line[i] == ' '; i++);
-        // radians; J2000.0
+        for (i = 129; line[i] == ' '; i++);
+        // Convert <degrees/century> into <radians/day>
+        const double longitude_perihelion_dot = get_float(line + i, NULL) / 36525. * M_PI / 180;
+        for (i = 141; line[i] == ' '; i++);
+        // convert <degrees> to <radians; J2000.0>
         const double mean_longitude = get_float(line + i, NULL) * M_PI / 180;
-        for (i = 130; line[i] == ' '; i++);
-        // julian date
+        for (i = 155; line[i] == ' '; i++);
+        // convert <unix time> to <julian date>
         planet_database[body_id].epochOsculation = jd_from_unix(get_float(line + i, NULL));
 
         // radians; J2000.0
@@ -1052,8 +1052,8 @@ void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, do
 //! \param [out] mag - Estimated V-band magnitude of the object
 //! \param [out] phase - Phase of the object (0-1)
 //! \param [out] angSize - Angular size of the object (arcseconds)
-//! \param [out] phySize - Physical size of the object (metres)
-//! \param [out] albedo - Albedo of the object
+//! \param [out] phySize - Physical size of the object (diameter, metres)
+//! \param [out] albedo - Albedo of the object (0-1)
 //! \param [out] sunDist - Distance of the object from the Sun (AU)
 //! \param [out] earthDist - Distance of the object from the Earth (AU)
 //! \param [out] sunAngDist - Angular distance of the object from the Sun, as seen from the Earth (radians)
@@ -1066,13 +1066,13 @@ void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, do
 //! \param [in] topocentric_latitude - Latitude (deg) of observer on Earth, if topocentric correction is applied.
 //! \param [in] topocentric_longitude - Longitude (deg) of observer on Earth, if topocentric correction is applied.
 
-void orbitalElements_computeEphemeris(int bodyId, double jd, double *x, double *y, double *z, double *ra,
+void orbitalElements_computeEphemeris(int bodyId, const double jd, double *x, double *y, double *z, double *ra,
                                       double *dec, double *mag, double *phase, double *angSize, double *phySize,
                                       double *albedo, double *sunDist, double *earthDist, double *sunAngDist,
                                       double *theta_eso, double *eclipticLongitude, double *eclipticLatitude,
-                                      double *eclipticDistance, double ra_dec_epoch,
-                                      int do_topocentric_correction,
-                                      double topocentric_latitude, double topocentric_longitude) {
+                                      double *eclipticDistance, const double ra_dec_epoch,
+                                      const int do_topocentric_correction,
+                                      const double topocentric_latitude, const double topocentric_longitude) {
     // Position of the Sun relative to the solar system barycentre, J2000.0 equatorial coordinates, AU
     double sun_pos_x, sun_pos_y, sun_pos_z;
 

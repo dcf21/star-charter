@@ -75,7 +75,9 @@ static int Nconstel = 0;
 //! \param Dec1 - The declination of the end of the line segment for which we are calculating d[azimuth] (radians)
 //! \return Change in azimuth (or winding number) (radians)
 
-static double dWind(double RA, double Dec, double RA0, double Dec0, double RA1, double Dec1) {
+static double dWind(const double RA, const double Dec,
+                    const double RA0, const double Dec0,
+                    const double RA1, const double Dec1) {
     double xA0 = sin(RA0) * cos(Dec0);
     double xA1 = sin(RA1) * cos(Dec1);
     double yA0 = cos(RA0) * cos(Dec0);
@@ -240,7 +242,7 @@ void constellations_init() {
 //! \param dec - The declination of the point whose constellation we are determining (radians)
 //! \return The full name of the constellation, in a static character buffer
 
-char *constellations_fetch(double ra, double dec) {
+char *constellations_fetch(const double ra, const double dec) {
     int i, outcome[Nconstel];
 
 #pragma omp parallel for shared(outcome) private(i)

@@ -64,10 +64,19 @@ void solar_system_write_ephemeris_definitions(const char (*solar_system_ids)[N_T
 //! \param [in] mag - Magnitude of this object
 //! \param [in] x - Tangent-plane coordinates of this object (radians)
 //! \param [in] y - Tangent-plane coordinates of this object (radians)
+//! \param [in] is_comet - Boolean flag indicating whether to draw a cometary tail on this object
+//! \param [in] sun_pa - Position angle of the Sun relative to this object; radians. Used to draw a tail, if shown.
 //! \param [in] label - Text label to place next to this object
+//! \param [in] priority_in - Optional priority for labelling this object; if NULL then a default value is computed
+//! \param [in] possible_positions_in_count - Optional list of possible positions for labelling this object; if NULL
+//! then a default set of positions are computed
+//! \param [in] possible_positions_in - Optional list of possible positions for labelling this object; if NULL then a
+//! default set of positions are computed
 
 void draw_solar_system_object(chart_config *s, cairo_page *page, const colour object_colour, const colour label_colour,
-                              const double mag, double x, double y, const char *label) {
+                              const double mag, double x, double y, const int is_comet, const double sun_pa,
+                              const char *label, const double *priority_in,
+                              const int *possible_positions_in_count, const label_position *possible_positions_in) {
     // Convert tangent-plane coordinates into cairo pixel coordinates
     double x_canvas, y_canvas;
     fetch_canvas_coordinates(&x_canvas, &y_canvas, x, y, s);
@@ -77,16 +86,72 @@ void draw_solar_system_object(chart_config *s, cairo_page *page, const colour ob
     const double size = get_star_size(s, mag_reference);
 
     // Calculate the radius of this object on tha canvas
-    double size_cairo = size * s->dpi;
+    const double size_cairo = size * s->dpi;
+
+    // Draw a tail if this is a comet
+    if (is_comet) {
+        const double fw = 15. * M_PI / 180; // half-width of comet's tail; radians
+        const double tail_length = 8; // tail length, in units of the nucleus size
+
+        // For simplicity, put centre of nucleus at (0,0), and scale coordinates by the nucleus size
+        cairo_save(s->cairo_draw);
+        cairo_translate(s->cairo_draw, x_canvas, y_canvas);
+        cairo_scale(s->cairo_draw, size_cairo, size_cairo);
+
+        // Create a radial pattern with fading opacity
+        cairo_pattern_t *p = cairo_pattern_create_radial(0, 0, 0, 0, 0, tail_length);
+
+        const int stop_count = 10;
+        for (int i = 0; i < stop_count; i++) {
+            const double pos = ((double) i) / stop_count;
+            const double alpha = pow(1. - pos, 1.2);
+            cairo_pattern_add_color_stop_rgba(p, pos,
+                                              object_colour.red, object_colour.grn, object_colour.blu,
+                                              alpha);
+        }
+
+        // Paint the comet's tail
+        cairo_set_source(s->cairo_draw, p);
+        cairo_new_path(s->cairo_draw);
+        cairo_move_to(s->cairo_draw,
+                      sin(sun_pa + M_PI / 2),
+                      cos(sun_pa + M_PI / 2));
+        cairo_line_to(s->cairo_draw,
+                      sin(sun_pa - M_PI / 2),
+                      cos(sun_pa - M_PI / 2));
+        cairo_line_to(s->cairo_draw,
+                      tail_length * sin(sun_pa - fw),
+                      tail_length * cos(sun_pa - fw));
+        cairo_line_to(s->cairo_draw,
+                      tail_length * sin(sun_pa + fw),
+                      tail_length * cos(sun_pa + fw));
+        cairo_close_path(s->cairo_draw);
+        cairo_fill(s->cairo_draw);
+
+        // Free the pattern we used
+        cairo_restore(s->cairo_draw);
+        cairo_pattern_destroy(p);
+    }
 
     // Draw a circular splodge on the star chart
     cairo_set_source_rgb(s->cairo_draw, object_colour.red, object_colour.grn, object_colour.blu);
     cairo_new_path(s->cairo_draw);
-    cairo_arc(s->cairo_draw, x_canvas, y_canvas, size * s->dpi, 0, 2 * M_PI);
-    cairo_fill_preserve(s->cairo_draw);
-    cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
-    cairo_set_line_width(s->cairo_draw, 0.5);
-    cairo_stroke(s->cairo_draw);
+    cairo_arc(s->cairo_draw, x_canvas, y_canvas, size_cairo, 0, 2 * M_PI);
+
+    if (!is_comet) {
+        cairo_fill_preserve(s->cairo_draw);
+        cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+        cairo_set_line_width(s->cairo_draw, 0.5);
+        cairo_stroke(s->cairo_draw);
+    } else {
+        cairo_fill(s->cairo_draw);
+        cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+        cairo_set_line_width(s->cairo_draw, 0.5);
+        cairo_new_path(s->cairo_draw);
+        cairo_arc(s->cairo_draw, x_canvas, y_canvas, size_cairo,
+                  M_PI - sun_pa, -sun_pa);
+        cairo_stroke(s->cairo_draw);
+    }
 
     // Don't allow text labels to be placed over this object
     {
@@ -105,16 +170,39 @@ void draw_solar_system_object(chart_config *s, cairo_page *page, const colour ob
     const double horizontal_offset = size * s->dpi + 0.075 * s->cm;
 
     // Calculate priority for this label
-    const double priority = s->must_show_all_ephemeris_labels ? -1 : 0;
+    double priority;
+
+    if (priority_in != NULL) {
+        priority = *priority_in;
+    } else {
+        priority = s->must_show_all_ephemeris_labels ? -1 : 0;
+    }
+
+    // Default possible positions for this label
+    const label_position *possible_positions_default = (label_position[4]) {
+            {x, y, 0, horizontal_offset,  0,                  -1, 0},
+            {x, y, 0, -horizontal_offset, 0,                  1,  0},
+            {x, y, 0, 0,                  horizontal_offset,  0,  -1},
+            {x, y, 0, 0,                  -horizontal_offset, 0,  1}
+    };
+    const int possible_positions_default_count = 4;
+
+    // Create a list of possible positions for labels for this object
+    const label_position *possible_positions = NULL;
+    int possible_positions_count = 0;
+
+    if (possible_positions_in != NULL) {
+        possible_positions = possible_positions_in;
+        possible_positions_count = *possible_positions_in_count;
+    } else {
+        possible_positions = possible_positions_default;
+        possible_positions_count = possible_positions_default_count;
+    }
+
 
     // Label this solar system object
     chart_label_buffer(page, s, label_colour, label,
-                       (label_position[4]) {
-                               {x, y, 0, horizontal_offset,  0,                  -1, 0},
-                               {x, y, 0, -horizontal_offset, 0,                  1,  0},
-                               {x, y, 0, 0,                  horizontal_offset,  0,  -1},
-                               {x, y, 0, 0,                  -horizontal_offset, 0,  1}
-                       }, 4,
+                       possible_positions, possible_positions_count,
                        0, 0, 1.2 * s->label_font_size_scaling,
                        0, 0, 0, priority);
 }
@@ -235,20 +323,24 @@ void draw_moon(chart_config *s, cairo_page *page, const colour label_colour,
 
 void plot_solar_system(chart_config *s, cairo_page *page) {
     // Loop over all the objects to display
-    for (int obj_id = 0; obj_id < s->solar_system_final_count; obj_id++)
+    for (int obj_id = 0; obj_id < s->solar_system_final_count; obj_id++) {
+        const ephemeris *e = &s->solar_system_ephemeris_data[obj_id];
+
         // Cannot plot objects with empty ephemeris data structures
-        if (s->solar_system_ephemeris_data[obj_id].point_count > 0) {
+        if (e->point_count > 0) {
             // Look up the celestial coordinates of this object
-            const double jd = s->solar_system_ephemeris_data[obj_id].data[0].jd;
-            const double ra = s->solar_system_ephemeris_data[obj_id].data[0].ra;
-            const double dec = s->solar_system_ephemeris_data[obj_id].data[0].dec;
-            const double mag = s->solar_system_ephemeris_data[obj_id].data[0].mag;
+            const double jd = e->data[0].jd;
+            const double ra = e->data[0].ra; // radians
+            const double dec = e->data[0].dec; // radians
+            const double mag = e->data[0].mag;
+            const double sun_pa = e->data[0].sun_pa; // radians
+            const int is_comet = e->is_comet;
 
             // Check whether this is the Moon
-            const int is_moon = (str_cmp_no_case(s->solar_system_ephemeris_data[obj_id].obj_id, "P301") == 0);
+            const int is_moon = (str_cmp_no_case(e->obj_id, "P301") == 0);
 
             // Check whether this is the Sun
-            const int is_sun = (str_cmp_no_case(s->solar_system_ephemeris_data[obj_id].obj_id, "sun") == 0);
+            const int is_sun = (str_cmp_no_case(e->obj_id, "sun") == 0);
 
             // Work out coordinates of this object on the star chart (tangent plane coordinates)
             double x, y;  // radians
@@ -275,7 +367,10 @@ void plot_solar_system(chart_config *s, cairo_page *page) {
             } else {
                 // Draw a circular splodge on the star chart
                 draw_solar_system_object(s, page, colour_final, colour_label_final,
-                                         mag, x, y, s->solar_system_labels[obj_id]);
+                                         mag, x, y, is_comet, sun_pa,
+                                         s->solar_system_labels[obj_id],
+                                         NULL, NULL, NULL);
             }
         }
+    }
 }

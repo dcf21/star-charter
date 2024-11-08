@@ -35,20 +35,26 @@ import logging
 import json
 import gzip
 
+from typing import Any, Dict, List, Sequence, Union
+
 # A list of the input files we are to process, containing various designs of stick figures
-input_files = [
+input_files: List[Dict[str, str]] = [
     {
-        'filename': "../constellation_lines_simplified.dat",
-        'output_stub': "output/constellation_lines_simplified"
+        'filename': "../constellation_lines_iau.dat",
+        'output_stub': "output/constellation_lines_iau"
     },
     {
         'filename': "../constellation_lines_rey.dat",
         'output_stub': "output/constellation_lines_rey"
-    }
+    },
+    {
+        'filename': "../constellation_lines_simplified.dat",
+        'output_stub': "output/constellation_lines_simplified"
+    },
 ]
 
 # A list of the output formats we are to copy each set of stick figures into
-output_formats = [
+output_formats: List[Dict[str, Any]] = [
     {
         'name': "by_HR",
         'fields': ['hr_number'],
@@ -97,25 +103,32 @@ output_formats = [
 ]
 
 
-def read_bright_star_catalogue():
-    stars_by_hd = {}
+def read_bright_star_catalogue() -> Dict[int, Dict[str, Union[int, float]]]:
+    """
+    Read the Yale Bright Star Catalog to produce an index of the positions of stars referenced by HD number.
+    """
+    stars_by_hd: Dict[int, Dict[str, Union[int, float]]] = {}
+    hr_number: int
+    line_str: str
+
+    # Read input catalog, line by line
     for hr_number, line_str in enumerate(gzip.open("../downloads/ybsc.gz", "rt")):
         try:
-            hd_number = int(line_str[25:31])
-            ra_hrs = float(line_str[75:77])
-            ra_min = float(line_str[77:79])
-            ra_sec = float(line_str[79:82])
-            dec_neg = (line_str[83] == '-')
-            dec_deg = float(line_str[84:86])
-            dec_min = float(line_str[86:88])
-            dec_sec = float(line_str[88:90])
-            mag = float(line_str[102:107])
+            hd_number: int = int(line_str[25:31])
+            ra_hrs: float = float(line_str[75:77])
+            ra_min: float = float(line_str[77:79])
+            ra_sec: float = float(line_str[79:82])
+            dec_neg: bool = (line_str[83] == '-')
+            dec_deg: float = float(line_str[84:86])
+            dec_min: float = float(line_str[86:88])
+            dec_sec: float = float(line_str[88:90])
+            mag: float = float(line_str[102:107])
         except ValueError:
             continue
 
         # Output RA and Dec in degrees
-        ra = (ra_hrs + (ra_min + (ra_sec / 60)) / 60) / 12 * 180.0
-        dec = (dec_deg + (dec_min + (dec_sec / 60)) / 60) / 180 * 180.0
+        ra: float = (ra_hrs + (ra_min + (ra_sec / 60)) / 60) / 12 * 180.0
+        dec: float = (dec_deg + (dec_min + (dec_sec / 60)) / 60) / 180 * 180.0
 
         # Fix the sign of the declination
         if dec_neg:
@@ -133,12 +146,19 @@ def read_bright_star_catalogue():
     return stars_by_hd
 
 
-def read_hipparcos_catalogue(stars_by_hd):
-    stars_by_hip = {}
+def read_hipparcos_catalogue(stars_by_hd: Dict[int, Dict[str, Union[int, float]]]) \
+        -> Dict[int, Dict[str, Union[int, float]]]:
+    """
+    Read the Hipparcos catalogue, and insert HIP numbers into our catalog of star positions by HD number.
+    """
+    stars_by_hip: Dict[int, Dict[str, Union[int, float]]] = {}
+    line_str: str
+
+    # Read input catalog, line by line
     for line_str in gzip.open("../downloads/hip_main.dat.gz", "rt"):
         try:
-            hip_number = int(line_str[2: 14])
-            hd_number = int(line_str[390:396])
+            hip_number: int = int(line_str[2: 14])
+            hd_number: int = int(line_str[390:396])
         except ValueError:
             continue
         if hd_number in stars_by_hd:
@@ -151,16 +171,23 @@ def read_hipparcos_catalogue(stars_by_hd):
     return stars_by_hip
 
 
-def fetch_star_coordinates(hip_number_str, stars_by_hip):
-    star_in_neighbouring_constellation = hip_number_str.endswith('*')
+def fetch_star_coordinates(hip_number_str: str, stars_by_hip: Dict[int, Dict[str, Union[int, float]]]) -> dict:
+    """
+    Fetch the celestial coordinates and properties of a star, reference by its HIP number
+    """
+
+    # A few constellation stick figures use stars which are in neighbouring constellations. These are denoted by a star
+    # after the star's HIP number
+    star_in_neighbouring_constellation: bool = hip_number_str.endswith('*')
 
     if star_in_neighbouring_constellation:
         hip_number_str = hip_number_str[:-1]
 
-    hip_number_int = int(hip_number_str)
+    # Extract the integer part of the HIP number, without the possible asterisk
+    hip_number_int: int = int(hip_number_str)
 
     try:
-        star_description = stars_by_hip[hip_number_int]
+        star_description: Dict[str, Union[int, float]] = stars_by_hip[hip_number_int]
     except KeyError:
         logging.info("No match to star HIP {:d}".format(hip_number_int))
         raise
@@ -173,17 +200,20 @@ def fetch_star_coordinates(hip_number_str, stars_by_hip):
     }
 
 
-def read_input_file(input_filename, stars_by_hip):
+def read_input_file(input_filename: str, stars_by_hip: Dict[int, Dict[str, Union[int, float]]]) -> dict:
+    """
+    Read an input file describing a set of constellation stick figures, and parse it into a Python dictionary.
+    """
     # We preserve all the comment lines at the top of the input file, which we repeat at the top of the output files
-    output_file_header = ""
-    sticks = []
-    current_constellation = "???"
+    output_file_header: str = ""
+    sticks: List[dict] = []
+    current_constellation: str = "???"
 
     # Loop over the lines in the input file, which defines stick figures as a list of Hipparcos catalogue numbers
     with open(input_filename) as f:
         for line in f:
-            line = line.strip()
-            words = line.split()
+            line: str = line.strip()
+            words: Sequence[str] = line.split()
 
             # Ignore blank lines
             if line == "":
@@ -230,9 +260,12 @@ def read_input_file(input_filename, stars_by_hip):
 
 
 def convert_stick_figures():
+    """
+    Many entry point to convert all data files describing a set of stick figures into all the requested output formats.
+    """
     # Read the input catalogues we need
-    stars_by_hd = read_bright_star_catalogue()
-    stars_by_hip = read_hipparcos_catalogue(stars_by_hd=stars_by_hd)
+    stars_by_hd: Dict[int, Dict[str, Union[int, float]]] = read_bright_star_catalogue()
+    stars_by_hip: Dict[int, Dict[str, Union[int, float]]] = read_hipparcos_catalogue(stars_by_hd=stars_by_hd)
 
     # Make sure that output directory exists
     os.system("mkdir -p output")
@@ -240,17 +273,17 @@ def convert_stick_figures():
 
     # Process each input file in turn
     for input_file in input_files:
-        input_data = read_input_file(input_filename=input_file['filename'],
-                                     stars_by_hip=stars_by_hip)
+        input_data: dict = read_input_file(input_filename=input_file['filename'],
+                                           stars_by_hip=stars_by_hip)
 
         # Write each output file into each output format
         for output_format in output_formats:
 
             # Work out filename for the processed version of this file
-            output_filename = "{}_{}.dat".format(input_file['output_stub'], output_format['name'])
+            output_filename: str = "{}_{}.dat".format(input_file['output_stub'], output_format['name'])
 
             # Create output file
-            with open(output_filename, "w") as f:
+            with open(output_filename, "wt") as f:
 
                 # Write comment lines at the top of the file
                 f.write("""
@@ -264,7 +297,8 @@ def convert_stick_figures():
            ))
 
                 # Add each stick to the file in turn, one stick on each line
-                current_constellation = "???"
+                current_constellation: str = "???"
+                stick: dict
                 for stick in input_data['sticks']:
 
                     # Leave a blank line each time we start a new constellation
@@ -273,11 +307,12 @@ def convert_stick_figures():
                         f.write("\n")
 
                     # If we're wrapping at RA=0, we may need to output this stick twice
-                    stick_split = (stick,)
+                    stick_split: Sequence[dict] = (stick,)
 
                     if output_format['wrap_at_ra_0']:
-                        wrap_this_stick = (((stick['line_start']['ra'] > 270) and (stick['line_end']['ra'] < 90)) or
-                                           ((stick['line_end']['ra'] > 270) and (stick['line_start']['ra'] < 90)))
+                        wrap_this_stick: bool = (
+                                ((stick['line_start']['ra'] > 270) and (stick['line_end']['ra'] < 90)) or
+                                ((stick['line_end']['ra'] > 270) and (stick['line_start']['ra'] < 90)))
 
                         if wrap_this_stick:
                             stick_split = [copy.deepcopy(stick) for i in range(2)]
@@ -293,11 +328,14 @@ def convert_stick_figures():
                                 stick_split[0]['line_end']['ra'] += 360
 
                     # Write this stick to the output file
+                    item: dict
                     for item in stick_split:
                         f.write("{:18} ".format(current_constellation))
+                        star: str
                         for star in ('line_start', 'line_end'):
+                            field: str
                             for field in output_format['fields']:
-                                value = item[star][field]
+                                value: Union[int, float] = item[star][field]
                                 if isinstance(value, int):
                                     f.write("{:12d} ".format(value))
                                 else:
@@ -305,6 +343,7 @@ def convert_stick_figures():
                         f.write("\n")
 
 
+# If we're run from the command-line, then execute <convert_stick_figures> right away
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         stream=sys.stdout,

@@ -1,7 +1,7 @@
 ## constellation_lines_rey.dat
 
 # -------------------------------------------------
-# Copyright 2015-2019 Dominic Ford
+# Copyright 2015-2024 Dominic Ford
 #
 # This file defines stick figures which can be used to depict the 88
 # astronomical constellations.
@@ -235,7 +235,7 @@
 
 * Equuleus
 
-["104987", "104858", "104538"]
+["104987", "104858", "104521"]
 
 * Eridanus
 

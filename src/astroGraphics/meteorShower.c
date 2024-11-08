@@ -88,7 +88,7 @@ void plot_meteor_showers(chart_config *s, cairo_page *page) {
             const double x1 = x_canvas + marker_size * 1.5 * cos(pa);
             const double y1 = y_canvas + marker_size * 1.5 * sin(pa);
 
-            draw_arrow(s, 0.7, 0, 1, x0, y0, x1, y1);
+            draw_arrow(s, 1, 0, 1, x0, y0, x1, y1);
         }
 
         // Draw circle

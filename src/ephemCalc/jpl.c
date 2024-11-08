@@ -641,8 +641,8 @@ void jpl_computeXYZ(int body_id, double jd, double *x, double *y, double *z) {
 //! \param [out] mag - Estimated V-band magnitude of the object
 //! \param [out] phase - Phase of the object (0-1)
 //! \param [out] angSize - Angular size of the object (arcseconds)
-//! \param [out] phySize - Physical size of the object (metres)
-//! \param [out] albedo - Albedo of the object
+//! \param [out] phySize - Physical size of the object (diameter, metres)
+//! \param [out] albedo - Albedo of the object (0-1)
 //! \param [out] sunDist - Distance of the object from the Sun (AU)
 //! \param [out] earthDist - Distance of the object from the Earth (AU)
 //! \param [out] sunAngDist - Angular distance of the object from the Sun, as seen from the Earth (radians)
@@ -655,11 +655,12 @@ void jpl_computeXYZ(int body_id, double jd, double *x, double *y, double *z) {
 //! \param [in] topocentric_latitude - Latitude (deg) of observer on Earth, if topocentric correction is applied.
 //! \param [in] topocentric_longitude - Longitude (deg) of observer on Earth, if topocentric correction is applied.
 
-void jpl_computeEphemeris(int bodyId, double jd, double *x, double *y, double *z, double *ra, double *dec,
+void jpl_computeEphemeris(int bodyId, const double jd, double *x, double *y, double *z, double *ra, double *dec,
                           double *mag, double *phase, double *angSize, double *phySize, double *albedo, double *sunDist,
                           double *earthDist, double *sunAngDist, double *theta_ESO, double *eclipticLongitude,
-                          double *eclipticLatitude, double *eclipticDistance, double ra_dec_epoch,
-                          int do_topocentric_correction, double topocentric_latitude, double topocentric_longitude) {
+                          double *eclipticLatitude, double *eclipticDistance, const double ra_dec_epoch,
+                          const int do_topocentric_correction,
+                          const double topocentric_latitude, const double topocentric_longitude) {
     // Position of the Sun relative to the solar system barycentre, J2000.0 equatorial coordinates, AU
     double sun_pos_x, sun_pos_y, sun_pos_z;
 

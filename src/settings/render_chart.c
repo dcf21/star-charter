@@ -120,15 +120,6 @@ void render_chart(chart_config *s) {
     // Draw a grid of lines of constant RA and Dec
     if (s->show_grid_lines) plot_grid_lines(s, &ld);
 
-    // Draw constellation boundaries
-    if (s->constellation_boundaries) plot_constellation_boundaries(s, &ld);
-
-    // Draw stick figures to represent the constellations
-    if (s->constellation_sticks) plot_constellation_sticks(s, &ld);
-
-    // If we're labelling meteor shower radiants, do so now
-    if (s->meteor_radiants_final_count > 0) plot_meteor_showers(s, &page);
-
     // Draw deep sky object outlines
     if (s->plot_dso) {
         if (s->output_multiple_pages) move_to_next_page(s);
@@ -139,6 +130,15 @@ void render_chart(chart_config *s) {
     if (s->plot_dso) {
         plot_deep_sky_objects(s, &page, s->messier_only);
     }
+
+    // Draw constellation boundaries
+    if (s->constellation_boundaries) plot_constellation_boundaries(s, &ld);
+
+    // Draw stick figures to represent the constellations
+    if (s->constellation_sticks) plot_constellation_sticks(s, &ld);
+
+    // If we're labelling meteor shower radiants, do so now
+    if (s->meteor_radiants_final_count > 0) plot_meteor_showers(s, &page);
 
     // Draw stars
     if (s->plot_stars) {
@@ -163,6 +163,7 @@ void render_chart(chart_config *s) {
 
     // If we're showing the zenith, label it now
     if (s->show_horizon_zenith) plot_zenith(s, &page);
+    if (s->show_poles) plot_celestial_poles(s, &page);
 
     // If we're showing scale bars, do so now
     if (s->scale_bars_final_count > 0) plot_scale_bars(s, &page);

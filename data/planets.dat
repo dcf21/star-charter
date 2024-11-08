@@ -1,0 +1,39 @@
+# planets.dat
+#
+# -------------------------------------------------
+# Copyright 2015-2024 Dominic Ford
+#
+# This file is part of EphemerisCompute.
+#
+# EphemerisCompute is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# EphemerisCompute is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with EphemerisCompute.  If not, see <http://www.gnu.org/licenses/>.
+# -------------------------------------------------
+
+# Orbital elements of the planets
+
+# Source: The Explanatory Supplement to the Astronomical Almanac (Third Edition; Urban & Seidelmann 2013)
+# Table 8.7 (page 338). First-order model valid for 1800-2050 AD.
+# All derivatives are given per century. Angular derivatives are in degrees/century. All epochs are J2000.0
+
+
+# ID radius albedo a (AU)     a_dot       eccentr    e_dot       lngAN/deg    lngAN_dot     i/deg       i_dot       lngPeri/d     lP_dot      meanLng      epoch/unix  name
+0  2.4397e6 0.138  0.38709927  0.00000037 0.20563593  0.00001906   48.33076593 -0.12534081   7.00497902 -0.00594749  77.45779628  0.16047689  252.25032350 946728000. Mercury
+1  6.0518e6 0.670  0.72333566  0.00000390 0.00677672 -0.00004107   76.67984255 -0.27769418   3.39467605 -0.00078890 131.60246718  0.00268329  181.97909950 946728000. Venus
+19 6.3710e6 0.367  1.00000261  0.00000562 0.01671123 -0.00004392    0.0         0.0         -0.00001531 -0.01294668 102.93768193  0.32327364  100.46457166 946728000. Earth
+3  3.3962e6 0.15   1.52371034  0.00001847 0.09339410  0.00007882   49.55953891 -0.29257343   1.84969142 -0.00813131 -23.94362959  0.44441088   -4.55343205 946728000. Mars
+4  6.9911e7 0.52   5.20288700 -0.00011607 0.04838624 -0.00013253  100.47390909  0.20469106   1.30439695 -0.00183714  14.72847983  0.21252668   34.39644051 946728000. Jupiter
+5  6.0268e7 0.47   9.53667594 -0.00125060 0.05386179 -0.00050991  113.66242448 -0.28867794   2.48599187  0.00193609  92.59887831 -0.41897216   49.95424423 946728000. Saturn
+6  2.5559e7 0.51  19.18916464 -0.00196176 0.04725744 -0.00004397   74.01692503  0.04240589   0.77263783 -0.00242939 170.95427630  0.40805281  313.23810451 946728000. Uranus
+7  2.4764e7 0.41  30.06992276  0.00026291 0.00859048  0.00005105  131.78422574 -0.00508664   1.77004347  0.00035372  44.96476227 -0.32241464  -55.12002969 946728000. Neptune
+8  1.1883e6 0.58  39.48211675 -0.00031596 0.24882730  0.00005170  110.30393684 -0.01183482  17.14001206  0.00004818 224.06891629 -0.04062942  238.92903833 946728000. Pluto
+

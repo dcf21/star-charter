@@ -365,6 +365,11 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("show_horizon")
         x->show_horizon = (int) key_val_num;
         return 0;
+    } else if (strcmp(key, "show_poles") == 0) {
+        //! show_poles - Boolean (0 or 1) indicating whether we mark the north and south celestial poles
+        CHECK_VALUE_NUMERIC("show_poles")
+        x->show_poles = (int) key_val_num;
+        return 0;
     } else if (strcmp(key, "show_zenith") == 0) {
         //! show_zenith - Boolean (0 or 1) indicating whether we mark the local zenith at `julian_date`
         CHECK_VALUE_NUMERIC("show_zenith")
@@ -733,6 +738,11 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("show_grid_lines")
         x->show_grid_lines = (int) key_val_num;
         return 0;
+    } else if (strcmp(key, "grid_line_density") == 0) {
+        //! grid_line_density - Multiplicative factor controlling how many grid lines we draw. Default 1.
+        CHECK_VALUE_NUMERIC("grid_line_density")
+        x->grid_line_density = key_val_num;
+        return 0;
     } else if (strcmp(key, "x_label_slant") == 0) {
         //! x_label_slant - A slant to apply to all labels on the horizontal axes
         CHECK_VALUE_NUMERIC("x_label_slant")
@@ -755,15 +765,17 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         return 0;
     } else if (strcmp(key, "constellation_stick_design") == 0) {
         //! constellation_stick_design - Select which design of constellation stick figures we should draw. Set to
-        //! either 'simplified' or 'rey'. See <https://github.com/dcf21/constellation-stick-figures> for more
+        //! either 'iau', 'rey' or 'simplified'. See <https://github.com/dcf21/constellation-stick-figures> for more
         //! information.
         if (strcmp(key_val, "simplified") == 0) {
             x->constellation_stick_design = SW_STICKS_SIMPLIFIED;
         } else if (strcmp(key_val, "rey") == 0) {
             x->constellation_stick_design = SW_STICKS_REY;
+        } else if (strcmp(key_val, "iau") == 0) {
+            x->constellation_stick_design = SW_STICKS_IAU;
         } else {
             snprintf(temp_err_string, FNAME_LENGTH, "Bad input file. "
-                                                    "constellation_stick_design should equal 'simplified' or 'rey'.");
+                                                    "constellation_stick_design should equal 'iau', 'rey' or 'simplified'.");
             stch_error(temp_err_string);
             return 1;
         }
@@ -789,11 +801,23 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("plot_dso")
         x->plot_dso = (int) key_val_num;
         return 0;
+    } else if (strcmp(key, "dso_catalogue_file") == 0) {
+        //! dso_catalogue_file - Source file from which we get DSO catalogue. By default, a catalogue of Messier, NGC
+        //! and IC objects is used. Only change this setting if you want to show custom deep-sky objects.
+        snprintf(x->dso_catalogue_file, FNAME_LENGTH, "%s", key_val);
+        x->dso_catalogue_file[FNAME_LENGTH - 1] = '\0';
+        return 0;
     } else if (strcmp(key, "constellation_names") == 0) {
         //! constellation_names - Boolean (0 or 1) indicating whether we label the names of constellations
         CHECK_VALUE_NUMERIC("constellation_names")
         x->constellation_names = (int) key_val_num;
         x->constellation_names_is_set = 1;
+        return 0;
+    } else if (strcmp(key, "constellation_label_size") == 0) {
+        //! constellation_label_size - Relative font size to use when rendering constellation names. Default 1.
+        CHECK_VALUE_NUMERIC("constellation_label_size")
+        x->constellations_label_size = key_val_num;
+        x->constellations_label_size_is_set = 1;
         return 0;
     } else if (strcmp(key, "star_names") == 0) {
         //! star_names - Boolean (0 or 1) indicating whether we label the English names of stars
@@ -1188,6 +1212,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! constellations.
         CHECK_VALUE_NUMERIC("constellations_capitalise")
         x->constellations_capitalise = (int) key_val_num;
+        x->constellations_capitalise_is_set = 1;
         return 0;
     } else if (strcmp(key, "constellations_label_shadow") == 0) {
         //! constellations_label_shadow - Boolean (0 or 1) indicating whether to draw a shadow behind the names
@@ -1198,7 +1223,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
     } else if (strcmp(key, "constellation_sticks_line_width") == 0) {
         //! constellation_sticks_line_width - Line width to use when drawing constellation stick figures. Default 1.4.
         CHECK_VALUE_NUMERIC("constellation_sticks_line_width")
-        x->constellation_sticks_line_width = key_val_num;
+        x->constellations_sticks_line_width = key_val_num;
         return 0;
     } else if (strcmp(key, "chart_edge_line_width") == 0) {
         //! chart_edge_line_width - Line width to use when marking the edge of the chart. Default 2.5.

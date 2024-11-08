@@ -79,6 +79,10 @@ void plot_grid_lines(chart_config *s, line_drawer *ld) {
         lat_line_count *= 2;
     }
 
+    // Apply multiplicative factor to grid density
+    lat_line_count = (int) (lat_line_count * s->grid_line_density);
+    lng_line_count = (int) (lng_line_count * s->grid_line_density);
+
     // Debugging info about how many lines we have chosen to draw
     if (DEBUG) {
         char message[FNAME_LENGTH];
@@ -127,18 +131,18 @@ void plot_grid_lines(chart_config *s, line_drawer *ld) {
             // Depending on how many lines we are drawing, the ticks may need to show minutes as well as hours
             if (floor(24. / lng_line_count) == (24. / lng_line_count))
                 snprintf(label, FNAME_LENGTH,
-                         "%s%dʰ",
+                         "%s%dh",
                          s->axis_ticks_value_only ? "" : "α=",
                          (int) floor(deg(lng_for_text) / 360. * 24.));
             else if (floor(24. * 60. / lng_line_count) == (24. * 60. / lng_line_count))
                 snprintf(label, FNAME_LENGTH,
-                         "%s%dʰ%02dᵐ",
+                         "%s%dh%02dm",
                          s->axis_ticks_value_only ? "" : "α=",
                          (int) floor(deg(lng_for_text) / 360. * 24.),
                          (int) floor(fmod(deg(lng_for_text) / 360. * 24. * 60., 60.)));
             else
                 snprintf(label, FNAME_LENGTH,
-                         "%s%dʰ%02dᵐ%02dˢ",
+                         "%s%dh%02dm%02ds",
                          s->axis_ticks_value_only ? "" : "α=",
                          (int) floor(deg(lng_for_text) / 360. * 24.),
                          (int) floor(fmod(deg(lng_for_text) / 360. * 24. * 60., 60.)),

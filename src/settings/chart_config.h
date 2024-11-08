@@ -62,6 +62,7 @@
 // Options for designs of constellation stick figures
 #define SW_STICKS_SIMPLIFIED 0
 #define SW_STICKS_REY 1
+#define SW_STICKS_IAU 2
 
 // Options for the display of ephemerides for solar system objects
 #define SW_EPHEMERIS_TRACK 0
@@ -102,6 +103,7 @@ typedef struct ephemeris_point {
     double mag;
     double phase; // 0-1
     double angular_size; // arcseconds
+    double sun_pa; // radians; J2000
     char *text_label;
     int sub_month_label;
 } ephemeris_point;
@@ -111,7 +113,7 @@ typedef struct ephemeris {
     double jd_start, jd_end, jd_step; // Julian day numbers
     char obj_id[FNAME_LENGTH]; // DE450 ID for the object
     double maximum_angular_size, minimum_phase, brightest_magnitude;
-    int point_count;
+    int point_count, is_comet;
     ephemeris_point *data;
 } ephemeris;
 
@@ -276,6 +278,9 @@ typedef struct chart_config {
     //! Boolean flag indicating whether we mark the zenith
     int show_horizon_zenith;
 
+    //! Boolean flag indicating whether we mark the north and south celestial poles
+    int show_poles;
+
     //! Colour to use when marking the zenith
     colour horizon_zenith_colour;
 
@@ -288,6 +293,9 @@ typedef struct chart_config {
     //! Boolean indicating whether we draw a grid of RA/Dec lines in the background of the star chart
     int show_grid_lines;
 
+    //! Multiplicative factor affecting how many grid lines we draw
+    double grid_line_density;
+
     //! Boolean indicating whether we draw constellation boundaries
     int constellation_boundaries;
 
@@ -295,7 +303,7 @@ typedef struct chart_config {
     int constellation_sticks;
 
     //! Select which design of constellation stick figures we should use
-    //! Either SW_STICKS_SIMPLIFIED or SW_STICKS_REY
+    //! Either SW_STICKS_IAU or SW_STICKS_REY or SW_STICKS_SIMPLIFIED
     int constellation_stick_design;
 
     //! Optionally select a constellation to highlight
@@ -336,8 +344,14 @@ typedef struct chart_config {
     //! Boolean indicating whether we label the magnitudes of NGC objects
     int dso_mags;
 
+    //! Source file from which we get DSO catalogue
+    char dso_catalogue_file[FNAME_LENGTH];
+
     //! Boolean indicating whether we label the names of constellations
     int constellation_names;
+
+    //! Relative font size to use when rendering constellation names. Default 1.
+    double constellations_label_size;
 
     //! Boolean indicating whether we plot any stars
     int plot_stars;
@@ -652,7 +666,7 @@ typedef struct chart_config {
     int constellations_label_shadow;
 
     //! Line width to use for constellation stick figures
-    double constellation_sticks_line_width;
+    double constellations_sticks_line_width;
 
     //! Line width to use for the edge of the star chart
     double chart_edge_line_width;
@@ -674,6 +688,8 @@ typedef struct chart_config {
     int angular_width_is_set;
     int dso_names_is_set;
     int aspect_is_set;
+    int constellations_capitalise_is_set;
+    int constellations_label_size_is_set;
 
     // ---------------
     // Calculated data

@@ -212,9 +212,10 @@ The following settings can be included in a `StarCharter` configuration file:
 * `constellation_boundary_col` - Colour to use when drawing constellation boundaries
 * `constellation_highlight` - Optionally, highlight the boundary of one particular constellation, identified by a three-letter abbreviation.
 * `constellation_label_col` - Colour to use when writing constellation names
+* `constellation_label_size` - Relative font size to use when rendering constellation names. Default 1.
 * `constellation_names` - Boolean (0 or 1) indicating whether we label the names of constellations
 * `constellation_stick_col` - Colour to use when drawing constellation stick figures
-* `constellation_stick_design` - Select which design of constellation stick figures we should draw. Set to either `simplified` or `rey`. See <https://github.com/dcf21/constellation-stick-figures> for more information.
+* `constellation_stick_design` - Select which design of constellation stick figures we should draw. Set to either `iau` (default), `rey` or `simplified`. See <https://github.com/dcf21/constellation-stick-figures> for more information.
 * `constellation_sticks_line_width` - Line width to use when drawing constellation stick figures. Default 1.4.
 * `constellation_sticks` - Boolean (0 or 1) indicating whether we draw constellation stick figures
 * `constellations_capitalise` - Boolean (0 or 1) indicating whether we capitalise the names of constellations.
@@ -225,6 +226,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `copyright` - The copyright string to write under the star chart
 * `dec_central` - The declination of the centre of the plot; degrees. This setting is only used if `coords=ra_dec`.
 * `draw_ephemeris` - Definitions of ephemerides to draw. Each definition should take the form of: `<bodyId>,<jdMin>,<jdMax>` (see above). To draw multiple ephemeride, specify this setting multiple times within your configuration file.
+* `dso_catalogue_file` - Source file from which we get DSO catalogue. By default, a catalogue of Messier, NGC and IC objects is used. Only change this setting if you want to show custom deep-sky objects.
 * `dso_cluster_col` - Colour to use when drawing star clusters
 * `dso_display_style` - Select which style to use for deep sky objects. Set to either `coloured` or `fuzzy`. Default is `coloured`.
 * `dso_galaxy_col` - Colour to use when drawing galaxies
@@ -263,6 +265,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `great_circle_dotted` - Boolean (0 or 1)  indicating whether to use a dotted line when tracing great circles
 * `grid_col` - Colour to use when drawing grid of RA/Dec (or Alt/Az, or galactic coordinate) lines
 * `grid_coords` - Select which celestial coordinate system to trace with grid lines. Set to `ra_dec`, `galactic` or `alt_az`.
+* `grid_line_density` - Multiplicative factor controlling how many grid lines we draw. Default 1.
 * `grid_line_width` - Line width to use when drawing grid lines. Default 1.3.
 * `horizon_cardinal_points_labels_col` - Colour to use when drawing cardinal-point labels along the horizon.
 * `horizon_cardinal_points_marker_col` - Colour to use when drawing cardinal-point markers along the horizon.
@@ -312,6 +315,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `shade_not_observable` - Boolean (0 or 1) indicating whether to shade the region of sky that is not observable at any time of day at `julian_date`.
 * `show_grid_lines` - Boolean (0 or 1) indicating whether we draw a grid of RA/Dec lines in background of star chart
 * `show_horizon` - Boolean (0 or 1) indicating whether we show the local horizon and clip objects below the horizon at `julian_date`
+* `show_poles` - Boolean (0 or 1) indicating whether we mark the north and south celestial poles
 * `show_solar_system` - Boolean (0 or 1) indicating whether we show the positions of solar system bodies at `julian_date`
 * `show_zenith` - Boolean (0 or 1) indicating whether we mark the local zenith at `julian_date`
 * `solar_system_col` - The colour to use when drawing solar-system objects. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.

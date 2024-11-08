@@ -28,6 +28,7 @@
 
 #include "astroGraphics/ephemeris.h"
 #include "astroGraphics/solarSystem.h"
+#include "astroGraphics/stars.h"
 #include "ephemCalc/jpl.h"
 #include "ephemCalc/orbitalElements.h"
 #include "coreUtils/asciiDouble.h"
@@ -148,6 +149,7 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
         str_comma_separated_list_scan(&in_scan, object_id);
         snprintf((*ephemeris_data_out)[i].obj_id, FNAME_LENGTH, "%s", object_id);
         const int body_id = convert_body_name_to_int_id(object_id);
+        (*ephemeris_data_out)[i].is_comet = (body_id >= 2e7);
 
         // Read starting Julian day number into (*ephemeris_data_out)[i].jd_start
         str_comma_separated_list_scan(&in_scan, buffer);
@@ -209,15 +211,18 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
                                  topocentric_latitude, topocentric_longitude
             );
 
+            // Work out the Sun's position, and the direction to the Sun
+            double ra_sun_epoch_hr, dec_sun_epoch_deg, ra_sun_0_hr, dec_sun_0_deg;
+            sun_pos(jd, &ra_sun_epoch_hr, &dec_sun_epoch_deg);
+            sun_pos(jd_central, &ra_sun_0_hr, &dec_sun_0_deg);
+            const double pa_from_sun = position_angle(
+                    ra_sun_epoch_hr * M_PI / 12, dec_sun_epoch_deg * M_PI / 180, ra, dec);
+            const double pa_to_sun = position_angle(
+                    ra, dec, ra_sun_epoch_hr * M_PI / 12, dec_sun_epoch_deg * M_PI / 180);
+
             // If requested, re-project the object's position
             if (output_coordinates == SW_COORDS_EPHEMERIS_SOLAR) {
-                double ra_sun_epoch_hr, dec_sun_epoch_deg, ra_sun_0_hr, dec_sun_0_deg;
-                sun_pos(jd, &ra_sun_epoch_hr, &dec_sun_epoch_deg);
-                sun_pos(jd_central, &ra_sun_0_hr, &dec_sun_0_deg);
-
                 const double solar_separation = angDist_RADec(
-                        ra_sun_epoch_hr * M_PI / 12, dec_sun_epoch_deg * M_PI / 180, ra, dec);
-                const double pa_from_sun = position_angle(
                         ra_sun_epoch_hr * M_PI / 12, dec_sun_epoch_deg * M_PI / 180, ra, dec);
 
                 double ra_new, dec_new;
@@ -234,6 +239,7 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
             (*ephemeris_data_out)[i].data[line_counter].mag = magnitude;
             (*ephemeris_data_out)[i].data[line_counter].phase = phase;
             (*ephemeris_data_out)[i].data[line_counter].angular_size = angular_size;
+            (*ephemeris_data_out)[i].data[line_counter].sun_pa = pa_to_sun;  // radians
             (*ephemeris_data_out)[i].data[line_counter].text_label = NULL;
             (*ephemeris_data_out)[i].data[line_counter].sub_month_label = 0;
 
@@ -589,6 +595,22 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
             if (!s->maximum_star_label_count_is_set) s->maximum_star_label_count = 20;
         }
 
+        // Decide scaling of constellation name labels
+        if (!s->constellations_capitalise_is_set) {
+            s->constellations_capitalise = (int) (angular_width_base < 55);
+        }
+
+        if (!s->constellations_label_size_is_set) {
+            const double scaling_min = 50;
+            const double scaling_max = 100;
+            const double output_min = 0.85;
+            const double output_max = 1.4;
+            const double n = gsl_min(1., gsl_max(0., (angular_width_base - scaling_min) / (scaling_max - scaling_min)));
+
+            const double label_size = output_max - n * (output_max - output_min);
+            s->constellations_label_size = label_size;
+        }
+
         // Set an appropriate projection
         if (angular_width_base > 110) {
             // Charts wider than 110 degrees should use a rectangular projection, not a gnomonic projection
@@ -790,11 +812,92 @@ void ephemerides_add_automatic_text_labels(chart_config *s) {
     }
 }
 
+//! ephemeris_label_possible_positions - Make a list of possible positions for this text label.
+//! \param [in] s  - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param [in] e - Pointer to ephemeris data we are plotting
+//! \param [in] index - Index of this data point within <e>
+//! \param [in] x - Tangent plane coordinates of this ephemeris point; radians
+//! \param [in] y - Tangent plane coordinates of this ephemeris point; radians
+//! \param [in] theta_deg - Position angle of the object's direction of travel, degrees
+//! \param [in] is_first_label - Boolean indicating whether this is the first label that we've drawn
+//! \param [in] tick_len_radians - Length of the tick mark at this label position, in radians
+//! \param [out] priority - Priority of this text label
+//! \param [out] possible_positions - An array of four possible positions for this label
+
+void ephemeris_label_possible_positions(const chart_config *s, const ephemeris *e, const int index,
+                                        const double x, const double y, const double theta_deg,
+                                        int is_first_label, const double tick_len_radians,
+                                        double *priority, label_position possible_positions[4]) {
+    int h_align, v_align;
+    const double theta_this = theta_deg * M_PI / 180;
+
+    // Work out horizontal and vertical alignment of this label, based on the direction the ephemeris is
+    // travelling in. From this, decide how the tick label text should be aligned relative to the end of the
+    // tick marker.
+    if (theta_deg < -135 - 22.5) {
+        h_align = 0; // centre
+        v_align = -1; // middle
+    } else if (theta_deg < -90 - 22.5) {
+        h_align = 1; // right
+        v_align = -1;
+    } else if (theta_deg < -45 - 22.5) {
+        h_align = 1;
+        v_align = 0;
+    } else if (theta_deg < -22.5) {
+        h_align = 1;
+        v_align = 1;
+    } else if (theta_deg < +22.5) {
+        h_align = 0;
+        v_align = 1;
+    } else if (theta_deg < 45 + 22.5) {
+        h_align = -1; // left
+        v_align = 1;
+    } else if (theta_deg < 90 + 22.5) {
+        h_align = -1;
+        v_align = 0;
+    } else if (theta_deg < 135 + 22.5) {
+        h_align = -1;
+        v_align = -1;
+    } else {
+        h_align = 0;
+        v_align = -1;
+    }
+
+    // Offer the renderer four possible positions where the tick text can be placed
+
+    // Two points, one on either end of the tick marker
+    const double label_gap_1 = 1.5;
+    const double xp_a = x + label_gap_1 * tick_len_radians * sin(theta_this);
+    const double yp_a = y - label_gap_1 * tick_len_radians * cos(theta_this);
+    const double xp_b = x - label_gap_1 * tick_len_radians * sin(theta_this);
+    const double yp_b = y + label_gap_1 * tick_len_radians * cos(theta_this);
+
+    // Two further points, also on either end of the tick marker, but this time further out
+    const double label_gap_2 = 1.85;
+    const double xp_c = x + label_gap_2 * tick_len_radians * sin(theta_this);
+    const double yp_c = y - label_gap_2 * tick_len_radians * cos(theta_this);
+    const double xp_d = x - label_gap_2 * tick_len_radians * sin(theta_this);
+    const double yp_d = y + label_gap_2 * tick_len_radians * cos(theta_this);
+
+    // Prioritise labels at start of years and quarters
+    if (s->must_show_all_ephemeris_labels || is_first_label) {
+        (*priority) = -1;
+    } else {
+        (*priority) = 0.0123 + (1e-12 * index) - (4e-6 * (!e->data[index].sub_month_label));
+    }
+
+    // Make list of possible label positions
+    possible_positions[0] = (label_position) {xp_a, yp_a, 0, 0, 0, h_align, v_align};
+    possible_positions[1] = (label_position) {xp_b, yp_b, 0, 0, 0, -h_align, -v_align};
+    possible_positions[2] = (label_position) {xp_c, yp_c, 0, 0, 0, h_align, v_align};
+    possible_positions[3] = (label_position) {xp_d, yp_d, 0, 0, 0, -h_align, -v_align};
+}
+
 //! plot_ephemeris - Plot an ephemeris for a solar system object.
-//! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
-//! \param ld - A <line_drawer> structure used to draw lines on a cairo surface.
-//! \param page - A <cairo_page> structure defining the cairo drawing context.
-//! \param trace_num - The number of the ephemeris to draw (an index within <s->ephemeris_definitions>).
+//! \param [in] s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param [in|out] ld - A <line_drawer> structure used to draw lines on a cairo surface.
+//! \param [in|out] page - A <cairo_page> structure defining the cairo drawing context.
+//! \param [in] trace_num - The number of the ephemeris to draw (an index within <s->ephemeris_definitions>).
 
 void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trace_num) {
     // Pointer to ephemeris data
@@ -886,23 +989,21 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
 
         for (int i = 0; i < e->point_count; i++) {
             // Work out how long this tick mark should be; major time points get longer ticks
-            const double physical_tick_len = e->data[i].sub_month_label ? 0.12 : 0.2; // cm
+            const double tick_len_cm = e->data[i].sub_month_label ? 0.12 : 0.2; // cm
             const double line_width = e->data[i].sub_month_label ? 0.8 : 2;
-            const double graph_coords_tick_len = physical_tick_len * s->wlin / s->width;
+            const double tick_len_radians = tick_len_cm * s->wlin / s->width; // radians
 
             cairo_set_line_width(s->cairo_draw, line_width * s->line_width_base);
 
             // Work out direction of ephemeris track
-            double theta_this = theta[i];
-
-            // This happens when ephemeris track is the same twice running; deal gracefully with it
-            if (!gsl_finite(theta_this)) theta_this = 0.0;
+            // This can be NaN when ephemeris track is the same twice running; deal gracefully with it
+            const double theta_this = gsl_finite(theta[i]) ? theta[i] : 0.0;
 
             // Add point to label exclusion region so that labels don't collide with it
-            page->exclusion_regions[page->exclusion_region_counter].x_min = x[i] - graph_coords_tick_len * 0.1;
-            page->exclusion_regions[page->exclusion_region_counter].x_max = x[i] + graph_coords_tick_len * 0.1;
-            page->exclusion_regions[page->exclusion_region_counter].y_min = y[i] - graph_coords_tick_len * 0.1;
-            page->exclusion_regions[page->exclusion_region_counter].y_max = y[i] + graph_coords_tick_len * 0.1;
+            page->exclusion_regions[page->exclusion_region_counter].x_min = x[i] - tick_len_radians * 0.1;
+            page->exclusion_regions[page->exclusion_region_counter].x_max = x[i] + tick_len_radians * 0.1;
+            page->exclusion_regions[page->exclusion_region_counter].y_min = y[i] - tick_len_radians * 0.1;
+            page->exclusion_regions[page->exclusion_region_counter].y_max = y[i] + tick_len_radians * 0.1;
             page->exclusion_region_counter++;
 
             // Check for buffer overrun
@@ -912,95 +1013,38 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
 
             // Make tick mark
             if (e->data[i].text_label != NULL) {
-                int h_align, v_align;
                 const double theta_deg = theta_this * 180 / M_PI;
 
                 // Reject this tick mark if it's off the side of the star chart
                 if ((x[i] < s->x_min) || (x[i] > s->x_max) || (y[i] < s->y_min) || (y[i] > s->y_max)) continue;
 
                 // Add tick mark to label exclusion region so that labels don't collide with it
-                page->exclusion_regions[page->exclusion_region_counter].x_min = x[i] - graph_coords_tick_len * 0.4;
-                page->exclusion_regions[page->exclusion_region_counter].x_max = x[i] + graph_coords_tick_len * 0.4;
-                page->exclusion_regions[page->exclusion_region_counter].y_min = y[i] - graph_coords_tick_len * 0.4;
-                page->exclusion_regions[page->exclusion_region_counter].y_max = y[i] + graph_coords_tick_len * 0.4;
+                page->exclusion_regions[page->exclusion_region_counter].x_min = x[i] - tick_len_radians * 0.4;
+                page->exclusion_regions[page->exclusion_region_counter].x_max = x[i] + tick_len_radians * 0.4;
+                page->exclusion_regions[page->exclusion_region_counter].y_min = y[i] - tick_len_radians * 0.4;
+                page->exclusion_regions[page->exclusion_region_counter].y_max = y[i] + tick_len_radians * 0.4;
                 page->exclusion_region_counter++;
 
                 // Draw tick mark
                 ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
                 ld_label(ld, NULL, 1, 1);
-                ld_point(ld, x[i] + graph_coords_tick_len * sin(theta_this),
-                         y[i] - graph_coords_tick_len * cos(theta_this), NULL);
-                ld_point(ld, x[i] - graph_coords_tick_len * sin(theta_this),
-                         y[i] + graph_coords_tick_len * cos(theta_this), NULL);
+                ld_point(ld, x[i] + tick_len_radians * sin(theta_this),
+                         y[i] - tick_len_radians * cos(theta_this), NULL);
+                ld_point(ld, x[i] - tick_len_radians * sin(theta_this),
+                         y[i] + tick_len_radians * cos(theta_this), NULL);
                 ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
 
-                // Work out horizontal and vertical alignment of this label, based on the direction the ephemeris is
-                // travelling in. From this, decide how the tick label text should be aligned relative to the end of the
-                // tick marker.
-                if (theta_deg < -135 - 22.5) {
-                    h_align = 0; // centre
-                    v_align = -1; // middle
-                } else if (theta_deg < -90 - 22.5) {
-                    h_align = 1; // right
-                    v_align = -1;
-                } else if (theta_deg < -45 - 22.5) {
-                    h_align = 1;
-                    v_align = 0;
-                } else if (theta_deg < -22.5) {
-                    h_align = 1;
-                    v_align = 1;
-                } else if (theta_deg < +22.5) {
-                    h_align = 0;
-                    v_align = 1;
-                } else if (theta_deg < 45 + 22.5) {
-                    h_align = -1; // left
-                    v_align = 1;
-                } else if (theta_deg < 90 + 22.5) {
-                    h_align = -1;
-                    v_align = 0;
-                } else if (theta_deg < 135 + 22.5) {
-                    h_align = -1;
-                    v_align = -1;
-                } else {
-                    h_align = 0;
-                    v_align = -1;
-                }
-
-                // Offer the renderer four possible positions where the tick text can be placed
-
-                // Two points, one on either end of the tick marker
-                const double label_gap_1 = 1.5;
-                const double xp_a = x[i] + label_gap_1 * graph_coords_tick_len * sin(theta_this);
-                const double yp_a = y[i] - label_gap_1 * graph_coords_tick_len * cos(theta_this);
-                const double xp_b = x[i] - label_gap_1 * graph_coords_tick_len * sin(theta_this);
-                const double yp_b = y[i] + label_gap_1 * graph_coords_tick_len * cos(theta_this);
-
-                // Two further points, also on either end of the tick marker, but this time further out
-                const double label_gap_2 = 1.85;
-                const double xp_c = x[i] + label_gap_2 * graph_coords_tick_len * sin(theta_this);
-                const double yp_c = y[i] - label_gap_2 * graph_coords_tick_len * cos(theta_this);
-                const double xp_d = x[i] - label_gap_2 * graph_coords_tick_len * sin(theta_this);
-                const double yp_d = y[i] + label_gap_2 * graph_coords_tick_len * cos(theta_this);
-
-                // Prioritise labels at start of years and quarters
+                // Work out possible positions for labelling this tick mark
                 double priority;
-
-                if (s->must_show_all_ephemeris_labels || is_first_label) {
-                    priority = -1;
-                } else {
-                    priority = 0.0123 + (1e-12 * i) - (4e-6 * (!e->data[i].sub_month_label));
-                }
+                label_position possible_positions[4];
+                ephemeris_label_possible_positions(s, e, i, x[i], y[i], theta_deg, is_first_label,
+                                                   tick_len_radians, &priority, possible_positions);
 
                 // Write text label
                 const double font_size = e->data[i].sub_month_label ? 1.6 : 1.8;
                 const double extra_margin = e->data[i].sub_month_label ? 2 : 0;
                 chart_label_buffer(page, s, colour_label_final, e->data[i].text_label,
-                                   (label_position[4]) {
-                                           {xp_a, yp_a, 0, 0, 0, h_align,  v_align},
-                                           {xp_b, yp_b, 0, 0, 0, -h_align, -v_align},
-                                           {xp_c, yp_c, 0, 0, 0, h_align,  v_align},
-                                           {xp_d, yp_d, 0, 0, 0, -h_align, -v_align}
-                                   }, 4,
+                                   possible_positions, 4,
                                    0, 1, font_size, 1, 0,
                                    extra_margin, priority);
 
@@ -1010,39 +1054,9 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
         }
     }
 
-    // Draw multiple object images side-by-side, if needed
-    if (
-            (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE) ||
-            (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE_WITH_TRACK) ||
-            (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE_WITH_ARROW)
-            ) {
-        // Loop over the points in the ephemeris, and draw a line across the star chart
-        for (int i = 0; i < e->point_count; i++) {
-            // Check that ephemeris data point is within the bounds of the plotting canvas
-            if ((x[i] < s->x_min) || (x[i] > s->x_max) || (y[i] < s->y_min) || (y[i] > s->y_max)) continue;
-
-            // Only draw a planet representations for data points with associated text labels
-            if (e->data[i].text_label != NULL) {
-                // Draw object
-                if (is_moon && s->solar_system_show_moon_phase) {
-                    // Show Moon with representation of phase
-                    draw_moon(s, page, colour_label_final, x[i], y[i], e->data[i].ra, e->data[i].dec,
-                              e->data[i].jd, e->data[i].text_label);
-                } else {
-                    // If object is fainter than mag 4, then ensure the splodge we draw is not too small
-                    const double mag_size = gsl_min(e->data[i].mag, 3);
-
-                    // Draw a circular splodge on the star chart
-                    draw_solar_system_object(s, page, colour_final, colour_label_final,
-                                             mag_size, x[i], y[i], e->data[i].text_label);
-                }
-            }
-        }
-    }
-
     // Overlay an arrow, if requested
     if (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE_WITH_ARROW) {
-        const double line_width = 2;
+        const double line_width = 3.5;
 
         // Work out what colour to use for the arrow
         const int ephemeris_arrow_colour_index = trace_num % s->ephemeris_arrow_col_final_count;
@@ -1106,6 +1120,68 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
             cairo_set_line_width(s->cairo_draw, 0.8);
             cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
             cairo_stroke(s->cairo_draw);
+        }
+    }
+
+    // Draw multiple object images side-by-side, if needed
+    if (
+            (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE) ||
+            (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE_WITH_TRACK) ||
+            (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE_WITH_ARROW)
+            ) {
+        int is_first_label = 1;
+
+        // Loop over the points in the ephemeris, and draw a line across the star chart
+        for (int i = 0; i < e->point_count; i++) {
+            // Check that ephemeris data point is within the bounds of the plotting canvas
+            if ((x[i] < s->x_min) || (x[i] > s->x_max) || (y[i] < s->y_min) || (y[i] > s->y_max)) continue;
+
+            // Work out direction of ephemeris track
+            // This can be NaN when ephemeris track is the same twice running; deal gracefully with it
+            const double theta_this = gsl_finite(theta[i]) ? theta[i] : 0.0;
+            const double theta_deg = theta_this * 180 / M_PI;
+
+            // Only draw a planet representations for data points with associated text labels
+            if (e->data[i].text_label != NULL) {
+                // Draw object
+                if (is_moon && s->solar_system_show_moon_phase) {
+                    // Show Moon with representation of phase
+                    draw_moon(s, page, colour_label_final, x[i], y[i], e->data[i].ra, e->data[i].dec,
+                              e->data[i].jd, e->data[i].text_label);
+                } else {
+                    // If object is fainter than mag 4, then ensure the splodge we draw is not too small
+                    const double mag_size = gsl_min(e->data[i].mag, 3);
+
+                    // Calculate the radius of this object on tha canvas, following the same magnitude scheme as for stars
+                    const double mag_reference = (mag_size < s->mag_max) ? (s->mag_max) : mag_size;
+                    const double size_inches = get_star_size(s, mag_reference);
+
+                    // Calculate the radius of this object on tha canvas
+                    const double obj_size_pixels = size_inches * s->dpi;
+                    const double obj_size_radians = obj_size_pixels / (s->width * s->cm) * (s->x_max - s->x_min);
+
+                    // Work out possible positions for labelling this tick mark
+                    double priority;
+                    const int possible_positions_count = 4;
+                    label_position possible_positions[4];
+                    ephemeris_label_possible_positions(s, e, i, x[i], y[i], theta_deg, is_first_label,
+                                                       obj_size_radians * 1.4,
+                                                       &priority, possible_positions);
+
+                    // Check whether this is a comet
+                    const int is_comet = e->is_comet;
+                    const double sun_pa = e->data[i].sun_pa;
+
+                    // Draw a circular splodge on the star chart
+                    draw_solar_system_object(s, page, colour_final, colour_label_final,
+                                             mag_size, x[i], y[i], is_comet, sun_pa,
+                                             e->data[i].text_label, &priority,
+                                             &possible_positions_count, possible_positions);
+                }
+
+                // We have now rendered first label
+                is_first_label = 0;
+            }
         }
     }
 

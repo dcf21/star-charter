@@ -31,7 +31,9 @@ void solar_system_write_ephemeris_definitions(const char (*solar_system_ids)[N_T
                                               char (*ephemeris_definitions_out)[N_TRACES_MAX][FNAME_LENGTH]);
 
 void draw_solar_system_object(chart_config *s, cairo_page *page, colour object_colour, colour label_colour,
-                              double mag, double x, double y, const char *label);
+                              double mag, double x, double y, int is_comet, double sun_pa,
+                              const char *label, const double *priority_in,
+                              const int *possible_positions_in_count, const label_position *possible_positions_in);
 
 void draw_moon(chart_config *s, cairo_page *page, colour label_colour,
                double x, double y, double ra, double dec, double julian_date,

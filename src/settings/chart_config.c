@@ -105,12 +105,14 @@ void default_config(chart_config *i) {
     i->font_size = 1.0;
     i->axis_ticks_value_only = 1;
     i->show_grid_lines = 1;
+    i->grid_line_density = 1;
     i->x_label_slant = 0;
     i->y_label_slant = 0;
     i->constellation_boundaries = 1;
     i->constellation_sticks = 1;
-    i->constellation_stick_design = SW_STICKS_SIMPLIFIED;
+    i->constellation_stick_design = SW_STICKS_IAU;
     i->constellation_names = 1;
+    i->constellations_label_size = 1;
     i->plot_stars = 1;
     i->messier_only = 0;
     i->plot_dso = 1;
@@ -203,6 +205,7 @@ void default_config(chart_config *i) {
     i->label_font_size_scaling = 1;
     i->output_multiple_pages = 0;
     strcpy(i->constellation_highlight, "---");
+    strcpy(i->dso_catalogue_file, SRCDIR "../data/deepSky/ngcDistances/output/ngc_merged.txt");
     strcpy(i->galaxy_map_filename, SRCDIR "../data/milkyWay/process/output/galaxymap.dat");
     strcpy(i->photo_filename, "");
     strcpy(i->output_filename, "starchart.png");
@@ -210,6 +213,7 @@ void default_config(chart_config *i) {
     strcpy(i->title, "");
 
     i->show_horizon_zenith = 0;
+    i->show_poles = 0;
     i->horizon_zenith_marker_size = 1;
     i->horizon_zenith_colour = (colour) {1, 1, 1};
     i->ephemeris_style = SW_EPHEMERIS_TRACK;
@@ -219,14 +223,14 @@ void default_config(chart_config *i) {
     i->meteor_radiants_final_count = 0;
     i->meteor_radiant_marker_size = 1;
     i->meteor_radiant_colour = (colour) {0.75, 0.75, 1};
-    strcpy(i->font_family, "Roboto");
+    strcpy(i->font_family, "Ubuntu");
     i->great_circle_line_width = 1.75;
     i->great_circle_dotted = 0;
     i->coordinate_grid_line_width = 1.3;
     i->dso_point_size_scaling = 1;
     i->constellations_capitalise = 0;
     i->constellations_label_shadow = 1;
-    i->constellation_sticks_line_width = 1.4;
+    i->constellations_sticks_line_width = 1.4;
     i->chart_edge_line_width = 2.5;
 
     // Boolean flags indicating which settings have been manually overridden
@@ -245,6 +249,8 @@ void default_config(chart_config *i) {
     i->angular_width_is_set = 0;
     i->dso_names_is_set = 0;
     i->aspect_is_set = 0;
+    i->constellations_capitalise_is_set = 0;
+    i->constellations_label_size_is_set = 0;
 
     // Pointers default to NULL
     i->ephemeris_data = NULL;

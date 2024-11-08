@@ -37,7 +37,7 @@
 #define BUFLEN 1020
 
 // Binary file format version number
-const int binary_format_version = 2;
+const int binary_format_version = 3;
 
 // Filenames
 const char *ascii_star_catalogue = SRCDIR "../data/stars/starCataloguesMerge/output/star_charter_stars.dat.gz";
@@ -223,6 +223,8 @@ static star_definition read_star_definition_from_ascii(const char *line) {
     sd.dec = get_float(scan, NULL) / 180. * M_PI;
     scan = next_word(scan);
     sd.mag = get_float(scan, NULL);
+    scan = next_word(scan);
+    sd.mag_bv = get_float(scan, NULL);
     scan = next_word(scan);
     sd.parallax = get_float(scan, NULL);
     scan = next_word(scan);

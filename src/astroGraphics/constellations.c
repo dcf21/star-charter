@@ -55,18 +55,24 @@ static char *replace_at_with_space(const char *in) {
 //! string_capitalise - Replace lowercase letters with uppercase equivalents
 //! \param in - The input string
 //! \return - Pointer to a static character buffer with the processed copy of the string.
-static char *string_capitalise(const char *in) {
+static char *string_capitalise(const unsigned char *in) {
     int i, j;
-    static char buf[BUFLEN + 4];
-    for (i = 0, j = 0; ((j < BUFLEN) && ((in[i] < '\0') || (in[i] > ' '))); i++, j++) {
+    static unsigned char buf[BUFLEN + 4];
+    for (i = 0, j = 0; ((j < BUFLEN) && ((in[i] < '\0') || (in[i] >= ' '))); i++, j++) {
         if ((in[i] >= 'a') && (in[i] <= 'z')) {
             buf[j] = (char) (in[i] + 'A' - 'a');
+        } else if ((in[i] == 0xC3) && (in[i + 1] == 0xB6)) {
+            // Special case of o-umlaut in Bootes
+            buf[j] = 0xC3;
+            buf[j + 1] = 0x96;
+            i++;
+            j++;
         } else {
             buf[j] = in[i];
         }
     }
     buf[j] = '\0';
-    return buf;
+    return (char *) buf;
 }
 
 //! plot_constellation_boundaries - Draw lines around the boundaries of the constellations.
@@ -164,11 +170,12 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgb(s->cairo_draw, s->constellation_stick_col.red,
                          s->constellation_stick_col.grn, s->constellation_stick_col.blu);
-    cairo_set_line_width(s->cairo_draw, s->constellation_sticks_line_width);
+    cairo_set_line_width(s->cairo_draw, s->constellations_sticks_line_width);
 
     // Open file listing constellation stick figures by celestial coordinates
     const char *stick_definitions = "constellation_lines_simplified_by_RA_Dec.dat";
     if (s->constellation_stick_design == SW_STICKS_REY) stick_definitions = "constellation_lines_rey_by_RA_Dec.dat";
+    if (s->constellation_stick_design == SW_STICKS_IAU) stick_definitions = "constellation_lines_iau_by_RA_Dec.dat";
 
     char stick_definitions_path[FNAME_LENGTH];
     snprintf(stick_definitions_path, FNAME_LENGTH, "%s%s%s",
@@ -243,28 +250,46 @@ void plot_constellation_names(chart_config *s, cairo_page *page) {
             (strncmp(name, "Virg", 4) != 0) && (strncmp(name, "Pisc", 4) != 0))
             continue;
 
+        int label_position_counter = 0;
+        const int show_all_label_positions = 0;
         while (1) {
             double ra, dec, x, y;
             if (scan[0] == '\0') break; // End of line
+
+            label_position_counter++;
+
+            // Read candidate position for this label
             ra = get_float(scan, NULL);
             scan = next_word(scan);
             dec = get_float(scan, NULL);
+            scan = next_word(scan);
             plane_project(&x, &y, s, ra * M_PI / 12, dec * M_PI / 180, 0);
             if ((x < s->x_min) || (x > s->x_max) || (y < s->y_min) || (y > s->y_max)) {
-                scan = next_word(scan);
                 continue;
             }
 
             char *label = replace_at_with_space(name);
 
-            if (s->constellations_capitalise) label = string_capitalise(label);
+            if (s->constellations_capitalise) label = string_capitalise((unsigned char *) label);
 
-            chart_label_buffer(page, s, s->constellation_label_col, label,
+            char label_buffer[FNAME_LENGTH];
+            if (show_all_label_positions) {
+                snprintf(label_buffer, FNAME_LENGTH, "%d) %s", label_position_counter, label);
+            } else {
+                snprintf(label_buffer, FNAME_LENGTH, "%s", label);
+            }
+
+            chart_label_buffer(page, s, s->constellation_label_col, label_buffer,
                                &(label_position) {x, y, 0, 0, 0, 0, 0},
                                1, 0, s->constellations_label_shadow,
-                               1.4 * s->label_font_size_scaling,
+                               1.4 * s->constellations_label_size * s->label_font_size_scaling,
                                0, 1, 0, -1);
-            break;
+
+            if (show_all_label_positions) {
+                continue;
+            } else {
+                break;
+            }
         }
     }
     fclose(file);

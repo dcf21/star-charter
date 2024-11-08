@@ -311,11 +311,16 @@ void draw_generic_nebula(chart_config *s, const double x_tangent, const double y
 
 void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) {
     // Path to where deep sky object catalogue is stored
-    const char *dso_object_catalogue = SRCDIR "../data/deepSky/ngcDistances/output/ngc_merged.txt";
+    const char *dso_object_catalogue = s->dso_catalogue_file;
 
     // Open data dso_data_file listing the positions of the NGC and IC objects
     FILE *dso_data_file = fopen(dso_object_catalogue, "r");
-    if (dso_data_file == NULL) stch_fatal(__FILE__, __LINE__, "Could not open deep sky catalogue");
+    if (dso_data_file == NULL) {
+        char line_buffer[LSTR_LENGTH];
+        sprintf(line_buffer, "Could not open deep sky catalogue <%s>", dso_object_catalogue);
+        stch_fatal(__FILE__, __LINE__, line_buffer);
+        exit(1);
+    }
 
     // Count the number of DSOs we have drawn and labelled, and make sure it doesn't exceed user-specified limits
     int dso_counter = 0;
@@ -350,7 +355,17 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
         double axis_minor = get_float(line_ptr, NULL); // arcminutes
         line_ptr = next_word(line_ptr);
         double axis_pa = get_float(line_ptr, NULL); // position angle; degrees
-        const char *type_string = next_word(line_ptr);
+
+        // Read object type
+        char type_string[16];
+        line_ptr = next_word(line_ptr);
+        get_word(type_string, line_ptr, 14);
+
+        // Read object's custom label, if any
+        char custom_object_label[FNAME_LENGTH];
+        line_ptr = next_word(line_ptr);
+        snprintf(custom_object_label, FNAME_LENGTH, "%s", line_ptr);
+        const int have_custom_label = (custom_object_label[0] != '\0');
 
         // If we're only showing Messier objects; only show them
         if (messier_only && (messier_num == 0)) {
@@ -381,7 +396,9 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
 
         // Create a name for this object
         char object_name[FNAME_LENGTH] = "";
-        if (messier_num > 0) {
+        if (have_custom_label) {
+            snprintf(object_name, FNAME_LENGTH, "%s", custom_object_label);
+        } else if (messier_num > 0) {
             snprintf(object_name, FNAME_LENGTH, "M%d", messier_num);
         } else if (ngc_num > 0) {
             snprintf(object_name, FNAME_LENGTH, "NGC%d", ngc_num);
