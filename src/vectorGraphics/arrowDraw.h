@@ -30,6 +30,9 @@
 #define CONST_ARROW_HEADSIZE        ( 6.0            )
 #define CONST_ARROW_HEADSIZE_THICK  ( 8.0            )
 
+void arrow_path_retract(int *path_len, const double *x_list, const double *y_list, const double *theta_list,
+                         double distance);
+
 void draw_arrow(chart_config *s, double lw, int head_start, int head_end,
                 double x0, double y0, double x1, double y1);
 

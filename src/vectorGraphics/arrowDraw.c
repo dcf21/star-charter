@@ -242,13 +242,27 @@ void arrow_path_extend(int *path_len, double *x_list, double *y_list, double *th
     const double y_last = y_list[i_last];
     const double theta_last = theta_list[i_last];
 
-    // Check that last point is not null
-    if ((!gsl_finite((x_last))) || (!gsl_finite((y_last))) || (!gsl_finite((theta_last)))) return;
+    // Fetch the coordinates of a point some way back, in case planet turns direction at the very end of the arrow
+    int i0 = i_last;
+    arrow_path_retract(&i0, x_list, y_list, theta_list, distance / 2);
+    const double theta0 = atan2(y_last - y_list[i0], x_last - x_list[i0]);
 
-    // Add additional new point
-    x_list[*path_len] = x_last + distance * cos(theta_last);
-    y_list[*path_len] = y_last + distance * sin(theta_last);
-    theta_list[*path_len] = theta_last;
+    // Select which direction vector to use
+    double theta_this = theta0;
+    if (!gsl_finite(theta_this)) theta_this = theta_last;
+
+    // Check that last point is not null
+    if ((!gsl_finite((x_last))) || (!gsl_finite((y_last))) || (!gsl_finite((theta_this)))) return;
+
+    // Add additional new points (add two points to make sure extended arrow is drawn with parallel sides)
+    x_list[*path_len] = x_last + distance * 0.01 * cos(theta_this);
+    y_list[*path_len] = y_last + distance * 0.01 * sin(theta_this);
+    theta_list[*path_len] = theta_this;
+    (*path_len)++;
+
+    x_list[*path_len] = x_last + distance * cos(theta_this);
+    y_list[*path_len] = y_last + distance * sin(theta_this);
+    theta_list[*path_len] = theta_this;
     (*path_len)++;
 }
 
@@ -259,7 +273,8 @@ void arrow_path_extend(int *path_len, double *x_list, double *y_list, double *th
 //! \param [in|out] theta_list - The list of position angles of travel along the path; Cairo pixels
 //! \param [in] distance - The number of pixels by which the arrow should be retracted
 
-void arrow_path_retract(int *path_len, double *x_list, double *y_list, double *theta_list, const double distance) {
+void arrow_path_retract(int *path_len, const double *x_list, const double *y_list, const double *theta_list,
+                        const double distance) {
     // Fetch the index of the last point in the arrow. Return if there is no last point
     const int i_last = (*path_len) - 1;
     if (i_last < 0) return;
@@ -333,7 +348,7 @@ void draw_thick_arrow(chart_config *s, const double lw, const int head_start, co
         if ((!gsl_finite(x)) || (!gsl_finite(y))) {
             // If we have recorded a path prior to going off-side, then retract the arrow head so it's on the canvas
             if (start_i < i_out - 1) {
-                arrow_path_retract(&i_out, x_pixels, y_pixels, theta_pixels, lw * 7);
+                arrow_path_retract(&i_out, x_pixels, y_pixels, theta_pixels, lw * 6);
             }
 
             // Start recording the next path once we re-enter the canvas
@@ -349,6 +364,10 @@ void draw_thick_arrow(chart_config *s, const double lw, const int head_start, co
             const double x_fraction_last = (x_last / s->cm - s->canvas_offset_x) / s->width;
 
             if (((x_fraction > 0.8) && (x_fraction_last < 0.2)) || ((x_fraction_last > 0.8) && (x_fraction < 0.2))) {
+                if (start_i < i_out - 1) {
+                    arrow_path_retract(&i_out, x_pixels, y_pixels, theta_pixels, lw * 6);
+                }
+
                 x_pixels[i_out] = GSL_NAN;
                 y_pixels[i_out] = GSL_NAN;
                 theta_pixels[i_out] = GSL_NAN;
@@ -365,7 +384,7 @@ void draw_thick_arrow(chart_config *s, const double lw, const int head_start, co
     }
 
     // Extend the end of the arrow beyond the last data point
-    arrow_path_extend(&x_pixels_length, x_pixels, y_pixels, theta_pixels, lw * 10);
+    arrow_path_extend(&x_pixels_length, x_pixels, y_pixels, theta_pixels, lw * 8);
 
     // Loop along arrow path looking for segments that are separated by NaN segments
     for (int i = 0, start_i = 0; i <= x_pixels_length; i++) {

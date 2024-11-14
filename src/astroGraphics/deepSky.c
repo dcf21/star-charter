@@ -32,6 +32,8 @@
 #include "settings/chart_config.h"
 #include "vectorGraphics/cairo_page.h"
 
+// -------------- Renderers for the <coloured> style scheme --------------
+
 //! draw_open_cluster_coloured - Draw an open cluster in whichever is the 'coloured' DSO representation style.
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 //! \param x_canvas - The X position of the DSO, in Cairo coordinates
@@ -66,8 +68,32 @@ void draw_globular_cluster_coloured(chart_config *s, const double x_canvas, cons
     cairo_stroke(s->cairo_draw);
 }
 
-void draw_galaxy_coloured(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
-                          const double radius_major, const double radius_minor) {
+void draw_planetary_nebula_coloured(chart_config *s, const double x_canvas, const double y_canvas,
+                                    const double point_size) {
+    const double r0 = point_size * 0.75;
+    const double r1 = point_size * 1.5;
+
+    cairo_set_line_width(s->cairo_draw, 1);
+    cairo_new_path(s->cairo_draw);
+    cairo_arc(s->cairo_draw, x_canvas, y_canvas, r0, 0, 2 * M_PI);
+    cairo_set_source_rgb(s->cairo_draw, s->dso_nebula_col.red, s->dso_nebula_col.grn, s->dso_nebula_col.blu);
+    cairo_fill_preserve(s->cairo_draw);
+    cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
+    cairo_stroke(s->cairo_draw);
+
+    for (int i = 0; i < 4; i++) {
+        const double theta = M_PI / 2 * i;
+        cairo_new_path(s->cairo_draw);
+
+        cairo_move_to(s->cairo_draw, x_canvas + r0 * sin(theta), y_canvas + r0 * cos(theta));
+        cairo_line_to(s->cairo_draw, x_canvas + r1 * sin(theta), y_canvas + r1 * cos(theta));
+        cairo_stroke(s->cairo_draw);
+    }
+}
+
+void draw_ellipsoid_coloured(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
+                             const double radius_major, const double radius_minor, const double opacity,
+                             const double colour_r, const double colour_g, const double colour_b) {
     cairo_new_path(s->cairo_draw);
     cairo_save(s->cairo_draw);
     cairo_translate(s->cairo_draw, x_canvas, y_canvas);
@@ -75,11 +101,49 @@ void draw_galaxy_coloured(chart_config *s, const double axis_pa, const double x_
     cairo_scale(s->cairo_draw, radius_major, radius_minor);
     cairo_arc(s->cairo_draw, 0, 0, 1, 0, 2 * M_PI);
     cairo_restore(s->cairo_draw);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
+    cairo_set_source_rgba(s->cairo_draw, colour_r, colour_g, colour_b, opacity);
     cairo_fill_preserve(s->cairo_draw);
     cairo_set_line_width(s->cairo_draw, 0.5);
     cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
     cairo_stroke(s->cairo_draw);
+}
+
+void draw_galaxy_coloured(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
+                          const double radius_major, const double radius_minor) {
+    draw_ellipsoid_coloured(
+            s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
+            1, s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
+}
+
+void draw_dark_nebula_coloured(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
+                               const double radius_major, const double radius_minor) {
+    draw_ellipsoid_coloured(
+            s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
+            0.75,
+            gsl_max(s->galaxy_col0.red, s->twilight_zenith_col.red),
+            gsl_max(s->galaxy_col0.grn, s->twilight_zenith_col.grn),
+            gsl_max(s->galaxy_col0.blu, s->twilight_zenith_col.blu));
+}
+
+void draw_galaxy_cluster_coloured(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
+                                  const double radius_major, const double radius_minor) {
+    // Set dashed line style
+    const double dash_style[1] = {0.5 * s->mm};
+    cairo_set_dash(s->cairo_draw, dash_style, 1, 0);
+
+    cairo_new_path(s->cairo_draw);
+    cairo_save(s->cairo_draw);
+    cairo_translate(s->cairo_draw, x_canvas, y_canvas);
+    cairo_rotate(s->cairo_draw, (90 - axis_pa) * M_PI / 180);
+    cairo_scale(s->cairo_draw, radius_major, radius_minor);
+    cairo_arc(s->cairo_draw, 0, 0, 1, 0, 2 * M_PI);
+    cairo_restore(s->cairo_draw);
+    cairo_set_line_width(s->cairo_draw, 1);
+    cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
+    cairo_stroke(s->cairo_draw);
+
+    // Unset dashed line style
+    cairo_set_dash(s->cairo_draw, NULL, 0, 0);
 }
 
 void draw_generic_nebula_coloured(chart_config *s, const double x_canvas, const double y_canvas,
@@ -96,6 +160,8 @@ void draw_generic_nebula_coloured(chart_config *s, const double x_canvas, const 
     cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
     cairo_stroke(s->cairo_draw);
 }
+
+// -------------- Renderers for the <fuzzy> style scheme --------------
 
 //! draw_open_cluster_fuzzy - Draw an open cluster in whichever is the 'fuzzy' DSO representation style.
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
@@ -138,8 +204,30 @@ void draw_globular_cluster_fuzzy(chart_config *s, const double x_canvas, const d
     draw_open_cluster_fuzzy(s, x_canvas, y_canvas, radius);
 }
 
-void draw_galaxy_fuzzy(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
-                       const double radius_major, const double radius_minor) {
+void draw_planetary_nebula_fuzzy(chart_config *s, const double x_canvas, const double y_canvas,
+                                 const double point_size) {
+    const double r0 = point_size * 0.75;
+    const double r1 = point_size * 1.5;
+
+    cairo_set_line_width(s->cairo_draw, 2);
+    cairo_new_path(s->cairo_draw);
+    cairo_arc(s->cairo_draw, x_canvas, y_canvas, r0, 0, 2 * M_PI);
+    cairo_set_source_rgb(s->cairo_draw, s->dso_nebula_col.red, s->dso_nebula_col.grn, s->dso_nebula_col.blu);
+    cairo_stroke(s->cairo_draw);
+
+    for (int i = 0; i < 4; i++) {
+        const double theta = M_PI / 2 * i;
+        cairo_new_path(s->cairo_draw);
+
+        cairo_move_to(s->cairo_draw, x_canvas + r0 * sin(theta), y_canvas + r0 * cos(theta));
+        cairo_line_to(s->cairo_draw, x_canvas + r1 * sin(theta), y_canvas + r1 * cos(theta));
+        cairo_stroke(s->cairo_draw);
+    }
+}
+
+void draw_ellipsoid_fuzzy(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
+                          const double radius_major, const double radius_minor, const double opacity,
+                          const double colour_r, const double colour_g, const double colour_b) {
     const double r_feather_end = 1.1;
 
     cairo_new_path(s->cairo_draw);
@@ -149,10 +237,36 @@ void draw_galaxy_fuzzy(chart_config *s, const double axis_pa, const double x_can
     cairo_scale(s->cairo_draw, radius_major * r_feather_end, radius_minor * r_feather_end);
 
 #define stop_count_galaxy (5)
-    const double offsets[stop_count_galaxy] = {0, 0.3, 0.5, 0.75, 1};
-    const double alphas[stop_count_galaxy] = {0.8, 0.75, 0.35, 0.11, 0};
+    const double offsets[stop_count_galaxy] = {
+            0, 0.3, 0.5, 0.75, 1};
+    const double alphas[stop_count_galaxy] = {
+            0.8 * opacity, 0.75 * opacity, 0.35 * opacity, 0.11 * opacity, 0};
     draw_generic_object_fuzzy(s, stop_count_galaxy, offsets, alphas,
-                              s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
+                              colour_r, colour_g, colour_b);
+}
+
+void draw_galaxy_fuzzy(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
+                       const double radius_major, const double radius_minor) {
+    draw_ellipsoid_fuzzy(
+            s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
+            0.75, s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
+}
+
+void draw_dark_nebula_fuzzy(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
+                            const double radius_major, const double radius_minor) {
+    draw_ellipsoid_fuzzy(
+            s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
+            0.75,
+            gsl_max(s->galaxy_col0.red, s->twilight_zenith_col.red),
+            gsl_max(s->galaxy_col0.grn, s->twilight_zenith_col.grn),
+            gsl_max(s->galaxy_col0.blu, s->twilight_zenith_col.blu));
+}
+
+void draw_galaxy_cluster_fuzzy(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
+                               const double radius_major, const double radius_minor) {
+    draw_ellipsoid_fuzzy(
+            s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
+            0.75, s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
 }
 
 void draw_generic_nebula_fuzzy(chart_config *s, const double x_canvas, const double y_canvas, const double point_size) {
@@ -169,6 +283,8 @@ void draw_generic_nebula_fuzzy(chart_config *s, const double x_canvas, const dou
     draw_generic_object_fuzzy(s, stop_count_nebula, offsets, alphas,
                               s->dso_nebula_col.red, s->dso_nebula_col.grn, s->dso_nebula_col.blu);
 }
+
+// -------------- Top-level renders for DSO types --------------
 
 //! draw_open_cluster - Draw an open cluster in whichever is the currently selected DSO representation style.
 //! \param [in|out] s - A <chart_config> structure defining the properties of the star chart to be drawn.
@@ -218,6 +334,30 @@ void draw_globular_cluster(chart_config *s, const double x_tangent, const double
     // Populate possible positions for the label for this object
     if (possible_positions != NULL) {
         const double offset = 0.8 * s->mm + radius;
+        possible_positions[0] = (label_position) {x_tangent, y_tangent, 0, offset, 0, -1, 0};
+        possible_positions[1] = (label_position) {x_tangent, y_tangent, 0, -offset, 0, 1, 0};
+        possible_positions[2] = (label_position) {x_tangent, y_tangent, 0, 0, offset, 0, -1};
+        possible_positions[3] = (label_position) {x_tangent, y_tangent, 0, 0, -offset, 0, 1};
+        *possible_position_count = 4;
+    }
+}
+
+void draw_planetary_nebula(chart_config *s, const double x_tangent, const double y_tangent,
+                           const double x_canvas, const double y_canvas, const double point_size,
+                           label_position *possible_positions, int *possible_position_count) {
+    // Render object
+    switch (s->dso_style) {
+        case SW_DSO_STYLE_FUZZY:
+            draw_planetary_nebula_fuzzy(s, x_canvas, y_canvas, point_size);
+            break;
+        case SW_DSO_STYLE_COLOURED:
+            draw_planetary_nebula_coloured(s, x_canvas, y_canvas, point_size);
+            break;
+    }
+
+    // Populate possible positions for the label for this object
+    if (possible_positions != NULL) {
+        const double offset = 0.8 * s->mm + point_size;
         possible_positions[0] = (label_position) {x_tangent, y_tangent, 0, offset, 0, -1, 0};
         possible_positions[1] = (label_position) {x_tangent, y_tangent, 0, -offset, 0, 1, 0};
         possible_positions[2] = (label_position) {x_tangent, y_tangent, 0, 0, offset, 0, -1};
@@ -280,6 +420,62 @@ void draw_galaxy(chart_config *s, const double axis_pa, const double x_tangent, 
     }
 }
 
+void draw_galaxy_cluster(chart_config *s, const double axis_pa, const double x_tangent, const double y_tangent,
+                         const double x_canvas, const double y_canvas,
+                         const double radius_major, const double radius_minor,
+                         label_position *possible_positions, int *possible_position_count) {
+    // Render object
+    switch (s->dso_style) {
+        case SW_DSO_STYLE_FUZZY:
+            draw_galaxy_cluster_fuzzy(s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor);
+            break;
+        case SW_DSO_STYLE_COLOURED:
+            draw_galaxy_cluster_coloured(s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor);
+            break;
+    }
+
+    // Populate possible positions for the label for this object
+    if (possible_positions != NULL) {
+        const double offset_major = 0.8 * s->mm + radius_major;
+        const double offset_minor = 0.8 * s->mm + radius_minor;
+        const double t = axis_pa * M_PI / 180;
+
+        populate_galaxy_label_position(possible_positions + 0, x_tangent, y_tangent, offset_major, t);
+        populate_galaxy_label_position(possible_positions + 1, x_tangent, y_tangent, offset_minor, t + M_PI / 2);
+        populate_galaxy_label_position(possible_positions + 2, x_tangent, y_tangent, offset_major, t + M_PI);
+        populate_galaxy_label_position(possible_positions + 3, x_tangent, y_tangent, offset_minor, t + 3 * M_PI / 2);
+        *possible_position_count = 4;
+    }
+}
+
+void draw_dark_nebula(chart_config *s, const double axis_pa, const double x_tangent, const double y_tangent,
+                      const double x_canvas, const double y_canvas,
+                      const double radius_major, const double radius_minor,
+                      label_position *possible_positions, int *possible_position_count) {
+    // Render object
+    switch (s->dso_style) {
+        case SW_DSO_STYLE_FUZZY:
+            draw_dark_nebula_fuzzy(s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor);
+            break;
+        case SW_DSO_STYLE_COLOURED:
+            draw_dark_nebula_coloured(s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor);
+            break;
+    }
+
+    // Populate possible positions for the label for this object
+    if (possible_positions != NULL) {
+        const double offset_major = 0.8 * s->mm + radius_major;
+        const double offset_minor = 0.8 * s->mm + radius_minor;
+        const double t = axis_pa * M_PI / 180;
+
+        populate_galaxy_label_position(possible_positions + 0, x_tangent, y_tangent, offset_major, t);
+        populate_galaxy_label_position(possible_positions + 1, x_tangent, y_tangent, offset_minor, t + M_PI / 2);
+        populate_galaxy_label_position(possible_positions + 2, x_tangent, y_tangent, offset_major, t + M_PI);
+        populate_galaxy_label_position(possible_positions + 3, x_tangent, y_tangent, offset_minor, t + 3 * M_PI / 2);
+        *possible_position_count = 4;
+    }
+}
+
 void draw_generic_nebula(chart_config *s, const double x_tangent, const double y_tangent,
                          const double x_canvas, const double y_canvas, const double point_size,
                          label_position *possible_positions, int *possible_position_count) {
@@ -303,6 +499,8 @@ void draw_generic_nebula(chart_config *s, const double x_tangent, const double y
         *possible_position_count = 4;
     }
 }
+
+// -------------- Plotting functions --------------
 
 //! plot_deep_sky_objects - Draw deep sky objects onto a star chart
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
@@ -350,9 +548,9 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
         line_ptr = next_word(line_ptr);
         double mag = get_float(line_ptr, NULL); // magnitude
         line_ptr = next_word(line_ptr);
-        double axis_major = get_float(line_ptr, NULL); // arcminutes
+        double axis_major = get_float(line_ptr, NULL); // diameter; arcminutes
         line_ptr = next_word(line_ptr);
-        double axis_minor = get_float(line_ptr, NULL); // arcminutes
+        double axis_minor = get_float(line_ptr, NULL); // diameter; arcminutes
         line_ptr = next_word(line_ptr);
         double axis_pa = get_float(line_ptr, NULL); // position angle; degrees
 
@@ -418,18 +616,31 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
         double arcminute = image_scale / (180 / M_PI * 60); // Cairo pixels per arcminute
         fetch_canvas_coordinates(&x_canvas, &y_canvas, x_tangent, y_tangent, s);
 
-        if (strncmp(type_string, "OC", 2) == 0) {
+        // Test the type of this object
+        const int is_open_cluster = (strncmp(type_string, "OC", 2) == 0);
+        const int is_globular_cluster = (strncmp(type_string, "Gb", 2) == 0);
+        const int is_planetary_nebula = (strncmp(type_string, "Pl", 2) == 0);
+        const int is_galaxy_cluster = (strncmp(type_string, "GxC", 3) == 0);
+        const int is_galaxy = (strncmp(type_string, "Gx", 2) == 0) && !is_galaxy_cluster;
+        const int is_dark_nebula = (strncmp(type_string, "Dk", 2) == 0);
+
+        // Draw the appropriate symbol for this object
+        if (is_open_cluster) {
             // Draw an open cluster
             const double radius = gsl_max((axis_major + axis_minor) / 4 * arcminute, point_size * 1.2);
             draw_open_cluster(s, x_tangent, y_tangent, x_canvas, y_canvas, radius,
                               possible_positions, &possible_position_count);
-        } else if (strncmp(type_string, "Gb", 2) == 0) {
+        } else if (is_globular_cluster) {
             // Draw a globular cluster
             const double radius = gsl_max((axis_major + axis_minor) / 4 * arcminute, point_size * 1.2);
             draw_globular_cluster(s, x_tangent, y_tangent, x_canvas, y_canvas, radius,
                                   possible_positions, &possible_position_count);
-        } else if (strncmp(type_string, "Gx", 2) == 0) {
-            // Draw a galaxy
+        } else if (is_planetary_nebula) {
+            // Draw a planetary nebula
+            draw_planetary_nebula(s, x_tangent, y_tangent, x_canvas, y_canvas, point_size,
+                                  possible_positions, &possible_position_count);
+        } else if (is_galaxy || is_galaxy_cluster || is_dark_nebula) {
+            // Draw an ellipsoidal object
             double aspect_ratio = gsl_max(axis_minor, 1e-6) / gsl_max(axis_major, 1e-6);
             if ((axis_major == 0) || (axis_minor == 0) || (!gsl_finite(aspect_ratio))) aspect_ratio = 1;
             if (aspect_ratio > 1) aspect_ratio = 1;
@@ -451,8 +662,16 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
             const double north_theta = atan2(north_direction[0], north_direction[1]) * 180 / M_PI; // degrees
 
             // Start drawing
-            draw_galaxy(s, axis_pa + north_theta, x_tangent, y_tangent, x_canvas, y_canvas,
-                        radius_major, radius_minor, possible_positions, &possible_position_count);
+            if (is_galaxy) {
+                draw_galaxy(s, axis_pa + north_theta, x_tangent, y_tangent, x_canvas, y_canvas,
+                            radius_major, radius_minor, possible_positions, &possible_position_count);
+            } else if (is_galaxy_cluster) {
+                draw_galaxy_cluster(s, axis_pa + north_theta, x_tangent, y_tangent, x_canvas, y_canvas,
+                                    radius_major, radius_minor, possible_positions, &possible_position_count);
+            } else {
+                draw_dark_nebula(s, axis_pa + north_theta, x_tangent, y_tangent, x_canvas, y_canvas,
+                                 radius_major, radius_minor, possible_positions, &possible_position_count);
+            }
         } else {
             draw_generic_nebula(s, x_tangent, y_tangent, x_canvas, y_canvas, point_size,
                                 possible_positions, &possible_position_count);
@@ -504,12 +723,20 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 //! \param legend_y_pos - The vertical pixel position of the top of the next legend to go under the star chart.
 
-double draw_dso_symbol_key(chart_config *s, double legend_y_pos) {
+double draw_dso_symbol_key(chart_config *s, const double legend_y_pos) {
     const double w_left = 0.4; // The left margin
     const double w_item = 3.7 * s->font_size; // The width of each legend item (cm)
 
+    // Positions of legend items (set negative to hide)
+    const double position_galaxy = 0;
+    const double position_nebula = 0.7;
+    const double position_open_cluster = 1.7;
+    const double position_globular_cluster = 2.7;
+    const double position_planetary_nebula = 3.7;
+    const double position_dark_nebula = -1;
+
     // Number of items to show in legend
-    const double N = 3.7;
+    const double N = 4.7;
 
     // The top (y0) and bottom (y1) of the legend
     const double y0 = legend_y_pos;
@@ -523,13 +750,11 @@ double draw_dso_symbol_key(chart_config *s, double legend_y_pos) {
     const double size = 0.4;
 
     // The left edge of the legend
-    double x = x1 - xw / 2;
+    const double x = x1 - xw / 2;
     cairo_text_extents_t extents;
 
     cairo_set_font_size(s->cairo_draw, 3.6 * s->mm * s->font_size);
     cairo_set_line_width(s->cairo_draw, 2.5 * s->line_width_base);
-
-    x += w_left;
 
     // Reset font weight
     cairo_select_font_face(s->cairo_draw, s->font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
@@ -537,81 +762,131 @@ double draw_dso_symbol_key(chart_config *s, double legend_y_pos) {
     // Set point size for all legend entries
     double point_size = 0.2 * s->cm;
 
-    // Draw galaxy symbol
-    draw_galaxy(s, 30, 0, 0, x * s->cm, y1 * s->cm,
-                point_size, point_size * 0.5, NULL, NULL);
+    // Draw legend item for galaxy
+    if (position_galaxy >= 0) {
+        const double x_this = x + w_left + w_item * position_galaxy;
 
-    // Write a text label next to it
-    {
-        const char *label = "Galaxy";
-        cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
-        cairo_text_extents(s->cairo_draw, label, &extents);
-        cairo_move_to(s->cairo_draw,
-                      (x + 0.1 + size) * s->cm - extents.x_bearing,
-                      y1 * s->cm - extents.height / 2 - extents.y_bearing
-        );
-        cairo_show_text(s->cairo_draw, label);
+        // Draw galaxy symbol
+        draw_galaxy(s, 30, 0, 0, x_this * s->cm, y1 * s->cm,
+                    point_size, point_size * 0.5, NULL, NULL);
+
+        // Write a text label next to it
+        {
+            const char *label = "Galaxy";
+            cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+            cairo_text_extents(s->cairo_draw, label, &extents);
+            cairo_move_to(s->cairo_draw,
+                          (x_this + 0.1 + size) * s->cm - extents.x_bearing,
+                          y1 * s->cm - extents.height / 2 - extents.y_bearing
+            );
+            cairo_show_text(s->cairo_draw, label);
+        }
     }
 
-    // Advance horizontally to draw the next item in the legend
-    x += w_item * 0.7;
+    // Draw legend item for generic nebula
+    if (position_nebula >= 0) {
+        const double x_this = x + w_left + w_item * position_nebula;
 
-    // Draw generic nebula symbol
-    draw_generic_nebula(s, 0, 0, x * s->cm, y1 * s->cm, point_size * 0.5,
-                        NULL, NULL);
+        // Draw generic nebula symbol
+        draw_generic_nebula(s, 0, 0, x_this * s->cm, y1 * s->cm, point_size * 0.5,
+                            NULL, NULL);
 
-    // Write a text label next to it
-    {
-        const char *label = "Bright nebula";
-        cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
-        cairo_text_extents(s->cairo_draw, label, &extents);
-        cairo_move_to(s->cairo_draw,
-                      (x + 0.1 + size) * s->cm - extents.x_bearing,
-                      y1 * s->cm - extents.height / 2 - extents.y_bearing
-        );
-        cairo_show_text(s->cairo_draw, label);
+        // Write a text label next to it
+        {
+            const char *label = "Bright nebula";
+            cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+            cairo_text_extents(s->cairo_draw, label, &extents);
+            cairo_move_to(s->cairo_draw,
+                          (x_this + 0.1 + size) * s->cm - extents.x_bearing,
+                          y1 * s->cm - extents.height / 2 - extents.y_bearing
+            );
+            cairo_show_text(s->cairo_draw, label);
+        }
     }
 
-    // Advance horizontally to draw the next item in the legend
-    x += w_item;
+    // Draw legend item for open cluster
+    if (position_open_cluster >= 0) {
+        const double x_this = x + w_left + w_item * position_open_cluster;
 
-    // Draw open cluster symbol
-    draw_open_cluster(s, 0, 0, x * s->cm, y1 * s->cm, point_size,
-                      NULL, NULL);
-
-    // Write a text label next to it
-    {
-        const char *label = "Open cluster";
-        cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
-        cairo_text_extents(s->cairo_draw, label, &extents);
-        cairo_move_to(s->cairo_draw,
-                      (x + 0.1 + size) * s->cm - extents.x_bearing,
-                      y1 * s->cm - extents.height / 2 - extents.y_bearing
-        );
-        cairo_show_text(s->cairo_draw, label);
-    }
-
-    // Advance horizontally to draw the next item in the legend
-    x += w_item;
-
-    // Draw globular cluster symbol
-    draw_globular_cluster(s, 0, 0, x * s->cm, y1 * s->cm, point_size,
+        // Draw open cluster symbol
+        draw_open_cluster(s, 0, 0, x_this * s->cm, y1 * s->cm, point_size,
                           NULL, NULL);
 
-    // Write a text label next to it
-    {
-        const char *label = "Globular cluster";
-        cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
-        cairo_text_extents(s->cairo_draw, label, &extents);
-        cairo_move_to(s->cairo_draw,
-                      (x + 0.1 + size) * s->cm - extents.x_bearing,
-                      y1 * s->cm - extents.height / 2 - extents.y_bearing
-        );
-        cairo_show_text(s->cairo_draw, label);
+        // Write a text label next to it
+        {
+            const char *label = "Open cluster";
+            cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+            cairo_text_extents(s->cairo_draw, label, &extents);
+            cairo_move_to(s->cairo_draw,
+                          (x_this + 0.1 + size) * s->cm - extents.x_bearing,
+                          y1 * s->cm - extents.height / 2 - extents.y_bearing
+            );
+            cairo_show_text(s->cairo_draw, label);
+        }
     }
 
-    // Advance horizontally to draw the next item in the legend
-    x += w_item;
+    // Draw legend item for globular cluster
+    if (position_globular_cluster >= 0) {
+        const double x_this = x + w_left + w_item * position_globular_cluster;
+
+        // Draw globular cluster symbol
+        draw_globular_cluster(s, 0, 0, x_this * s->cm, y1 * s->cm, point_size,
+                              NULL, NULL);
+
+        // Write a text label next to it
+        {
+            const char *label = "Globular cluster";
+            cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+            cairo_text_extents(s->cairo_draw, label, &extents);
+            cairo_move_to(s->cairo_draw,
+                          (x_this + 0.1 + size) * s->cm - extents.x_bearing,
+                          y1 * s->cm - extents.height / 2 - extents.y_bearing
+            );
+            cairo_show_text(s->cairo_draw, label);
+        }
+    }
+
+    // Draw legend item for planetary nebula
+    if (position_planetary_nebula >= 0) {
+        const double x_this = x + w_left + w_item * position_planetary_nebula;
+
+        // Draw planetary nebula symbol
+        draw_planetary_nebula(s, 0, 0, x_this * s->cm, y1 * s->cm, point_size * 0.6,
+                              NULL, NULL);
+
+        // Write a text label next to it
+        {
+            const char *label = "Planetary nebula";
+            cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+            cairo_text_extents(s->cairo_draw, label, &extents);
+            cairo_move_to(s->cairo_draw,
+                          (x_this + 0.1 + size) * s->cm - extents.x_bearing,
+                          y1 * s->cm - extents.height / 2 - extents.y_bearing
+            );
+            cairo_show_text(s->cairo_draw, label);
+        }
+    }
+
+    // Draw legend item for dark nebula
+    if (position_dark_nebula >= 0) {
+        const double x_this = x + w_left + w_item * position_dark_nebula;
+
+        // Draw dark nebula symbol
+        draw_dark_nebula(s, 30, 0, 0, x_this * s->cm, y1 * s->cm,
+                         point_size, point_size * 0.5, NULL, NULL);
+
+        // Write a text label next to it
+        {
+            const char *label = "Dark nebula";
+            cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+            cairo_text_extents(s->cairo_draw, label, &extents);
+            cairo_move_to(s->cairo_draw,
+                          (x_this + 0.1 + size) * s->cm - extents.x_bearing,
+                          y1 * s->cm - extents.height / 2 - extents.y_bearing
+            );
+            cairo_show_text(s->cairo_draw, label);
+        }
+    }
 
     // Finally, return the vertical position for the next legend item below this one
     const double new_bottom_to_legend_items = y0 + 0.4;

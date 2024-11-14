@@ -640,8 +640,8 @@ void jpl_computeXYZ(int body_id, double jd, double *x, double *y, double *z) {
 //! \param [out] dec - Declination of the object (J2000.0, radians, relative to geocentre)
 //! \param [out] mag - Estimated V-band magnitude of the object
 //! \param [out] phase - Phase of the object (0-1)
-//! \param [out] angSize - Angular size of the object (arcseconds)
-//! \param [out] phySize - Physical size of the object (diameter, metres)
+//! \param [out] angSize - Angular size of the object (diameter; arcseconds)
+//! \param [out] phySize - Physical size of the object (diameter; metres)
 //! \param [out] albedo - Albedo of the object (0-1)
 //! \param [out] sunDist - Distance of the object from the Sun (AU)
 //! \param [out] earthDist - Distance of the object from the Earth (AU)

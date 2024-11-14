@@ -1109,7 +1109,7 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
             }
         } else {
             // Construct path for the arrow
-            draw_thick_arrow(s, line_width * 0.6, 0, 1, x, y, theta, e->point_count);
+            draw_thick_arrow(s, line_width * 0.45, 0, 1, x, y, theta, e->point_count);
 
             // Fill arrow
             cairo_set_source_rgb(s->cairo_draw, arrow_colour_final.red,

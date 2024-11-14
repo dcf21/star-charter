@@ -124,8 +124,8 @@ void magnitudeEstimate_init() {
 //! \param [out] dec - Declination of the object (radians)
 //! \param [out] mag - Estimated V-band magnitude of the object
 //! \param [out] phase - Phase of the object (0-1)
-//! \param [out] angSize - Angular size of the object (arcseconds)
-//! \param [out] phySize - Physical size of the object (diameter, metres)
+//! \param [out] angSize - Angular size of the object (diameter; arcseconds)
+//! \param [out] phySize - Physical size of the object (diameter; metres)
 //! \param [out] albedoOut - Albedo of the object (0-1)
 //! \param [out] sunDist - Distance of the object from the Sun (AU)
 //! \param [out] earthDist - Distance of the object from the Earth (AU)
@@ -284,8 +284,8 @@ void magnitudeEstimate(const int body_id,
     }
 
 
-    // Popular the angular size, physical size, etc, of this object
-    *angSize = 2 * atan(Ro / Deo) / M_PI * 180 * 3600; // angular size, in arcseconds
+    // Populate the angular diameter, physical size, etc, of this object
+    *angSize = 2 * atan(Ro / Deo) / M_PI * 180 * 3600; // angular diameter, in arcseconds
     *phySize = 2 * (Ro * GSL_CONST_MKSA_ASTRONOMICAL_UNIT); // diameter, metres
     *albedoOut = albedo;
     *sunDist = Dso;
