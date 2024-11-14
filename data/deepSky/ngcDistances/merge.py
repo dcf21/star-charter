@@ -233,8 +233,8 @@ def populate_stub_catalogue_entries(obj_list: List[Dict[str, Any]],
         "dec": None,  # Declination
         "mag": {},  # Magnitudes in various bands
         "b_v": None,  # B-V colour
-        "axis_major": None,  # Major axis size, in arcminutes
-        "axis_minor": None,  # Minor axis size, in arcminutes
+        "axis_major": None,  # Major axis size, diameter in arcminutes
+        "axis_minor": None,  # Minor axis size, diameter in arcminutes
         "axis_pa": None,  # Position angle of major axis (north-eastwards)
         "type": None,  # Type identifier string
         "hubble_type": None,  # Hubble type (galaxies only)
@@ -384,7 +384,7 @@ def read_messier_catalogue(obj_list: List[Dict[str, Any]], messier_ptr: Dict[int
             # Read angular size of object, and if present, insert into object catalogue
             test = re.match(r"([0-9\.]*)'", line[61:].strip())
             if test:
-                obj_list[obj_ptr]['axis_major'] = float(test.group(1))
+                obj_list[obj_ptr]['axis_major'] = float(test.group(1))  # diameter, arcminutes
                 obj_list[obj_ptr]['axis_minor'] = None
                 obj_list[obj_ptr]['axis_pa'] = None
 
@@ -487,7 +487,7 @@ def read_ngc_2000(obj_list: List[Dict[str, Any]], ic_ptr: Dict[int, int], ngc_pt
             # Look up the reported angular size of this object (arcminutes)
             size_str: str = line[34:39].strip()
             if size_str != "":
-                size: Optional[float] = float(size_str)
+                size: Optional[float] = float(size_str)  # diameter, arcminutes
             else:
                 size = None
 
@@ -598,13 +598,13 @@ def read_open_ngc(obj_list: List[Dict[str, Any]], ic_ptr: Dict[int, int], ngc_pt
 
             # Read major axis
             if fetch('MajAx'):
-                obj_list[obj_ptr]['axis_major'] = float(fetch('MajAx'))
+                obj_list[obj_ptr]['axis_major'] = float(fetch('MajAx'))  # diameter, arcminutes
                 obj_list[obj_ptr]['axis_minor'] = None
                 obj_list[obj_ptr]['axis_pa'] = None
 
             # Read minor axis
             if fetch('MinAx'):
-                obj_list[obj_ptr]['axis_minor'] = float(fetch('MinAx'))
+                obj_list[obj_ptr]['axis_minor'] = float(fetch('MinAx'))  # diameter, arcminutes
                 obj_list[obj_ptr]['axis_pa'] = None
 
             # Read position angle
