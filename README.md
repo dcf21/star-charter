@@ -214,6 +214,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `constellation_label_col` - Colour to use when writing constellation names
 * `constellation_label_size` - Relative font size to use when rendering constellation names. Default 1.
 * `constellation_names` - Boolean (0 or 1) indicating whether we label the names of constellations
+* `constellation_show_below_horizon` - Boolean (0 or 1) indicating whether to show constellation stick-figures beneath the horizon. Default 0.
 * `constellation_stick_col` - Colour to use when drawing constellation stick figures
 * `constellation_stick_design` - Select which design of constellation stick figures we should draw. Set to either `iau` (default), `rey` or `simplified`. See <https://github.com/dcf21/constellation-stick-figures> for more information.
 * `constellation_sticks_line_width` - Line width to use when drawing constellation stick figures. Default 1.4.

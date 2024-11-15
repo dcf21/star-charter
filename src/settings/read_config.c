@@ -763,6 +763,12 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("constellation_sticks")
         x->constellation_sticks = (int) key_val_num;
         return 0;
+    } else if (strcmp(key, "constellation_show_below_horizon") == 0) {
+        //! constellation_show_below_horizon - Boolean (0 or 1) indicating whether to show constellation stick-figures
+        //! beneath the horizon. Default 0.
+        CHECK_VALUE_NUMERIC("constellation_show_below_horizon")
+        x->constellation_show_below_horizon = (int) key_val_num;
+        return 0;
     } else if (strcmp(key, "constellation_stick_design") == 0) {
         //! constellation_stick_design - Select which design of constellation stick figures we should draw. Set to
         //! either 'iau', 'rey' or 'simplified'. See <https://github.com/dcf21/constellation-stick-figures> for more

@@ -302,6 +302,9 @@ typedef struct chart_config {
     //! Boolean indicating whether we draw constellation stick figures
     int constellation_sticks;
 
+    //! Boolean (0 or 1) indicating whether to show constellation stick-figures beneath the horizon. Default 0.
+    int constellation_show_below_horizon;
+
     //! Select which design of constellation stick figures we should use
     //! Either SW_STICKS_IAU or SW_STICKS_REY or SW_STICKS_SIMPLIFIED
     int constellation_stick_design;

@@ -110,6 +110,7 @@ void default_config(chart_config *i) {
     i->y_label_slant = 0;
     i->constellation_boundaries = 1;
     i->constellation_sticks = 1;
+    i->constellation_show_below_horizon = 0;
     i->constellation_stick_design = SW_STICKS_IAU;
     i->constellation_names = 1;
     i->constellations_label_size = 1;

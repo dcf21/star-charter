@@ -172,11 +172,12 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
                          s->constellation_stick_col.grn, s->constellation_stick_col.blu);
     cairo_set_line_width(s->cairo_draw, s->constellations_sticks_line_width);
 
-    // Open file listing constellation stick figures by celestial coordinates
+    // Select which catalogue of constellation stick figures to plot
     const char *stick_definitions = "constellation_lines_simplified_by_RA_Dec.dat";
     if (s->constellation_stick_design == SW_STICKS_REY) stick_definitions = "constellation_lines_rey_by_RA_Dec.dat";
     if (s->constellation_stick_design == SW_STICKS_IAU) stick_definitions = "constellation_lines_iau_by_RA_Dec.dat";
 
+    // Open file listing constellation stick figures by celestial coordinates
     char stick_definitions_path[FNAME_LENGTH];
     snprintf(stick_definitions_path, FNAME_LENGTH, "%s%s%s",
              SRCDIR,
@@ -186,18 +187,27 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
     file = fopen(stick_definitions_path, "r");
     if (file == NULL) stch_fatal(__FILE__, __LINE__, "Could not open constellation stick figures");
 
+    // Loop over all the lines on the stick figures
     while ((!feof(file)) && (!ferror(file))) {
         double ra0, dec0, ra1, dec1, x0, y0, x1, y1;
         file_readline(file, line);
-        if (line[0] == '#') continue; // Comment line
+
+        // Ignore comment lines
+        if (line[0] == '#') continue;
         const char *scan = line;
+
+        // Strip spaces from left of string
         while ((scan[0] != '\0') && (scan[0] <= ' ')) scan++;
+
+        // If we're only drawing zodiacal constellations, then filter on thise
         if (s->zodiacal_only && (strncmp(scan, "Aqua", 4) != 0) && (strncmp(scan, "Arie", 4) != 0) &&
             (strncmp(scan, "Leo ", 4) != 0) && (strncmp(scan, "Canc", 4) != 0) && (strncmp(scan, "Capr", 4) != 0) &&
             (strncmp(scan, "Gemi", 4) != 0) && (strncmp(scan, "Libr", 4) != 0) && (strncmp(scan, "Ophi", 4) != 0) &&
             (strncmp(scan, "Taur", 4) != 0) && (strncmp(scan, "Sagittar", 8) != 0) && (strncmp(scan, "Scor", 4) != 0) &&
             (strncmp(scan, "Virg", 4) != 0) && (strncmp(scan, "Pisc", 4) != 0))
             continue;
+
+        // Scan along line to celestial coordinates
         while ((scan[0] != '\0') && (scan[0] != '-') && (scan[0] != '.') && (scan[0] != '+') &&
                ((scan[0] < '0') || (scan[0] > '9')))
             scan++;
@@ -209,8 +219,12 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
         ra1 = get_float(scan, NULL);
         scan = next_word(scan);
         dec1 = get_float(scan, NULL);
-        plane_project(&x0, &y0, s, ra0 * M_PI / 180, dec0 * M_PI / 180, 0);
-        plane_project(&x1, &y1, s, ra1 * M_PI / 180, dec1 * M_PI / 180, 0);
+
+        // Project ends of the line into canvas coordinates
+        plane_project(&x0, &y0, s, ra0 * M_PI / 180, dec0 * M_PI / 180, s->constellation_show_below_horizon);
+        plane_project(&x1, &y1, s, ra1 * M_PI / 180, dec1 * M_PI / 180, s->constellation_show_below_horizon);
+
+        // Draw line
         ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
         ld_point(ld, x0, y0, NULL);
         ld_point(ld, x1, y1, NULL);
