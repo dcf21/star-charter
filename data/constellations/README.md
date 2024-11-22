@@ -2,48 +2,77 @@
 
 <img align="right" width="500" src="example_charts/dipper_2.png">
 
-The files in this repository define stick figures which can be used to depict
-the 88 astronomical constellations.
+The files in this repository define stick figures which depict the 88
+astronomical constellations.
 
-They were produced by the author for the purposes of generating all of the sky
-charts on the website <https://in-the-sky.org>, which is maintained by the
-author. They are also utilised by
+They were produced by the author for the purposes of generating the sky charts
+on the website <https://in-the-sky.org>.  They are also utilised by
 [StarCharter](https://github.com/dcf21/star-charter), a command-line tool for
 producing vector-graphics charts of the night sky, written by the author.
 
 ### Background
 
-There is no defined standard shared between planetarium programs for which
-stars should be connected in order to construct stick figures. However, the
-idea of drawing such stick figures was popularised by H.A. Rey in his 1952
-children's book *The Stars: A New Way To See Them*. Most planetarium programs
-use some simplifications of the figures which appear in Rey's book.
+There is no single standard for constellation stick figures: different sources
+draw the constellations in different ways. The idea of representing the
+constellations by stick figures was originally popularised by H.A. Rey in his
+1952 children's book *The Stars: A New Way To See Them*. Rey created some quite
+elaborate figures, often using faint stars that are hard to see with the
+unaided eye.
 
-For historical authenticity, the file `constellation_lines_rey.dat`  lists the
-stick figures (almost) exactly as they appear in Rey's book, transcribed by the
-author (Dominic Ford) from Rey's original diagrams into the Hipparcos catalog
-numbers of the stars to be connected. Some of the figures are quite elaborate
-and include connections to very faint stars (mag 5-6).
+The International Astronomical Union (IAU) updated these in collaboration with
+Alan MacRobert and Sky & Telescope magazine (date unknown); their updated stick
+figures are shown [here](https://www.iau.org/public/themes/constellations/) and
+are released under a [Creative Commons Attribution 4.0 International
+license](https://creativecommons.org/licenses/by/4.0/).
 
-The file `constellation_lines_simplified.dat` lists some simplified stick
-figures, invented by the author (Dominic Ford). They are similar to those used
-in many planetarium programs, but considerably simpler than those which appear
-in Rey's book. Specifically, some of Rey's stick figures include connections to
-very faint stars (mag 5-6), whereas the figures below mostly only include stars
-of fourth magnitude or brighter, except in the faintest constellations.
+Most planetarium programs use their own bespoke simplifications of these
+figures.
+
+### Available files
+
+This repository contains data files defining (a) the stick figures in Rey's
+book, (b) the IAU stick figures, and (c) a simplified set created by the author
+which closely resembled those used in most planetariums.
+
+The source data files are as follows:
+
+* The file [constellation_lines_iau.dat](constellation_lines_iau.dat) lists the
+modern IAU stick figures, created by Alan MacRobert et al. They are released
+under a [Creative Commons Attribution 4.0 International
+license](https://creativecommons.org/licenses/by/4.0/).
+
+* The file [constellation_lines_rey.dat](constellation_lines_rey.dat) lists the
+historically authentic stick figures, as they appear in Rey's book, transcribed
+by the author (Dominic Ford) from Rey's original diagrams. Some of the figures
+are quite elaborate and include connections to very faint stars (mag 5-6).
+
+* The file
+[constellation_lines_simplified.dat](constellation_lines_simplified.dat) lists
+simplified stick figures, invented by the author (Dominic Ford). They are
+similar to those used in many planetarium programs, and are restricted to
+include only stars of fourth magnitude or brighter, except in the faintest
+constellations.  They are released under a [GNU General Public License
+V3](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
 ### Data format
 
 <img align="right" width="500" src="example_charts/dipper_1.png">
 
-Each line of the files `constellation_lines_simplified.dat` and
-`constellation_lines_simplified.dat` list a series of stars, referenced by
-their Hipparcos numbers (The Hipparcos star catalogue can be freely downloaded
-here <http://cdsarc.u-strasbg.fr/viz-bin/Cat?I/239>).
+Each line of the files
+[constellation_lines_iau.dat](constellation_lines_iau.dat),
+[constellation_lines_rey.dat](constellation_lines_rey.dat) and
+[constellation_lines_simplified.dat](constellation_lines_simplified.dat) lists
+a series of stars which should be joined together in sequence to make a stick
+figure. The stars are referenced by their Hipparcos numbers; the Hipparcos star
+catalogue can be freely downloaded here
+<http://cdsarc.u-strasbg.fr/viz-bin/Cat?I/239>.
 
-To construct stick figures, connect each of the stars on each line in turn. At
-the end of each line of the file, lift your pen and start a new line to connect
-the list of stars on the next line of the file.
+To construct stick figures, connect the stars on each line in turn. At the end
+of each line of the file, lift your pen and start a new line to connect the
+list of stars on the next line of the file.
+
+Some constellations are split over multiple lines while others are represented
+by a single continuous line.
 
 ### Alternative data formats
 
@@ -58,5 +87,4 @@ alternative data files from the original.
 ### License
 
 This data is distributed under the Gnu General Public License. It is (C)
-Dominic Ford 2015 - 2019.
-
+Dominic Ford 2015 - 2024.
