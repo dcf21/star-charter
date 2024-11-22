@@ -77,7 +77,7 @@ void plot_meteor_showers(chart_config *s, cairo_page *page) {
                              s->meteor_radiant_colour.grn, s->meteor_radiant_colour.blu);
 
         // Calculate marker size
-        const double marker_size = 0.3 * s->meteor_radiant_marker_size * s->cm;
+        const double marker_size = 0.25 * s->meteor_radiant_marker_size * s->cm;
         const double marker_line_width = 1;
 
         // Draw outward-pointing arrows
@@ -103,7 +103,7 @@ void plot_meteor_showers(chart_config *s, cairo_page *page) {
                                    {x, y, 0, marker_size,  marker_size, -1, 0},
                                    {x, y, 0, -marker_size, marker_size, 1,  0}
                            }, 2,
-                           0, 0, 1.6 * s->label_font_size_scaling,
+                           0, 0, 1.3 * s->label_font_size_scaling,
                            0, 0, 0, -10);
     }
 
