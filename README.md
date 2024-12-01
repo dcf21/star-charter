@@ -296,6 +296,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `meteor_radiant` - Specify that the radiant of a meteor shower should be marked. This should be set to a string of the form `<shower_label>,<ra_radiant/deg>,<dec_radiant/deg>`. To mark multiple shower radiants, supply this setting multiple times.
 * `meteor_radiant_marker_size` - Scaling factor to apply to the size of the markers at the radiants of meteor showers. Default 1.
 * `meteor_radiant_colour` - Colour to use for the markers at the radiants of meteor showers.
+* `must_label_all_dsos` - Boolean (0 or 1) indicating whether we must show all DSO text labels, even if they collide with other text.
 * `must_show_all_ephemeris_labels` - Boolean (0 or 1) indicating whether we show all ephemeris text labels, even if they collide with other text.
 * `output_dpi` - The DPI resolution of the output file. Default 200 DPI for PNG files; 72 DPI for vector graphics.
 * `output_filename` - The target filename for the star chart. The file type (`svg`, `png`, `eps` or `pdf`) is inferred from the file extension.

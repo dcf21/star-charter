@@ -686,6 +686,10 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
         // Consider whether to write a text label next to this deep sky object
         if ((mag < s->dso_label_mag_min) && (label_counter < s->maximum_dso_label_count)) {
 
+            // Set priority for labelling this object
+            double priority = mag;
+            if (s->must_label_all_dsos) priority = -2;
+
             // Write a text label for this object
             const int show_name = s->dso_names;
             const int show_mag = s->dso_mags && (mag < 40);
@@ -695,7 +699,7 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
                 chart_label_buffer(page, s, s->dso_label_col, object_name,
                                    possible_positions, possible_position_count,
                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
-                                   0, 0, 0, mag);
+                                   0, 0, 0, priority);
                 label_counter++;
             }
             if (show_mag) {
@@ -703,7 +707,7 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
                 chart_label_buffer(page, s, s->dso_label_col, temp_err_string,
                                    possible_positions, possible_position_count,
                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
-                                   0, 0, 0, mag);
+                                   0, 0, 0, priority);
                 label_counter++;
             }
         }

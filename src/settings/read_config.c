@@ -973,6 +973,12 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("maximum_dso_label_count")
         x->maximum_dso_label_count = (int) key_val_num;
         return 0;
+    } else if (strcmp(key, "must_label_all_dsos") == 0) {
+        //! must_label_all_dsos - Boolean indicating whether we must show all DSO text labels, even if they collide
+        //! with other text.
+        CHECK_VALUE_NUMERIC("must_label_all_dsos")
+        x->must_label_all_dsos = (int) key_val_num;
+        return 0;
     } else if (strcmp(key, "plot_ecliptic") == 0) {
         //! plot_ecliptic - Boolean (0 or 1) indicating whether to draw a line along the ecliptic
         CHECK_VALUE_NUMERIC("plot_ecliptic")
@@ -1165,7 +1171,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         x->ephemeris_table = (int) key_val_num;
         return 0;
     } else if (strcmp(key, "must_show_all_ephemeris_labels") == 0) {
-        //! ephemeris_autoscale - Boolean (0 or 1) indicating whether we must show all ephemeris text labels,
+        //! must_show_all_ephemeris_labels - Boolean (0 or 1) indicating whether we must show all ephemeris text labels,
         //! even if they collide with other text.
         CHECK_VALUE_NUMERIC("must_show_all_ephemeris_labels")
         x->must_show_all_ephemeris_labels = (int) key_val_num;

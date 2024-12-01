@@ -132,6 +132,7 @@ void default_config(chart_config *i) {
     i->dso_names = 1;
     i->dso_mags = 0;
     i->dso_mag_min = 14;
+    i->must_label_all_dsos = 0;
     i->angular_width = 25.0;
     i->width = 16.5;
     i->aspect = 1.41421356;

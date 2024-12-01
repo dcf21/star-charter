@@ -437,6 +437,9 @@ typedef struct chart_config {
     //! Do not label DSOs fainter than this magnitude limit
     double dso_label_mag_min;
 
+    //! Boolean indicating whether we must show all DSO text labels, even if they collide with other text
+    int must_label_all_dsos;
+
     //! Computed quantity: the number of rows of star magnitudes we can fit under the chart
     int magnitude_key_rows;
 
