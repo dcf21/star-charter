@@ -126,7 +126,7 @@ void draw_dark_nebula_coloured(chart_config *s, const double axis_pa, const doub
 }
 
 void draw_galaxy_cluster_coloured(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
-                                  const double radius_major, const double radius_minor) {
+                                  const double radius_major, const double radius_minor, const int size_unset) {
     // Set dashed line style
     const double dash_style[1] = {0.5 * s->mm};
     cairo_set_dash(s->cairo_draw, dash_style, 1, 0);
@@ -134,9 +134,19 @@ void draw_galaxy_cluster_coloured(chart_config *s, const double axis_pa, const d
     cairo_new_path(s->cairo_draw);
     cairo_save(s->cairo_draw);
     cairo_translate(s->cairo_draw, x_canvas, y_canvas);
-    cairo_rotate(s->cairo_draw, (90 - axis_pa) * M_PI / 180);
-    cairo_scale(s->cairo_draw, radius_major, radius_minor);
-    cairo_arc(s->cairo_draw, 0, 0, 1, 0, 2 * M_PI);
+    if (!size_unset) {
+        // Draw ellipsoid around clusters of known size
+        cairo_rotate(s->cairo_draw, (90 - axis_pa) * M_PI / 180);
+        cairo_scale(s->cairo_draw, radius_major, radius_minor);
+        cairo_arc(s->cairo_draw, 0, 0, 1, 0, 2 * M_PI);
+    } else {
+        // Draw a cross-hair for clusters of unknown size
+        cairo_new_path(s->cairo_draw);
+        cairo_move_to(s->cairo_draw, -radius_major, 0);
+        cairo_line_to(s->cairo_draw, radius_major, 0);
+        cairo_move_to(s->cairo_draw, 0, -radius_major);
+        cairo_line_to(s->cairo_draw, 0, radius_major);
+    }
     cairo_restore(s->cairo_draw);
     cairo_set_line_width(s->cairo_draw, 1);
     cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
@@ -421,16 +431,16 @@ void draw_galaxy(chart_config *s, const double axis_pa, const double x_tangent, 
 }
 
 void draw_galaxy_cluster(chart_config *s, const double axis_pa, const double x_tangent, const double y_tangent,
-                         const double x_canvas, const double y_canvas,
-                         const double radius_major, const double radius_minor,
-                         label_position *possible_positions, int *possible_position_count) {
+                         const double x_canvas, const double y_canvas, const double radius_major,
+                         const double radius_minor, const int size_unset, label_position *possible_positions,
+                         int *possible_position_count) {
     // Render object
     switch (s->dso_style) {
         case SW_DSO_STYLE_FUZZY:
             draw_galaxy_cluster_fuzzy(s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor);
             break;
         case SW_DSO_STYLE_COLOURED:
-            draw_galaxy_cluster_coloured(s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor);
+            draw_galaxy_cluster_coloured(s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor, size_unset);
             break;
     }
 
@@ -646,7 +656,14 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
             if (aspect_ratio > 1) aspect_ratio = 1;
             if (aspect_ratio < 0.2) aspect_ratio = 0.2;
 
-            const double radius_major = gsl_max(gsl_max(axis_major, axis_minor) / 2 * arcminute, point_size);
+            double radius_major = gsl_max(axis_major, axis_minor) / 2 * arcminute;
+            int size_unset = 0;
+
+            if (radius_major < point_size) {
+                radius_major = point_size;
+                size_unset = 1;
+            }
+
             const double radius_minor = radius_major * aspect_ratio;
 
             // Work out direction of north on the chart
@@ -667,7 +684,8 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
                             radius_major, radius_minor, possible_positions, &possible_position_count);
             } else if (is_galaxy_cluster) {
                 draw_galaxy_cluster(s, axis_pa + north_theta, x_tangent, y_tangent, x_canvas, y_canvas,
-                                    radius_major, radius_minor, possible_positions, &possible_position_count);
+                                    radius_major, radius_minor, size_unset,
+                                    possible_positions, &possible_position_count);
             } else {
                 draw_dark_nebula(s, axis_pa + north_theta, x_tangent, y_tangent, x_canvas, y_canvas,
                                  radius_major, radius_minor, possible_positions, &possible_position_count);
