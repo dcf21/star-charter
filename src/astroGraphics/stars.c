@@ -388,8 +388,11 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                                               (s->star_catalogue == SW_CAT_HD));
 
                         // Does this star have multiple text labels associated with it?
-                        const int star_label_count =
-                                show_name3 + show_name1 + show_name4 + show_name5 + show_cat + s->star_mag_labels;
+                        const int show_star_magnitude = ((s->star_mag_labels == SW_MAG_LABEL_ON) ||
+                                                         ((s->star_mag_labels == SW_MAG_LABEL_AAVSO) &&
+                                                          (sd.mag_bv >= -0.2) && (sd.mag_bv <= 0.7)));
+                        const int star_label_count = (show_name3 + show_name1 + show_name4 + show_name5 +
+                                                      show_cat + show_star_magnitude);
                         const int multiple_labels = (star_label_count > 1) && s->star_allow_multiple_labels;
 
                         // How far should we move this label to the side of the star, to avoid writing text on top of the star?
@@ -511,9 +514,14 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                         }
 
                         // Write the magnitude of this star next to it
-                        if (s->star_mag_labels) {
-                            snprintf(temp_err_string, FNAME_LENGTH, "%.1f", sd.mag);
-                            chart_label_buffer(page, s, s->star_label_col, temp_err_string,
+                        if (show_star_magnitude) {
+                            char label_buffer[FNAME_LENGTH];
+                            if (s->star_mag_labels == SW_MAG_LABEL_ON) {
+                                snprintf(label_buffer, FNAME_LENGTH, "%.1f", sd.mag);
+                            } else {
+                                snprintf(label_buffer, FNAME_LENGTH, "%.0f", sd.mag * 10.);
+                            }
+                            chart_label_buffer(page, s, s->star_label_col, label_buffer,
                                                (label_position[4]) {
                                                        {x, y, 0, horizontal_offset,  0,                  -1, 0},
                                                        {x, y, 0, -horizontal_offset, 0,                  1,  0},

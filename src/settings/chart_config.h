@@ -79,6 +79,11 @@
 #define SW_ANNOTATION_COORDS_RADEC 1
 #define SW_ANNOTATION_COORDS_ALTAZ 2
 
+// Options for labelling the magnitudes of stars
+#define SW_MAG_LABEL_OFF   0
+#define SW_MAG_LABEL_ON    1
+#define SW_MAG_LABEL_AAVSO 2
+
 //! The maximum number of text labels we can buffer
 #define MAX_LABELS 65536
 
@@ -334,7 +339,8 @@ typedef struct chart_config {
     //! Either SW_CAT_HIP, SW_CAT_YBSC or SW_CAT_HD.
     int star_catalogue;
 
-    //! Boolean indicating whether we label the magnitudes of stars
+    //! Switch indicating how the magnitudes of stars are labelled.
+    //! Set to either SW_MAG_LABEL_OFF or SW_MAG_LABEL_ON or SW_MAG_LABEL_AAVSO.
     int star_mag_labels;
 
     //! Select which style to use for deep sky objects

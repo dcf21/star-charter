@@ -335,7 +335,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `star_col` - Colour to use when drawing stars
 * `star_flamsteed_labels` - Boolean (0 or 1) indicating whether we label the Flamsteed designations of stars
 * `star_label_mag_min` - Do not label stars fainter than this magnitude limit (default: unlimited)
-* `star_mag_labels` - Boolean (0 or 1) indicating whether we label the magnitudes of stars
+* `star_mag_labels` - Switch indicating how the magnitudes of stars are labelled. Options are `off` (no labels), `on` (display magnitudes), `aavso` (magnitude labels in the format used by the AAVSO: in 1/10th mag increments with no decimal points; only shown for stars with -0.2 < B-V < +0.7). Default: `off`.
 * `star_names` - Boolean (0 or 1) indicating whether we label the English names of stars
 * `star_variable_labels` - Boolean (0 or 1) indicating whether we label the variable-star designations of stars, e.g. V337_Car
 * `text` - Overlay a custom text label on the star chart. Each label should be specified in the format `<coordinates>,<xpos>,<ypos>,<xalign>,<yalign>,<font_size>,<font_bold>,<font_italic>,<colour r>,<colour g>,<colour b>,<label string>`, where `coordinates` should be `page` or `ra_dec`. If `page` is selected, then `xpos` and `ypos` are in the range 0-1; if `ra_dec` is selected then `xpos` is RA/hours and `ypos` is Dec/degs. `xalign` and `yalign` are in the range -1 (left) to 1 (right), and colour components are in the range 0-1. To overlay multiple text labels, specify this setting multiple times within your configuration file. 

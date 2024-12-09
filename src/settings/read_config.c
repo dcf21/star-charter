@@ -873,9 +873,18 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         }
         return 0;
     } else if (strcmp(key, "star_mag_labels") == 0) {
-        //! star_mag_labels - Boolean (0 or 1) indicating whether we label the magnitudes of stars
-        CHECK_VALUE_NUMERIC("star_mag_labels")
-        x->star_mag_labels = (int) key_val_num;
+        //! star_mag_labels - Switch indicating how the magnitudes of stars are labelled. Options are `off` (no labels),
+        //! `on` (display magnitudes), `aavso` (magnitude labels in the format used by the AAVSO: in 1/10th mag
+        //! increments with no decimal points; only shown for stars with -0.2 < B-V < +0.7). Default: `off`.
+        if (strcmp(key_val, "off") == 0) x->star_mag_labels = SW_MAG_LABEL_OFF;
+        else if (strcmp(key_val, "on") == 0) x->star_mag_labels = SW_MAG_LABEL_ON;
+        else if (strcmp(key_val, "aavso") == 0) x->star_mag_labels = SW_MAG_LABEL_AAVSO;
+        else {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. star_mag_labels should equal 'off', 'on' or 'aavso'.");
+            stch_error(temp_err_string);
+            return 1;
+        }
         return 0;
     } else if (strcmp(key, "star_label_mag_min") == 0) {
         //! star_label_mag_min - Do not label stars fainter than this magnitude limit
