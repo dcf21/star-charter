@@ -290,11 +290,25 @@ void plane_project_multilatitude(double *x, double *y, const chart_config *s, do
     const double lng = ra - st_radians;
     const double dec0 = dec;
 
+    // If looking south, then invert the sky
+    double x_offset, y_offset, a_sign;
+    if ((s->ra0_final < M_PI / 2) || (s->ra0_final > 3 * M_PI / 2)) {
+        // Looking north
+        x_offset = s->ra0_final;
+        y_offset = s->dec0_final;
+        a_sign = 1;
+    } else {
+        // Looking south
+        x_offset = s->ra0_final - M_PI;
+        y_offset = s->dec0_final + M_PI;
+        a_sign = -1;
+    }
+
     // Project point into Cartesian coordinates
-    const double a[3] = {
-            cos(lng) * cos(dec0), // Directed towards the prime meridian at epoch
-            sin(lng) * cos(dec0),
-            sin(dec0) // Directed towards north celestial pole
+    double a[3] = {
+            a_sign * cos(lng) * cos(dec0), // Directed towards the prime meridian at epoch
+            a_sign * sin(lng) * cos(dec0),
+            a_sign * sin(dec0) // Directed towards north celestial pole
     };
 
     // Latitude at which the point is on the local horizon
@@ -308,8 +322,8 @@ void plane_project_multilatitude(double *x, double *y, const chart_config *s, do
     const double x_plane = atan2(a_local[1], a_local[0]);
 
     // We use RA/Dec as a shift in the image plane
-    *x = x_plane + s->ra0_final;
-    *y = -y_plane + s->dec0_final;
+    *x = x_plane + x_offset;
+    *y = fmod(-a_sign * y_plane + y_offset + 11 * M_PI, 2 * M_PI) - M_PI;
 }
 
 //! plane_project_spherical - Project a pair of celestial coordinates (RA, Dec) into pixel coordinates (x,y)
@@ -432,9 +446,23 @@ void inv_plane_project_peters(double *ra, double *dec, const chart_config *s, do
 //! \param [out] dec - The output declination of the point to project (radians)
 
 void inv_plane_project_multilatitude(double *ra, double *dec, const chart_config *s, double x, double y) {
+    // If looking south, then invert the sky
+    double x_offset, y_offset, a_sign;
+    if ((s->ra0_final < M_PI / 2) || (s->ra0_final > 3 * M_PI / 2)) {
+        // Looking north
+        x_offset = s->ra0_final;
+        y_offset = s->dec0_final;
+        a_sign = 1;
+    } else {
+        // Looking south
+        x_offset = s->ra0_final - M_PI;
+        y_offset = s->dec0_final + M_PI;
+        a_sign = -1;
+    }
+
     // We use RA/Dec as a shift in the image plane
-    const double x_plane = x - s->ra0_final;
-    const double y_plane = -(y - s->dec0_final);
+    const double x_plane = x - x_offset;
+    const double y_plane = -a_sign * (y - y_offset);
 
     const double a_local[3] = {
             cos(x_plane),
@@ -446,8 +474,8 @@ void inv_plane_project_multilatitude(double *ra, double *dec, const chart_config
     double a[3];
     rotate_xz(a, a_local, -y_plane);
 
-    const double dec0 = asin(a[2]);
-    const double lng = atan2(a[1], a[0]);
+    const double dec0 = asin(a_sign * a[2]);
+    const double lng = atan2(a_sign * a[1], a_sign * a[0]);
 
     // Fetch sidereal time at epoch
     const double st_hr = sidereal_time(unix_from_jd(s->julian_date)); // hours
