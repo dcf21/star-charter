@@ -216,6 +216,7 @@ void default_config(chart_config *i) {
     i->constellations_label_shadow = 1;
     i->constellation_sticks_line_width = 1.4;
     i->chart_edge_line_width = 2.5;
+    i->chart_edge_line_col = (colour) {0, 0, 0};
 
     // Boolean flags indicating which settings have been manually overridden
     i->mag_min_is_set = 0;

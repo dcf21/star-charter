@@ -206,7 +206,8 @@ The following settings can be included in a `StarCharter` configuration file:
 * `axis_ticks_value_only` - If 1, axis labels will appear as simply "5h" or "30 deg". If 0, these labels will be preceded by alpha= or delta=
 * `az_central` - The local azimuth of the centre of the plot; degrees. This setting is only used if `coords=alt_az`.
 * `cardinals` - Boolean (0 or 1) indicating whether to write the cardinal points around the edge of alt/az star charts
-* `chart_edge_line_width` - Line width to use when marking the edge of the chart. Default 2.5.
+- `chart_edge_line_col` - Colour to use when marking the edge of the chart. Default `0,0,0`.
+- `chart_edge_line_width` - Line width to use when marking the edge of the chart. Default 2.5.
 * `constellation_boundaries` - Boolean (0 or 1) indicating whether we draw constellation boundaries
 * `constellation_boundary_col` - Colour to use when drawing constellation boundaries
 * `constellation_highlight` - Optionally, highlight the boundary of one particular constellation, identified by a three-letter abbreviation.
