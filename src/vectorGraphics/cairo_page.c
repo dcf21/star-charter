@@ -287,7 +287,7 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
     cairo_show_text(s->cairo_draw, s->title);
 
     // Draw outline of chart
-    cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+    cairo_set_source_rgb(s->cairo_draw, s->chart_edge_line_col.red, s->chart_edge_line_col.grn, s->chart_edge_line_col.blu);
     cairo_set_line_width(s->cairo_draw, s->chart_edge_line_width * s->line_width_base);
     cairo_new_path(s->cairo_draw);
     if ((s->projection == SW_PROJECTION_SPHERICAL) || (s->projection == SW_PROJECTION_ALTAZ)) {

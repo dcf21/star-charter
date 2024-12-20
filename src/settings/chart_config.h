@@ -612,6 +612,9 @@ typedef struct chart_config {
     //! Line width to use for the edge of the star chart
     double chart_edge_line_width;
 
+    //! Colour to use for the edge of the star chart
+    colour chart_edge_line_col;
+
     //! Boolean flags indicating which settings have been manually overridden
     //! (so that automatic scaling does not overwrite them).
     int mag_min_is_set;

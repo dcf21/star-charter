@@ -1135,6 +1135,10 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("chart_edge_line_width")
         x->chart_edge_line_width = key_val_num;
         return 0;
+    } else if (strcmp(key, "chart_edge_line_col") == 0) {
+        //! chart_edge_line_col - Colour to use when marking the edge of the chart.
+        x->chart_edge_line_col = colour_from_string(key_val);
+        return 0;
     } else {
         snprintf(temp_err_string, FNAME_LENGTH, "Bad input file. Unrecognised setting '%s'.", key);
         stch_error(temp_err_string);
