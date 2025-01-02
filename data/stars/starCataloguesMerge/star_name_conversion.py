@@ -2,7 +2,7 @@
 # star_name_conversion.py
 #
 # -------------------------------------------------
-# Copyright 2015-2024 Dominic Ford
+# Copyright 2015-2025 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -51,6 +51,7 @@ class StarNameConversion:
     greek_alphabet_html_lookup: List[Tuple[str, str]] = [
         (r"\\_", "_"), (r"\^1", "&#x00B9;"), (r"\^2", "&#x00B2;"), (r"\^3", "&#x00B3;"),
         (r"\^4", "&#x2074;"), (r"\^5", "&#x2075;"), (r"\^6", "&#x2076;"), (r"\^7", "&#x2077;"),
+        (r"\^8", "&#x2078;"), (r"\^9", "&#x2079;"),
         (r"\\alpha", "&alpha;"), (r"\\beta", "&beta;"), (r"\\gamma", "&gamma;"),
         (r"\\delta", "&delta;"), (r"\\epsilon", "&epsilon;"), (r"\\zeta", "&zeta;"),
         (r"\\eta", "&eta;"), (r"\\theta", "&theta;"), (r"\\iota", "&iota;"), (r"\\kappa", "&kappa;"),
@@ -63,7 +64,7 @@ class StarNameConversion:
     # Convert Greek letters (i.e. Bayer designations of stars) into ASCII
     greek_alphabet_ascii_lookup: List[Tuple[str, str]] = [
         (r"\\_", "_"), (r"\^1", "1"), (r"\^2", "2"), (r"\^3", "3"), (r"\^4", "4"),
-        (r"\^5", "5"), (r"\^6", "6"), (r"\^7", "7"), (r"\\alpha", "Alpha"),
+        (r"\^5", "5"), (r"\^6", "6"), (r"\^7", "7"), (r"\^8", "8"), (r"\^9", "9"), (r"\\alpha", "Alpha"),
         (r"\\beta", "Beta"), (r"\\gamma", "Gamma"), (r"\\delta", "Delta"), (r"\\epsilon", "Epsilon"),
         (r"\\zeta", "Zeta"), (r"\\eta", "Eta"), (r"\\theta", "Theta"), (r"\\iota", "Iota"),
         (r"\\kappa", "Kappa"), (r"\\lambda", "Lambda"), (r"\\mu", "Mu"), (r"\\nu", "Nu"),
@@ -77,7 +78,8 @@ class StarNameConversion:
     greek_html_to_utf8_lookup: List[Tuple[str, str]] = [
         (r"&#x00B9;", "\u00B9"), (r"&#x00B2;", "\u00B2"), (r"&#x00B3;", "\u00B3"),
         (r"&#x2074;", "\u2074"), (r"&#x2075;", "\u2075"), (r"&#x2076;", "\u2076"),
-        (r"&#x2077;", "\u2077"), (r"&alpha;", "\u03B1"), (r"&beta;", "\u03B2"), (r"&gamma;", "\u03B3"),
+        (r"&#x2077;", "\u2077"), (r"&#x2078;", "\u2078"), (r"&#x2079;", "\u2079"),
+        (r"&alpha;", "\u03B1"), (r"&beta;", "\u03B2"), (r"&gamma;", "\u03B3"),
         (r"&delta;", "\u03B4"), (r"&epsilon;", "\u03B5"), (r"&zeta;", "\u03B6"), (r"&eta;", "\u03B7"),
         (r"&theta;", "\u03B8"), (r"&iota;", "\u03B9"), (r"&kappa;", "\u03BA"), (r"&lambda;", "\u03BB"),
         (r"&mu;", "\u03BC"), (r"&nu;", "\u03BD"), (r"&xi;", "\u03BE"), (r"&pi;", "\u03C0"),

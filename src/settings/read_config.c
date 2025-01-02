@@ -1,7 +1,7 @@
 // read_config.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2024 Dominic Ford
+// Copyright 2015-2025 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -275,7 +275,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! range 0-1; if `ra_dec` is selected then `xpos` is RA/hours and `ypos` is Dec/degs. `xalign` and `yalign`
         //! are in the range -1 (left) to 1 (right), and colour components are in the range 0-1. To overlay multiple
         //! text labels, specify this setting multiple times within your configuration file.
-        if (x->text_labels_custom_count > N_TRACES_MAX - 4) {
+        if (x->text_labels_custom_count > N_CUSTOM_LABELS_MAX - 4) {
             snprintf(temp_err_string, FNAME_LENGTH,
                      "Bad input file. Too many entries for <text>.");
             stch_error(temp_err_string);
@@ -292,7 +292,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! systems can be used for the two ends of the line. `head_start` and `head_end` are booleans indicating
         //! whether to draw arrow heads on the two ends of the line. The colour components are in the range 0-1. To
         //! overlay multiple arrow, specify this setting multiple times within your configuration file.
-        if (x->arrow_labels_custom_count > N_TRACES_MAX - 4) {
+        if (x->arrow_labels_custom_count > N_CUSTOM_LABELS_MAX - 4) {
             snprintf(temp_err_string, FNAME_LENGTH,
                      "Bad input file. Too many entries for <arrow>.");
             stch_error(temp_err_string);
@@ -434,7 +434,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! meteor_radiant - Specify that the radiant of a meteor shower should be marked. This should be set to a
         //! string of the form `<shower_label>,<ra_radiant/deg>,<dec_radiant/deg>`. To mark multiple shower
         //! radiants, supply this setting multiple times.
-        if (x->meteor_radiants_custom_count > N_TRACES_MAX - 4) {
+        if (x->meteor_radiants_custom_count > N_CUSTOM_LABELS_MAX - 4) {
             snprintf(temp_err_string, FNAME_LENGTH,
                      "Bad input file. Too many entries for <meteor_radiant>.");
             stch_error(temp_err_string);
@@ -1094,7 +1094,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! ephemeris_epochs - List of JD time epochs for which we should create points along each solar system
         //! ephemeris. If empty, then points are created automatically. This list must have the same length as
         //! <ephemeris_epoch_labels>.
-        if (x->ephemeris_epochs_custom_count > N_TRACES_MAX - 4) {
+        if (x->ephemeris_epochs_custom_count > N_EPOCHS_MAX - 4) {
             snprintf(temp_err_string, FNAME_LENGTH,
                      "Bad input file. Too many entries for <ephemeris_epochs>.");
             stch_error(temp_err_string);
@@ -1103,11 +1103,27 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         strcpy(x->ephemeris_epochs[x->ephemeris_epochs_custom_count], key_val);
         x->ephemeris_epochs_custom_count++;
         return 0;
+    } else if (strcmp(key, "ephemeris_label_interval") == 0) {
+        //! ephemeris_label_interval - List of the JD time step (in days) between labels along each solar system
+        //! ephemeris. If this setting is supplied multiple times, then the list of supplied intervals are used in a
+        //! cyclic loop for all the solar system ephemerides to be drawn. This setting is ignored if any explicit
+        //! `ephemeris_epoch` values are supplied. If neither `ephemeris_epoch` nor `ephemeris_label_interval` values
+        //! are supplied then labels are placed automatically.
+        CHECK_VALUE_NUMERIC("ephemeris_label_interval")
+        if (x->ephemeris_label_interval_custom_count > N_EPOCHS_MAX - 4) {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. Too many entries for <ephemeris_label_interval>.");
+            stch_error(temp_err_string);
+            return 1;
+        }
+        x->ephemeris_label_interval[x->ephemeris_label_interval_custom_count] = key_val_num;
+        x->ephemeris_label_interval_custom_count++;
+        return 0;
     } else if (strcmp(key, "ephemeris_epoch_labels") == 0) {
         //! ephemeris_epoch_labels - List of text labels for the points we create along each solar system
         //! ephemeris. If empty, then points are created automatically. This list must have the same length as
         //! <ephemeris_epochs>.
-        if (x->ephemeris_epoch_labels_custom_count > N_TRACES_MAX - 4) {
+        if (x->ephemeris_epoch_labels_custom_count > N_EPOCHS_MAX - 4) {
             snprintf(temp_err_string, FNAME_LENGTH,
                      "Bad input file. Too many entries for <ephemeris_epoch_labels>.");
             stch_error(temp_err_string);
@@ -1190,7 +1206,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! <x_pos>,<y_pos>,<position_angle>,<degrees>
         //! Where <x_pos> and <y_pos> are 0-1, the position angle is a clockwise rotation in degrees, and degrees is
         //! the length of the scale bar on the sky.
-        if (x->scale_bars_custom_count > N_TRACES_MAX - 4) {
+        if (x->scale_bars_custom_count > N_CUSTOM_LABELS_MAX - 4) {
             snprintf(temp_err_string, FNAME_LENGTH,
                      "Bad input file. Too many entries for <scale_bar>.");
             stch_error(temp_err_string);

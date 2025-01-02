@@ -1,7 +1,7 @@
 // ephemeris.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2024 Dominic Ford
+// Copyright 2015-2025 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -42,6 +42,8 @@ void ephemerides_autoscale_show_config(chart_config *s);
 void ephemerides_autoscale_plot(chart_config *s, int total_ephemeris_points);
 
 void ephemerides_add_manual_text_labels(chart_config *s);
+
+void ephemerides_add_equally_spaced_text_labels(chart_config *s);
 
 void ephemerides_add_automatic_text_labels(chart_config *s);
 

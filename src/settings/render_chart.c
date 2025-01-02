@@ -1,7 +1,7 @@
 // render_chart.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2024 Dominic Ford
+// Copyright 2015-2025 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -70,10 +70,12 @@ void render_chart(chart_config *s) {
     ephemerides_autoscale_plot(s, total_ephemeris_points);
 
     // Place text labels along the ephemeris tracks
-    if (s->ephemeris_epochs_final_count < 1) {
-        ephemerides_add_automatic_text_labels(s);
-    } else {
+    if (s->ephemeris_epochs_final_count > 0) {
         ephemerides_add_manual_text_labels(s);
+    } else if (s->ephemeris_label_interval_final_count > 0) {
+        ephemerides_add_equally_spaced_text_labels(s);
+    } else {
+        ephemerides_add_automatic_text_labels(s);
     }
 
     // If we're showing the positions of solar system objects, fetch those positions now

@@ -1,7 +1,7 @@
 // settings.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2024 Dominic Ford
+// Copyright 2015-2025 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -93,6 +93,12 @@
 //! The maximum number of objects we're allowed to draw ephemeris lines for on a single chart
 #define N_TRACES_MAX 128
 
+//! The maximum number of explicit epochs we're allowed to label along ephemeris tracks
+#define N_EPOCHS_MAX 128
+
+//! The maximum number of custom labels we're allowed to put on a chart
+#define N_CUSTOM_LABELS_MAX 128
+
 //! Maximum allowed iteration depth when including configuration files
 #define MAX_INCLUSION_DEPTH 8
 
@@ -170,7 +176,7 @@ typedef struct chart_config {
     double position_angle;
 
     //! The list of text labels to overlay over the star chart
-    char text_labels[N_TRACES_MAX][FNAME_LENGTH];
+    char text_labels[N_CUSTOM_LABELS_MAX][FNAME_LENGTH];
 
     //! The number of default text labels to overlay over the star chart
     int text_labels_default_count;
@@ -179,7 +185,7 @@ typedef struct chart_config {
     int text_labels_custom_count;
 
     //! The list of arrow/line labels to overlay over the star chart
-    char arrow_labels[N_TRACES_MAX][FNAME_LENGTH];
+    char arrow_labels[N_CUSTOM_LABELS_MAX][FNAME_LENGTH];
 
     //! The number of default arrow/line labels to overlay over the star chart
     int arrow_labels_default_count;
@@ -488,8 +494,9 @@ typedef struct chart_config {
     char ephemeris_definitions[N_TRACES_MAX][FNAME_LENGTH];
 
     //! List of JD time epochs for which we should create points along each solar system ephemeris. If empty, then
-    //! points are created automatically. This list must have the same length as <ephemeris_epoch_labels>.
-    char ephemeris_epochs[N_TRACES_MAX][FNAME_LENGTH];
+    //! points are either placed at intervals specified by `ephemeris_label_interval`, or else created automatically.
+    //! This list must have the same length as <ephemeris_epoch_labels>.
+    char ephemeris_epochs[N_EPOCHS_MAX][FNAME_LENGTH];
 
     //! Length of default values in list <ephemeris_epochs>
     int ephemeris_epochs_default_count;
@@ -499,15 +506,28 @@ typedef struct chart_config {
 
     //! List of text labels for the points we create along each solar system ephemeris. If empty, then points are
     //! created automatically. This list must have the same length as <ephemeris_epochs>.
-    char ephemeris_epoch_labels[N_TRACES_MAX][FNAME_LENGTH];
+    char ephemeris_epoch_labels[N_EPOCHS_MAX][FNAME_LENGTH];
 
     //! Length of custom values in list <ephemeris_epoch_labels>
     int ephemeris_epoch_labels_custom_count;
 
+    //! List of the JD time step (in days) between labels along each solar system ephemeris. If this setting is
+    //! supplied multiple times, then the list of supplied intervals are used in a cyclic loop for all the solar system
+    //! ephemerides to be drawn. This setting is ignored if any explicit `ephemeris_epoch` values are supplied. If
+    //! neither `ephemeris_epoch` nor `ephemeris_label_interval` values are supplied then labels are placed
+    //! automatically.
+    double ephemeris_label_interval[N_TRACES_MAX];
+
+    //! Length of default values in list <ephemeris_epochs>
+    int ephemeris_label_interval_default_count;
+
+    //! Length of custom values in list <ephemeris_epochs>
+    int ephemeris_label_interval_custom_count;
+
     //! List of scale bars we should super-impose over the star chart. Each should be specified as:
     //! <x_pos>,<y_pos>,<degrees>
     //! Where <x_pos> and <y_pos> are 0-1, and degrees is the length of the scale bar.
-    char scale_bars[N_TRACES_MAX][FNAME_LENGTH];
+    char scale_bars[N_CUSTOM_LABELS_MAX][FNAME_LENGTH];
 
     //! Length of default values in list <scale_bars>
     int scale_bars_default_count;
@@ -642,7 +662,7 @@ typedef struct chart_config {
     double label_font_size_scaling;
 
     //! List of meteor radiants to show and label
-    char meteor_radiants[N_TRACES_MAX][FNAME_LENGTH];
+    char meteor_radiants[N_CUSTOM_LABELS_MAX][FNAME_LENGTH];
 
     //! Colour to use when drawing meteor shower radiants
     colour meteor_radiant_colour;
@@ -745,6 +765,9 @@ typedef struct chart_config {
 
     //! The final number of values in list <ephemeris_epochs>
     int ephemeris_epochs_final_count;
+
+    //! The final number of values in list <ephemeris_label_interval>
+    int ephemeris_label_interval_final_count;
 
     //! The final number of values in list <scale_bars>
     int scale_bars_final_count;

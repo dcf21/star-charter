@@ -1,7 +1,7 @@
 // ephemeris.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2024 Dominic Ford
+// Copyright 2015-2025 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -693,6 +693,65 @@ void ephemerides_add_manual_text_labels(chart_config *s) {
             int label_index = -1;
             for (int j = 0; j < s->ephemeris_epochs_final_count; j++) {
                 const double jd_requested = get_float(s->ephemeris_epochs[j], NULL);
+                const double offset_this = fabs(jd_requested - jd_pt);
+
+                // Only consider putting this label here is the JD matches to within 24 hours
+                if (offset_this < 1) {
+                    const double jd_previous = is_first_point ? 999 : (s->ephemeris_data[i].data[line_counter - 1].jd);
+                    const double jd_next = is_last_point ? 999 : (s->ephemeris_data[i].data[line_counter + 1].jd);
+
+                    const double offset_previous = fabs(jd_requested - jd_previous);
+                    const double offset_next = fabs(jd_requested - jd_next);
+
+                    // In the middle of an ephemeris, labels attach to the closest ephemeris time point
+                    if ((offset_this < offset_previous) && (offset_this <= offset_next)) {
+                        label_index = j;
+                        break;
+                    }
+                }
+            }
+
+            if (label_index < 0) {
+                // If we didn't find a label for this ephemeris point, set it to NULL
+                s->ephemeris_data[i].data[line_counter].text_label = NULL;
+                s->ephemeris_data[i].data[line_counter].sub_month_label = 0;
+            } else {
+                // Attach requested label to this ephemeris point
+                s->ephemeris_data[i].data[line_counter].text_label =
+                        string_make_permanent(s->ephemeris_epoch_labels[label_index]);
+                s->ephemeris_data[i].data[line_counter].sub_month_label = 0;
+            }
+        }
+    }
+}
+
+//! ephemerides_add_equally_spaced_text_labels - Add text labels at equally-spaced points along the ephemeris tracks
+//! (when the <ephemeris_label_interval> setting has been supplied).
+//! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
+
+void ephemerides_add_equally_spaced_text_labels(chart_config *s) {
+    // Loop over all the ephemeris tracks we have computed, and add text labels
+    for (int i = 0; i < s->ephemeris_final_count; i++) {
+        // Work out what spacing to use
+        const int ephemeris_label_interval_index = i % s->ephemeris_label_interval_final_count;
+        const double label_spacing = s->ephemeris_label_interval[ephemeris_label_interval_index];
+
+        const int line_count = s->ephemeris_data[i].point_count;
+        const double jd_min = s->ephemeris_data[i].data[0].jd;
+        const double jd_max = s->ephemeris_data[i].data[line_count - 1].jd;
+        const int j_max = (int) floor((jd_max - jd_min) / label_spacing);
+
+        // Loop over points within the ephemeris
+        for (int line_counter = 0; line_counter < line_count; line_counter++) {
+            const int is_first_point = (line_counter < 1);
+            const int is_last_point = (line_counter >= line_count - 1);
+
+            const double jd_pt = s->ephemeris_data[i].data[line_counter].jd;
+
+            // Loop over manually specified epochs to label, and see if any fit this time point
+            int label_index = -1;
+            for (int j = 0; j < j_max; j++) {
+                const double jd_requested = jd_min + j * label_spacing;
                 const double offset_this = fabs(jd_requested - jd_pt);
 
                 // Only consider putting this label here is the JD matches to within 24 hours

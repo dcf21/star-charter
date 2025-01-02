@@ -1,7 +1,7 @@
 # Makefile for StarCharter
 # 
 # -------------------------------------------------
-# Copyright 2015-2024 Dominic Ford
+# Copyright 2015-2025 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -22,7 +22,7 @@
 CWD=$(shell pwd)
 
 VERSION = 7.0
-DATE    = 23/09/2024
+DATE    = 07/01/2025
 PATHLINK= /
 
 WARNINGS= -Wall -Wno-format-truncation -Wno-unused-result

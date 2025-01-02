@@ -1,7 +1,7 @@
 // settings.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2024 Dominic Ford
+// Copyright 2015-2025 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -144,6 +144,9 @@ void default_config(chart_config *i) {
     i->ephemeris_epochs_custom_count = 0;
     i->ephemeris_epochs_final_count = 0;
     i->ephemeris_epoch_labels_custom_count = 0;
+    i->ephemeris_label_interval_default_count = 0;
+    i->ephemeris_label_interval_custom_count = 0;
+    i->ephemeris_label_interval_final_count = 0;
     i->scale_bars_default_count = 0;
     i->scale_bars_custom_count = 0;
     i->scale_bars_final_count = 0;
@@ -325,6 +328,12 @@ void config_init_arrays(chart_config *i) {
         i->ephemeris_epochs_final_count = i->ephemeris_epochs_custom_count;
     } else {
         i->ephemeris_epochs_final_count = i->ephemeris_epochs_default_count;
+    }
+
+    if (i->ephemeris_label_interval_custom_count > 0) {
+        i->ephemeris_label_interval_final_count = i->ephemeris_label_interval_custom_count;
+    } else {
+        i->ephemeris_label_interval_final_count = i->ephemeris_label_interval_default_count;
     }
 
     // Number of colour to use in cyclic loop when drawing solar system objects
