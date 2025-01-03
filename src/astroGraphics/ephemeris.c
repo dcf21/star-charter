@@ -750,7 +750,7 @@ void ephemerides_add_equally_spaced_text_labels(chart_config *s) {
 
             // Loop over manually specified epochs to label, and see if any fit this time point
             int label_index = -1;
-            for (int j = 0; j < j_max; j++) {
+            for (int j = 0; j <= j_max; j++) {
                 const double jd_requested = jd_min + j * label_spacing;
                 const double offset_this = fabs(jd_requested - jd_pt);
 
@@ -770,14 +770,30 @@ void ephemerides_add_equally_spaced_text_labels(chart_config *s) {
                 }
             }
 
+            // Attach label to this ephemeris point
             if (label_index < 0) {
                 // If we didn't find a label for this ephemeris point, set it to NULL
                 s->ephemeris_data[i].data[line_counter].text_label = NULL;
                 s->ephemeris_data[i].data[line_counter].sub_month_label = 0;
             } else {
-                // Attach requested label to this ephemeris point
-                s->ephemeris_data[i].data[line_counter].text_label =
-                        string_make_permanent(s->ephemeris_epoch_labels[label_index]);
+                // Extract calendar date components for this ephemeris data point
+                int year, month, day, hour, minute, status = 0;
+                double second;
+                inv_julian_day(jd_pt, &year, &month, &day, &hour, &minute, &second, &status, temp_err_string);
+
+                // Abort on error
+                if (status) {
+                    stch_error(temp_err_string);
+                    continue;
+                }
+
+                // Create a text label for this point on the ephemeris track
+                char label[FNAME_LENGTH] = "";
+
+                // Use the format, e.g. 1 Jan
+                snprintf(label, FNAME_LENGTH, "%d %.3s", day, get_month_name(month));
+
+                s->ephemeris_data[i].data[line_counter].text_label = string_make_permanent(label);
                 s->ephemeris_data[i].data[line_counter].sub_month_label = 0;
             }
         }
