@@ -65,7 +65,7 @@ ephemeris_epoch_labels=09
 CHART
 projection=flat
 copyright=The path of Mars from January to September 2023
-text=0.52,0.36,0,0,1.5,1,0.7,0.6,MARS
+text=page,0.52,0.36,0,0,1.5,1,0.7,0.6,MARS
 draw_ephemeris=P4,2459945.5,2460192.5  # Mars
 ra_central=8.5
 dec_central=10
@@ -96,7 +96,7 @@ ephemeris_epoch_labels=01/2024
 # Chart for Jupiter
 CHART
 copyright=The path of Jupiter in 2023
-text=0.52,0.33,0,0,1.5,1,0.7,1,JUPITER
+text=page,0.52,0.33,0,0,1.5,1,0.7,1,JUPITER
 draw_ephemeris=P5,2459945.5,2460320.5  # Jupiter
 ra_central=1.5
 dec_central=5
@@ -112,7 +112,7 @@ solar_system_col=1,0.7,1  # Jupiter
 # Chart for Saturn
 CHART
 copyright=The path of Saturn in 2023
-text=0.52,0.6,0,0,1.5,1,1,0.6,SATURN
+text=page,0.52,0.6,0,0,1.5,1,1,0.6,SATURN
 draw_ephemeris=P6,2459945.5,2460320.5  # Saturn
 ra_central=22.2
 dec_central=-12
@@ -128,7 +128,7 @@ solar_system_col=1,1,0.6  # Saturn
 # Chart for Uranus
 CHART
 copyright=The path of Uranus in 2023
-text=0.52,0.36,0,0,1.5,0.9,0.9,1,URANUS
+text=page,0.52,0.36,0,0,1.5,0.9,0.9,1,URANUS
 draw_ephemeris=P7,2459945.5,2460320.5  # Uranus
 ra_central=3.1
 dec_central=17
@@ -144,7 +144,7 @@ solar_system_col=0.9,0.9,1
 # Chart for Neptune
 CHART
 copyright=The path of Neptune in 2023
-text=0.52,0.36,0,0,1.5,0.9,0.9,1,NEPTUNE
+text=page,0.52,0.36,0,0,1.5,0.9,0.9,1,NEPTUNE
 draw_ephemeris=P8,2459945.5,2460320.5  # Neptune
 ra_central=23.74
 dec_central=-3

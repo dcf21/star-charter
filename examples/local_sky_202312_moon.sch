@@ -44,7 +44,7 @@ ephemeris_style=side_by_side
 # Chart at 07:00 on 1 Dec 2023
 CHART
 copyright=2023 December 1, the Moon is lining up with Pollux and Castor, shortly before sunrise
-text=0.05,0.05,-1,0,3,0,0,0,Morning 07:00, 1 Dec 2023
+text=page,0.05,0.05,-1,0,3,0,0,0,Morning 07:00, 1 Dec 2023
 alt_central=35
 az_central=265
 angular_width=35.0
@@ -57,7 +57,7 @@ output_filename=output/local_sky_202312_moon_00.png
 # Chart at 07:00 on 8-9 Dec 2023
 CHART
 copyright=2023 December 8-9, in morning twilight, the Moon passes Spica and the very bright Venus
-text=0.05,0.05,-1,0,3,0,0,0,Morning 07:00, 1 Dec 2023
+text=page,0.05,0.05,-1,0,3,0,0,0,Morning 07:00, 1 Dec 2023
 alt_central=22
 az_central=155
 angular_width=25.0
@@ -72,7 +72,7 @@ output_filename=output/local_sky_202312_moon_01.png
 # Chart at 07:00 on 17-18 Dec 2023
 CHART
 copyright=2023 December 17-18, the Moon passes between Saturn and Fomalhaut
-text=0.05,0.05,-1,0,3,0,0,0,Evening 18:00, 1 Dec 2023
+text=page,0.05,0.05,-1,0,3,0,0,0,Evening 18:00, 1 Dec 2023
 alt_central=17
 az_central=200
 angular_width=30.0
@@ -87,7 +87,7 @@ output_filename=output/local_sky_202312_moon_02.png
 # Chart at 17:00 on 22-24 Dec 2023
 CHART
 copyright=2023 December 22-24, the Moon passes Jupiter and Uranus
-text=0.05,0.05,-1,0,3,0,0,0,Evening 17:00, 1 Dec 2023
+text=page,0.05,0.05,-1,0,3,0,0,0,Evening 17:00, 1 Dec 2023
 alt_central=30
 az_central=100
 angular_width=40.0
@@ -104,7 +104,7 @@ output_filename=output/local_sky_202312_moon_03.png
 # Chart at 20:00 on 27-28 Dec 2023
 CHART
 copyright=2023 December 27-28, the Full Moon passes below Pollux and Castor
-text=0.05,0.05,-1,0,3,0,0,0,Evening 20:00, 1 Dec 2023
+text=page,0.05,0.05,-1,0,3,0,0,0,Evening 20:00, 1 Dec 2023
 alt_central=26
 az_central=83
 angular_width=38.0

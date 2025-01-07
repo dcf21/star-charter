@@ -51,7 +51,7 @@ solar_system_col=0.9,0.9,1
 # Chart for 4 Vesta
 CHART
 copyright=The path of 4 Vesta
-text=0.52,0.36,0,0,1.5,0.9,0.9,1,VESTA
+text=page,0.52,0.36,0,0,1.5,0.9,0.9,1,VESTA
 draw_ephemeris=A4,2460249.5,2460364.5  # Vesta
 # ra_central=6
 # dec_central=20
@@ -74,7 +74,7 @@ ephemeris_epoch_labels=Feb 14
 # Chart for 1 Ceres
 CHART
 copyright=The path of 1 Ceres
-text=0.52,0.36,0,0,1.5,0.9,0.9,1,CERES
+text=page,0.52,0.36,0,0,1.5,0.9,0.9,1,CERES
 draw_ephemeris=A1,2459989.5,2460074.5 # Ceres
 # ra_central=12.4
 # dec_central=13
