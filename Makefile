@@ -21,19 +21,20 @@
 
 CWD=$(shell pwd)
 
-VERSION = 7.0
-DATE    = 07/01/2025
+VERSION = 8.0
+DATE    = 23/01/2025
 PATHLINK= /
 
-WARNINGS= -Wall -Wno-format-truncation -Wno-unused-result
-COMPILE = $(CC) $(WARNINGS) -g -fopenmp -c -I $(CWD)/src
+WARNINGS= -Wall -Wno-format-truncation -Wno-unused-result -Wno-unknown-pragmas
+COMPILE = $(CC) $(WARNINGS) -g -c -I $(CWD)/src
 LIBS    = -lcairo -lgsl -lgslcblas -lz -lm
 LINK    = $(CC) $(WARNINGS) -g -fopenmp
 
 OPTIMISATION = -O3
 
-DEBUG   = -D DEBUG=1 -D MEMDEBUG1=1 -D MEMDEBUG2=0
-NODEBUG = -D DEBUG=0 -D MEMDEBUG1=0 -D MEMDEBUG2=0
+DEBUG          = -D DEBUG=1 -D MEMDEBUG1=1 -D MEMDEBUG2=0 -fopenmp
+NODEBUG        = -D DEBUG=0 -D MEMDEBUG1=0 -D MEMDEBUG2=0 -fopenmp
+SINGLE_THREAD  = -D DEBUG=0 -D MEMDEBUG1=0 -D MEMDEBUG2=0
 
 LOCAL_SRCDIR = src
 LOCAL_OBJDIR = obj
@@ -66,33 +67,39 @@ STARCHART_FILES = main.c
 
 STARCHART_HEADERS =
 
-CORE_SOURCES              = $(CORE_FILES:%.c=$(LOCAL_SRCDIR)/%.c)
-CORE_OBJECTS              = $(CORE_FILES:%.c=$(LOCAL_OBJDIR)/%.o)
-CORE_OBJECTS_DEBUG        = $(CORE_OBJECTS:%.o=%.debug.o)
-CORE_HFILES               = $(CORE_HEADERS:%.h=$(LOCAL_SRCDIR)/%.h) Makefile
+CORE_SOURCES                    = $(CORE_FILES:%.c=$(LOCAL_SRCDIR)/%.c)
+CORE_OBJECTS                    = $(CORE_FILES:%.c=$(LOCAL_OBJDIR)/%.o)
+CORE_OBJECTS_DEBUG              = $(CORE_OBJECTS:%.o=%.debug.o)
+CORE_OBJECTS_SINGLE_THREAD      = $(CORE_OBJECTS:%.o=%.single_thread.o)
+CORE_HFILES                     = $(CORE_HEADERS:%.h=$(LOCAL_SRCDIR)/%.h) Makefile
 
-STARCHART_SOURCES         = $(STARCHART_FILES:%.c=$(LOCAL_SRCDIR)/%.c)
-STARCHART_OBJECTS         = $(STARCHART_FILES:%.c=$(LOCAL_OBJDIR)/%.o)
-STARCHART_OBJECTS_DEBUG   = $(STARCHART_OBJECTS:%.o=%.debug.o)
-STARCHART_HFILES          = $(STARCHART_HEADERS:%.h=$(LOCAL_SRCDIR)/%.h) Makefile
+STARCHART_SOURCES               = $(STARCHART_FILES:%.c=$(LOCAL_SRCDIR)/%.c)
+STARCHART_OBJECTS               = $(STARCHART_FILES:%.c=$(LOCAL_OBJDIR)/%.o)
+STARCHART_OBJECTS_DEBUG         = $(STARCHART_OBJECTS:%.o=%.debug.o)
+STARCHART_OBJECTS_SINGLE_THREAD = $(STARCHART_OBJECTS:%.o=%.single_thread.o)
+STARCHART_HFILES                = $(STARCHART_HEADERS:%.h=$(LOCAL_SRCDIR)/%.h) Makefile
 
 ALL_HFILES = $(CORE_HFILES) $(STARCHART_HFILES)
 
 SWITCHES = -D DCFVERSION=\"$(VERSION)\"  -D DATE=\"$(DATE)\"  -D PATHLINK=\"$(PATHLINK)\"  -D SRCDIR=\"$(CWD)/$(LOCAL_SRCDIR)/\"
 
-all: $(LOCAL_BINDIR)/starchart.bin $(LOCAL_BINDIR)/debug/starchart.bin
+all: $(LOCAL_BINDIR)/starchart.bin $(LOCAL_BINDIR)/debug/starchart.bin $(LOCAL_BINDIR)/single_thread/starchart.bin
 
 #
 # General macros for the compile steps
 #
 
-$(LOCAL_OBJDIR)/%.o:         $(LOCAL_SRCDIR)/%.c $(ALL_HFILES)
+$(LOCAL_OBJDIR)/%.o:               $(LOCAL_SRCDIR)/%.c $(ALL_HFILES)
 	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/ephemCalc $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
 	$(COMPILE) $(OPTIMISATION) $(NODEBUG) $(SWITCHES) $< -o $@
 
-$(LOCAL_OBJDIR)/%.debug.o:   $(LOCAL_SRCDIR)/%.c $(ALL_HFILES)
+$(LOCAL_OBJDIR)/%.debug.o:         $(LOCAL_SRCDIR)/%.c $(ALL_HFILES)
 	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/ephemCalc $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
 	$(COMPILE) $(OPTIMISATION) $(DEBUG)   $(SWITCHES) $< -o $@
+
+$(LOCAL_OBJDIR)/%.single_thread.o: $(LOCAL_SRCDIR)/%.c $(ALL_HFILES)
+	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/ephemCalc $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
+	$(COMPILE) $(OPTIMISATION) $(SINGLE_THREAD)   $(SWITCHES) $< -o $@
 
 #
 # Make the binaries
@@ -107,6 +114,10 @@ $(LOCAL_BINDIR)/debug/starchart.bin: $(CORE_OBJECTS_DEBUG) $(STARCHART_OBJECTS_D
 	echo "The files in this directory are binaries with debugging options enabled: they produce activity logs called 'starchart.log'. It should be noted that these binaries can up to ten times slower than non-debugging versions." > $(LOCAL_BINDIR)/debug/README
 	$(LINK) $(OPTIMISATION) $(CORE_OBJECTS_DEBUG) $(STARCHART_OBJECTS_DEBUG) $(LIBS) -o $(LOCAL_BINDIR)/debug/starchart.bin
 
+$(LOCAL_BINDIR)/single_thread/starchart.bin: $(CORE_OBJECTS_SINGLE_THREAD) $(STARCHART_OBJECTS_SINGLE_THREAD)
+	mkdir -p $(LOCAL_BINDIR)/single_thread
+	$(LINK) $(OPTIMISATION) $(CORE_OBJECTS_SINGLE_THREAD) $(STARCHART_OBJECTS_SINGLE_THREAD) $(LIBS) -o $(LOCAL_BINDIR)/single_thread/starchart.bin
+
 #
 # Clean macros
 #
@@ -115,4 +126,3 @@ clean:
 	rm -vfR $(LOCAL_OBJDIR) $(LOCAL_BINDIR)
 
 afresh: clean all
-
