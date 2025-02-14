@@ -119,7 +119,7 @@ docker compose run star-charter
 To make other star charts, open a shell within the Docker container as follows:
 
 ```
-docker run -it star-charter:v7 /bin/bash
+docker run -it star-charter:v8 /bin/bash
 ```
 
 ## Generating your own star charts
