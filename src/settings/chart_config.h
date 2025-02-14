@@ -167,7 +167,7 @@ typedef struct chart_config {
     //! This setting is only used if <coords=SW_COORDS_ALTAZ>
     double alt0;
 
-    //! The azimuth of the centre of the plot, degrees
+    //! The azimuth of the centre of the plot, degrees clockwise / eastwards from north
     //! This setting is only used if <coords=SW_COORDS_ALTAZ>
     double az0;
 

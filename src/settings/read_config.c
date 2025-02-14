@@ -253,7 +253,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         if (x->alt0 < -90) x->alt0 = -90;
         return 0;
     } else if (strcmp(key, "az_central") == 0) {
-        //! az_central - The azimuth of the centre of the plot, degrees
+        //! az_central - The azimuth of the centre of the plot, degrees clockwise / eastwards from north
         //! This setting is only used if <coords=SW_COORDS_ALTAZ>
         CHECK_VALUE_NUMERIC("az_central")
         x->ra0_is_set = 1;

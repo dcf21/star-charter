@@ -332,7 +332,7 @@ void plot_solar_system(chart_config *s, cairo_page *page) {
             const double jd = e->data[0].jd;
             const double ra = e->data[0].ra; // radians
             const double dec = e->data[0].dec; // radians
-            const double mag = e->data[0].mag;
+            double mag = e->data[0].mag;
             const double sun_pa = e->data[0].sun_pa; // radians
             const int is_comet = e->is_comet;
 
@@ -365,6 +365,7 @@ void plot_solar_system(chart_config *s, cairo_page *page) {
                 draw_moon(s, page, colour_label_final, x, y, ra, dec, jd,
                           s->solar_system_labels[obj_id]);
             } else {
+                if (mag > 1.5) { mag=1.5; }
                 // Draw a circular splodge on the star chart
                 draw_solar_system_object(s, page, colour_final, colour_label_final,
                                          mag, x, y, is_comet, sun_pa,

@@ -205,7 +205,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `aspect` - The aspect ratio of the star chart: i.e. the ratio height/width
 * `axis_label` - Boolean (0 or 1) indicating whether to write "Right ascension" and "Declination" on the vertical/horizontal axes
 * `axis_ticks_value_only` - If 1, axis labels will appear as simply "5h" or "30 deg". If 0, these labels will be preceded by alpha= or delta=
-* `az_central` - The local azimuth of the centre of the plot; degrees. This setting is only used if `coords=alt_az`.
+* `az_central` - The local azimuth of the centre of the plot; degrees clockwise / eastwards from north. This setting is only used if `coords=alt_az`.
 * `cardinals` - Boolean (0 or 1) indicating whether to write the cardinal points around the edge of alt/az star charts
 * `chart_edge_line_width` - Line width to use when marking the edge of the chart. Default 2.5.
 * `constellation_boundaries` - Boolean (0 or 1) indicating whether we draw constellation boundaries
@@ -386,6 +386,8 @@ angular width, and scales the star chart to automatically show the requested
 ephemerides.
 
 ## Change history
+
+**Version 8.0** (unreleased) - Fix download links
 
 **Version 7.0** (7 Jan 2025) - Added further new configuration options.
 

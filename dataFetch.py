@@ -131,7 +131,7 @@ def fetch_required_files(refresh: bool) -> None:
             'force_refresh': True
         },
         {
-            'url': 'https://www.minorplanetcenter.net/iau/MPCORB/CometEls.txt',
+            'url': 'https://www.minorplanetcenter.net/iau/MPCORB/AllCometEls.txt',
             'destination': 'data/Soft00Cmt.txt',
             'force_refresh': True
         },
