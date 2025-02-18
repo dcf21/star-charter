@@ -285,6 +285,83 @@ void plot_stars_calculate_magnitude_range(chart_config *s, FILE *stars_data_file
     }
 }
 
+//! plot_stars_path - Draw stars to the current Cairo path
+//! \param [in] s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param [in] stars_data_file - A file handle to the binary catalogue of star data.
+//! \param [in] tiles - A data structure defining the tiling scheme used for storing star data.
+//! \param [in] clockwise - If true, stroke the stars clockwise, otherwise anticlockwise.
+//! \return void
+
+void plot_stars_path(chart_config *s, FILE *stars_data_file, const tiling_information *tiles,
+                     const double radius_multiplier, const int clockwise) {
+    double start_angle, end_angle;
+
+    if (clockwise) {
+        start_angle = 0;
+        end_angle = 2 * M_PI;
+    } else {
+        start_angle = 2 * M_PI;
+        end_angle = 0;
+    }
+
+    // Draw stars -- Loop over each tiling level
+    for (int level = 0;
+         (
+                 (level < (*tiles).total_level_count) && // Do not exceed deepest tiling level
+                 ((level == 0) || (object_tilings[level - 1].faintest_mag < s->mag_min)) // Tiling level too faint?
+         );
+         level++
+            ) {
+        // Loop over Dec tiles
+        for (int dec_index = 0; dec_index < object_tilings[level].dec_bins; dec_index++)
+            // Loop over RA tiles
+            for (int ra_index = 0; ra_index < object_tilings[level].ra_bins; ra_index++) {
+                // Does this tile's sky area fall within field of view?
+                if (!test_if_tile_in_field_of_view(s, level, ra_index, dec_index)) continue;
+
+                // Work out position of this tile in the binary stars_data_file
+                const int tile_index_in_level = dec_index * object_tilings[level].ra_bins + ra_index;
+                const int tile_index_in_array = (*tiles).tile_level_start_index[level] + tile_index_in_level;
+                const star_tile_info *tile = &(*tiles).tile_info[tile_index_in_array];
+                const unsigned long int tile_file_pos = ((*tiles).file_stars_start_position +
+                                                         tile->file_position * sizeof(star_definition));
+
+                // Seek to correct position in the binary stars_data_file
+                fseek(stars_data_file, (long) tile_file_pos, SEEK_SET);
+
+                // Loop over each star in turn
+                for (int star_index = 0; star_index < tile->star_count; star_index++) {
+                    // Read the star from disk
+                    star_definition sd;
+                    fread(&sd, sizeof(star_definition), 1, stars_data_file);
+
+                    // Stars are sorted in order of brightness, so can stop processing this tile if we find one that is too faint
+                    if (sd.mag > s->mag_min) break;
+
+                    // Work out coordinates of this star on the star chart
+                    double x, y;
+                    plane_project(&x, &y, s, sd.ra, sd.dec, 0);
+
+                    // Ignore this star if it falls outside the plot area
+                    if ((!gsl_finite(x)) || (!gsl_finite(y)) ||
+                        (x < s->x_min) || (x > s->x_max) || (y < s->y_min) || (y > s->y_max)) {
+                        continue;
+                    }
+
+                    // Calculate the radius of this star on tha canvas
+                    const double size = get_star_size(s, sd.mag) * radius_multiplier;  // inches
+
+                    // Draw a circular splodge on the star chart
+                    const double size_canvas = size * s->dpi;  // Cairo pixels
+                    double x_canvas, y_canvas;
+                    fetch_canvas_coordinates(&x_canvas, &y_canvas, x, y, s);
+                    cairo_arc(s->cairo_draw, x_canvas, y_canvas, size_canvas, start_angle, end_angle);
+                    cairo_close_path(s->cairo_draw);
+                }
+            }
+    }
+}
+
 //! plot_stars_draw - Draw stars onto the Cairo canvas
 //! \param [in] s - A <chart_config> structure defining the properties of the star chart to be drawn.
 //! \param [in|out] page - A <cairo_page> structure defining the cairo drawing context.
@@ -296,7 +373,20 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
     // Count the number of star labels we produce
     int label_counter = 0;
 
-    // Now draw stars -- Loop over each tiling level
+    // If requested, clip around stars
+    const cairo_fill_rule_t old_fill_rule = cairo_get_fill_rule(s->cairo_draw);
+    const double star_clip_margin = 0.91;
+    if (s->star_clip_outline) {
+        cairo_save(s->cairo_draw);
+        cairo_set_fill_rule(s->cairo_draw, CAIRO_FILL_RULE_EVEN_ODD);
+        cairo_new_path(s->cairo_draw);
+        chart_edge_line_path(s);
+        plot_stars_path(s, stars_data_file, tiles, 1 / star_clip_margin, 1);
+        plot_stars_path(s, stars_data_file, tiles, star_clip_margin, 1);
+        cairo_clip(s->cairo_draw);
+    }
+
+    // Draw stars -- Loop over each tiling level
     for (int level = 0;
          (
                  (level < (*tiles).total_level_count) && // Do not exceed deepest tiling level
@@ -537,6 +627,14 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                 }
             }
     }
+
+    // If we set a clipping mask, unset it now
+    if (s->star_clip_outline) {
+        cairo_restore(s->cairo_draw);
+        cairo_set_fill_rule(s->cairo_draw, old_fill_rule);
+    }
+
+    // Return the number of labels we created
     return label_counter;
 }
 

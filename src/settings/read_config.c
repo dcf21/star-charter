@@ -513,6 +513,12 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         x->solar_system_label_colour[x->solar_system_label_colour_custom_count] = colour_from_string(key_val);
         x->solar_system_label_colour_custom_count++;
         return 0;
+    } else if (strcmp(key, "solar_system_minimum_size") == 0) {
+        //! solar_system_minimum_size - When showing selected solar system bodies, the minimum size of the markers,
+        //! which normally increase in size with brightness. Supplied in units of magnitude. Default: 999.
+        CHECK_VALUE_NUMERIC("solar_system_minimum_size")
+        x->solar_system_minimum_size = key_val_num;
+        return 0;
     } else if (strcmp(key, "solar_system_show_moon_phase") == 0) {
         //! solar_system_show_moon_phase - Boolean flag (0 or 1) indicating whether to show the Moon's phase (1), or
         //! show a simple marker (0).
@@ -528,6 +534,17 @@ int process_configuration_file_line(char *line, const char *filename, const int 
     } else if (strcmp(key, "solar_system_moon_colour") == 0) {
         //! solar_system_moon_colour - The colour to use to represent the illuminated portion of the Moon.
         x->solar_system_moon_colour = colour_from_string(key_val);
+        return 0;
+    } else if (strcmp(key, "solar_system_sun_actual_size") == 0) {
+        //! solar_system_sun_actual_size - Boolean flag (0 or 1) indicating whether to show the Sun's actual size
+        //! (true), or whether to give it a generic marker like the other planets (false). Default: 0.
+        CHECK_VALUE_NUMERIC("solar_system_sun_actual_size")
+        x->solar_system_sun_actual_size = (int) key_val_num;
+        return 0;
+    } else if (strcmp(key, "solar_system_sun_col") == 0) {
+        //! solar_system_sun_col - The colour to use when drawing the Sun's actual size (when
+        //! `solar_system_sun_actual_size` is turned on).
+        x->solar_system_sun_col = colour_from_string(key_val);
         return 0;
     } else if (strcmp(key, "solar_system_topocentric_correction") == 0) {
         //! solar_system_topocentric_correction - Boolean flag (0 or 1) indicating whether to apply topocentric
@@ -891,6 +908,12 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("star_label_mag_min")
         x->star_label_mag_min = key_val_num;
         return 0;
+    } else if (strcmp(key, "star_clip_outline") == 0) {
+        //! star_clip_outline - Boolean (0 or 1) indicating whether we clip a thin line around the edges of stars. This
+        //! makes star clusters like M45 stand out better. Default: 1.
+        CHECK_VALUE_NUMERIC("star_clip_outline")
+        x->star_clip_outline = (int) key_val_num;
+        return 0;
     } else if (strcmp(key, "dso_display_style") == 0) {
         //! dso_display_style - Select which style to use for deep sky objects. Set to either 'coloured' or 'fuzzy'.
         if (strcmp(key_val, "coloured") == 0) {
@@ -1200,6 +1223,12 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! even if they collide with other text.
         CHECK_VALUE_NUMERIC("must_show_all_ephemeris_labels")
         x->must_show_all_ephemeris_labels = (int) key_val_num;
+        return 0;
+    } else if (strcmp(key, "ephemeris_minimum_size") == 0) {
+        //! ephemeris_minimum_size - When showing the track of solar system objects, the minimum size of the markers,
+        //! which normally increase in size with brightness. Supplied in units of magnitude. Default: 3.0.
+        CHECK_VALUE_NUMERIC("ephemeris_minimum_size")
+        x->ephemeris_minimum_size = key_val_num;
         return 0;
     } else if (strcmp(key, "scale_bar") == 0) {
         //! scale_bar - List of scale bars we should super-impose over the star chart. Each should be specified as:

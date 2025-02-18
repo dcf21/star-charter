@@ -987,6 +987,9 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
     // Test if we are plotting the Moon
     const int is_moon = (str_cmp_no_case(e->obj_id, "P301") == 0);
 
+    // Test if we are plotting the Sun
+    const int is_sun = (str_cmp_no_case(e->obj_id, "sun") == 0);
+
     // Arrays to hold the pixel coordinates of each ephemeris point
     double *x = (double *) malloc(e->point_count * sizeof(double));  // tangent plane coordinates; radians
     double *y = (double *) malloc(e->point_count * sizeof(double));  // tangent plane coordinates; radians
@@ -1221,11 +1224,16 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
                 // Draw object
                 if (is_moon && s->solar_system_show_moon_phase) {
                     // Show Moon with representation of phase
-                    draw_moon(s, page, colour_label_final, x[i], y[i], e->data[i].ra, e->data[i].dec,
+                    draw_moon(s, page, colour_label_final, x[i], y[i],
+                              e->data[i].ra, e->data[i].dec, e->data[i].angular_size,
                               e->data[i].jd, e->data[i].text_label);
+                } else if (is_sun && s->solar_system_sun_actual_size) {
+                    // Show Sun at actual scale
+                    draw_sun(s, page, colour_label_final, x[i], y[i], e->data[i].angular_size,
+                             e->data[i].text_label);
                 } else {
-                    // If object is fainter than mag 4, then ensure the splodge we draw is not too small
-                    const double mag_size = gsl_min(e->data[i].mag, 3);
+                    // If object is fainter than mag limit, then ensure the splodge we draw is not too small
+                    const double mag_size = gsl_min(e->data[i].mag, s->ephemeris_minimum_size);
 
                     // Calculate the radius of this object on tha canvas, following the same magnitude scheme as for stars
                     const double mag_reference = (mag_size < s->mag_max) ? (s->mag_max) : mag_size;

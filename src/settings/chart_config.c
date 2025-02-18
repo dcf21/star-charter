@@ -93,7 +93,10 @@ void default_config(chart_config *i) {
     i->solar_system_label_colour_default_count = 1;
     i->solar_system_label_colour_custom_count = 0;
     i->solar_system_label_colour_final_count = 0;
+    i->solar_system_minimum_size = 999.;
     i->solar_system_show_moon_phase = 1;
+    i->solar_system_sun_actual_size = 0;
+    i->solar_system_sun_col = (colour) {1, 1, 0};
     i->solar_system_moon_earthshine_intensity = 0.12;
     i->solar_system_moon_colour = (colour) {1, 1, 0.8};
     i->solar_system_topocentric_correction = 0;
@@ -127,6 +130,7 @@ void default_config(chart_config *i) {
     i->star_allow_multiple_labels = 0;
     i->star_mag_labels = SW_MAG_LABEL_OFF;
     i->star_label_mag_min = 9999;
+    i->star_clip_outline = 1;
     i->dso_style = SW_DSO_STYLE_COLOURED;
     i->dso_label_mag_min = 9999;
     i->dso_names = 1;
@@ -223,6 +227,7 @@ void default_config(chart_config *i) {
     i->horizon_zenith_colour = (colour) {1, 1, 1};
     i->ephemeris_style = SW_EPHEMERIS_TRACK;
     i->ephemeris_show_arrow_shadow = 1;
+    i->ephemeris_minimum_size = 3.;
     i->meteor_radiants_default_count = 0;
     i->meteor_radiants_custom_count = 0;
     i->meteor_radiants_final_count = 0;

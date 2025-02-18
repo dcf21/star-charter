@@ -293,15 +293,10 @@ void move_to_next_page(chart_config *s) {
 }
 
 //! draw_chart_edge_line - Draw the line around the edge of the star chart.
-//! \param p - A structure describing the status of the drawing surface
 //! \param s - Settings for the star chart we are drawing
 
-void draw_chart_edge_line(chart_config *s) {
-    // Draw outline of chart
-    cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
-    cairo_set_line_width(s->cairo_draw, s->chart_edge_line_width * s->line_width_base);
-    cairo_new_path(s->cairo_draw);
-
+void chart_edge_line_path(chart_config *s) {
+    // Create path outlining the chart
     if ((s->projection == SW_PROJECTION_SPHERICAL) || (s->projection == SW_PROJECTION_ALTAZ)) {
         // On alt/az charts, the chart has a circular shape
         cairo_arc(s->cairo_draw,
@@ -309,14 +304,24 @@ void draw_chart_edge_line(chart_config *s) {
                   (s->canvas_offset_y + s->width / 2 * s->aspect) * s->cm,
                   s->width * s->cm / s->wlin,
                   0, 2 * M_PI);
-        cairo_stroke(s->cairo_draw);
     } else {
         // On all other projections, the chart is rectangular
         cairo_rectangle(s->cairo_draw,
                         s->canvas_offset_x * s->cm, s->canvas_offset_y * s->cm,
                         s->width * s->cm, s->width * s->aspect * s->cm);
-        cairo_stroke(s->cairo_draw);
     }
+}
+
+//! draw_chart_edge_line - Draw the line around the edge of the star chart.
+//! \param s - Settings for the star chart we are drawing
+
+void draw_chart_edge_line(chart_config *s) {
+    // Draw outline of chart
+    cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+    cairo_set_line_width(s->cairo_draw, s->chart_edge_line_width * s->line_width_base);
+    cairo_new_path(s->cairo_draw);
+    chart_edge_line_path(s);
+    cairo_stroke(s->cairo_draw);
 }
 
 //! draw_chart_edging - Draw the lines and labels around the edge of the star chart. First, we stop clipping the

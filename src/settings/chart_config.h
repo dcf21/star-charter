@@ -267,6 +267,17 @@ typedef struct chart_config {
     //! The colour to use to represent the illuminated portion of the Moon.
     colour solar_system_moon_colour;
 
+    //! When showing selected solar system bodies, the minimum size of the markers, which normally increase in size
+    //! with brightness. Supplied in units of magnitude. Default: 999.
+    double solar_system_minimum_size;
+
+    //! Boolean flag (0 or 1) indicating whether to show the Sun's actual size (true), or whether to give it a generic
+    //! marker like the other planets (false). Default: 0.
+    int solar_system_sun_actual_size;
+
+    //! The colour to use when drawing the Sun's actual size (when `solar_system_sun_actual size` is turned on).
+    colour solar_system_sun_col;
+
     //! Boolean flag (0 or 1) indicating whether to apply topocentric correction to the positions of solar system
     //! objects, based on `horizon_latitude` and `horizon_longitude`.
     int solar_system_topocentric_correction;
@@ -446,6 +457,10 @@ typedef struct chart_config {
     //! Do not label stars fainter than this magnitude limit
     double star_label_mag_min;
 
+    //! Boolean (0 or 1) indicating whether we clip a thin line around the edges of stars. This makes star clusters
+    //! like M45 stand out better. Default: 1.
+    int star_clip_outline;
+
     //! Do not label DSOs fainter than this magnitude limit
     double dso_label_mag_min;
 
@@ -483,6 +498,10 @@ typedef struct chart_config {
 
     //! Boolean indicating whether to include a table of the object's magnitude
     int ephemeris_table;
+
+    //! When showing the track of solar system objects, the minimum size of the markers, which normally increase in
+    //! size with brightness. Supplied in units of magnitude. Default: 3.0.
+    double ephemeris_minimum_size;
 
     //! Boolean indicating whether we must show all ephemeris text labels, even if they collide with other text
     int must_show_all_ephemeris_labels;

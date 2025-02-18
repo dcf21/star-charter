@@ -36,8 +36,11 @@ void draw_solar_system_object(chart_config *s, cairo_page *page, colour object_c
                               const int *possible_positions_in_count, const label_position *possible_positions_in);
 
 void draw_moon(chart_config *s, cairo_page *page, colour label_colour,
-               double x, double y, double ra, double dec, double julian_date,
-               const char *label);
+               double x, double y, double ra, double dec, double ang_size,
+               double julian_date, char *label);
+
+void draw_sun(chart_config *s, cairo_page *page, colour label_colour,
+              double x, double y, double ang_size, char *label);
 
 void plot_solar_system(chart_config *s, cairo_page *page);
 

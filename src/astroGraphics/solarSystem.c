@@ -215,12 +215,13 @@ void draw_solar_system_object(chart_config *s, cairo_page *page, const colour ob
 //! \param [in] y - Tangent-plane coordinates of this object (radians)
 //! \param [in] ra - Right ascension of the Moon (radians; J2000)
 //! \param [in] dec - Declination of the Moon (radians; J2000)
+//! \param [in] ang_size - Angular size of the Moon (arcseconds)
 //! \param [in] julian_date - Julian date of the chart (used to compute the Moon's phase)
 //! \param [in] label - Text label to place next to this object
 
 void draw_moon(chart_config *s, cairo_page *page, const colour label_colour,
-               const double x, const double y, const double ra, const double dec, const double julian_date,
-               const char *label) {
+               const double x, const double y, const double ra, const double dec, const double ang_size,
+               const double julian_date, const char *label) {
     // Calculate the position of the Sun
     double ra_sun_hr, dec_sun_deg;
     sun_pos(julian_date, &ra_sun_hr, &dec_sun_deg);
@@ -245,7 +246,7 @@ void draw_moon(chart_config *s, cairo_page *page, const colour label_colour,
     double angle_scaling = cairo_units_per_degree(s);
 
     // Calculate the radius of this object on tha canvas
-    double size_cairo = 0.5 * angle_scaling;
+    double size_cairo = (ang_size / 3600.) * angle_scaling;
 
     // Draw a circular splodge on the star chart
     cairo_set_source_rgba(s->cairo_draw, s->solar_system_moon_colour.red, s->solar_system_moon_colour.grn,
@@ -317,6 +318,59 @@ void draw_moon(chart_config *s, cairo_page *page, const colour label_colour,
                        0, 0, 1.2 * s->label_font_size_scaling, 0, 0, 0, 0);
 }
 
+//! draw_sun - Draw a representation of the Moon's phase onto the chart.
+//! \param [in] s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! \param [in] page - A <cairo_page> structure defining the cairo drawing context.
+//! \param [in] label_colour - The colour to use when labelling the object.
+//! \param [in] x - Tangent-plane coordinates of this object (radians)
+//! \param [in] y - Tangent-plane coordinates of this object (radians)
+//! \param [in] ang_size - Angular size of the Moon (arcseconds)
+//! \param [in] label - Text label to place next to this object
+
+void draw_sun(chart_config *s, cairo_page *page, const colour label_colour,
+              const double x, const double y, const double ang_size, const char *label) {
+    // Convert tangent-plane coordinates into cairo pixel coordinates
+    double x_canvas, y_canvas;
+    fetch_canvas_coordinates(&x_canvas, &y_canvas, x, y, s);
+
+    // Calculate scaling of Cairo units per degree on the sky
+    double angle_scaling = cairo_units_per_degree(s);
+
+    // Calculate the radius of this object on tha canvas
+    double size_cairo = (ang_size / 3600.) * angle_scaling;
+
+    // Draw a circular splodge on the star chart
+    cairo_set_source_rgba(s->cairo_draw, s->solar_system_sun_col.red, s->solar_system_sun_col.grn,
+                          s->solar_system_sun_col.blu, 1);
+    cairo_new_path(s->cairo_draw);
+    cairo_arc(s->cairo_draw, x_canvas, y_canvas, size_cairo, 0, 2 * M_PI);
+    cairo_fill(s->cairo_draw);
+
+    // Don't allow text labels to be placed over this object
+    {
+        double x_exclusion_0, y_exclusion_0;
+        double x_exclusion_1, y_exclusion_1;
+        fetch_graph_coordinates(x_canvas - size_cairo, y_canvas - size_cairo,
+                                &x_exclusion_0, &y_exclusion_0, s);
+        fetch_graph_coordinates(x_canvas + size_cairo, y_canvas + size_cairo,
+                                &x_exclusion_1, &y_exclusion_1, s);
+        chart_add_label_exclusion(page, s,
+                                  x_exclusion_0, x_exclusion_1,
+                                  y_exclusion_0, y_exclusion_1);
+    }
+
+    // How far should we move this label to the side of the planet, to avoid writing text on top of the planet?
+    const double horizontal_offset = size_cairo + 0.075 * s->cm;
+
+    // Label this solar system object
+    chart_label_buffer(page, s, label_colour, label,
+                       (label_position[2]) {
+                               {x, y, 0, horizontal_offset,  0, -1, 0},
+                               {x, y, 0, -horizontal_offset, 0, 1,  0}
+                       }, 2,
+                       0, 0, 1.2 * s->label_font_size_scaling, 0, 0, 0, 0);
+}
+
 //! plot_solar_system - Plot the positions of solar system objects.
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 //! \param page - A <cairo_page> structure defining the cairo drawing context.
@@ -332,7 +386,8 @@ void plot_solar_system(chart_config *s, cairo_page *page) {
             const double jd = e->data[0].jd;
             const double ra = e->data[0].ra; // radians
             const double dec = e->data[0].dec; // radians
-            double mag = e->data[0].mag;
+            const double ang_size = e->data[0].angular_size; // arcseconds
+            const double mag = e->data[0].mag;
             const double sun_pa = e->data[0].sun_pa; // radians
             const int is_comet = e->is_comet;
 
@@ -362,13 +417,18 @@ void plot_solar_system(chart_config *s, cairo_page *page) {
             // Draw this object
             if (is_moon && s->solar_system_show_moon_phase) {
                 // Show Moon with representation of phase
-                draw_moon(s, page, colour_label_final, x, y, ra, dec, jd,
+                draw_moon(s, page, colour_label_final, x, y, ra, dec, ang_size, jd,
                           s->solar_system_labels[obj_id]);
+            } else if (is_sun && s->solar_system_sun_actual_size) {
+                // Show Sun at actual scale
+                draw_sun(s, page, colour_label_final, x, y, ang_size, s->solar_system_labels[obj_id]);
             } else {
-                if (mag > 1.5) { mag=1.5; }
+                // If object is fainter than mag limit, then ensure the splodge we draw is not too small
+                const double mag_size = gsl_min(mag, s->solar_system_minimum_size);
+
                 // Draw a circular splodge on the star chart
                 draw_solar_system_object(s, page, colour_final, colour_label_final,
-                                         mag, x, y, is_comet, sun_pa,
+                                         mag_size, x, y, is_comet, sun_pa,
                                          s->solar_system_labels[obj_id],
                                          NULL, NULL, NULL);
             }

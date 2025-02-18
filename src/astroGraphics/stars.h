@@ -35,6 +35,9 @@ void tweak_magnitude_limits(chart_config *s);
 void plot_stars_calculate_magnitude_range(chart_config *s, FILE *stars_data_file, const tiling_information *tiles,
                                           int *star_counter, double *star_mag_faintest, double *star_mag_brightest);
 
+void plot_stars_path(chart_config *s, FILE *stars_data_file, const tiling_information *tiles,
+                     double radius_multiplier, int clockwise);
+
 int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, const tiling_information *tiles);
 
 double get_star_size(const chart_config *s, double mag);

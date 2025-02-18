@@ -82,6 +82,8 @@ void plot_background_image(chart_config *s);
 
 void move_to_next_page(chart_config *s);
 
+void chart_edge_line_path(chart_config *s);
+
 void draw_chart_edge_line(chart_config *s);
 
 void draw_chart_edging(cairo_page *p, chart_config *s);
