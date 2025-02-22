@@ -31,16 +31,17 @@ horizon_cardinal_points_marker_count=16
 az_central=180
 alt_central=42
 angular_width=120.0
-width=21.0
+width=18.0
 aspect=0.7
 projection=stereographic
 mag_min=4
 dso_mag_min=3
+star_label_mag_min=2.8
 horizon_latitude=52
 horizon_longitude=0
 shade_twilight=1
-copyright=The sky from London at 11pm on 1 Dec 2023
-julian_date=2460280.4583  # Fri 2023 Dec 1 23:00:00
+title=The sky from London at 1:30am on 1 Dec 2023
+julian_date=2460279.5625  # Fri 2023 Dec 1 01:30:00
 
 # Chart at 11pm on 1 Dec 2023
 CHART

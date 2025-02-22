@@ -1,15 +1,16 @@
 # StarCharter
 
 `StarCharter` is a versatile command-line tool for producing charts of the
-night sky. Charts can be generated relative to the local horizon, depicting the
-sky as seen from a particular location at a particular time, or as a star atlas
-in equatorial or galactic coordinates.  A large array of configuration options
-are available to allow the charts to be fully customised.
+night sky in a wide variety of styles. Charts can be generated relative to the
+local horizon, depicting the sky as seen from a particular location at a
+particular time, or as a star atlas in equatorial or galactic coordinates.
+Many configuration options are available to allow the charts to be fully
+customised.
 
 `StarCharter` can depict the positions of solar system objects - planets,
-asteroids and comets - retrieving their positions from NASA's DE430 ephemeris,
-and the paths of these objects across the sky over a specified time period can
-also be shown.
+asteroids and comets - retrieving their positions from NASA's DE430 ephemeris.
+The paths of these objects across the sky can also be shown over a specified
+time period.
 
 Charts can be generated in either PNG (bitmap graphics) format for quick
 viewing and use online, or in PDF/SVG/EPS (vector graphics) formats for
@@ -17,31 +18,33 @@ subsequent typesetting or editing in a vector graphics package such as Adobe
 Illustrator or Inkscape.
 
 `StarCharter` was originally developed to produce star charts for the website
-<https://in-the-sky.org>.
+[https://in-the-sky.org](https://in-the-sky.org).
 
 ### Example output
 
-You can find a selection of examples of the output of `StarCharter`
+You can find a selection of varied examples of the output of `StarCharter`
 [here](examples.md).
 
 <img src="example_output/local_sky_202312_wide.png" alt="The sky looking south" width="800"/>
 
 ### License
 
-This code is distributed under the Gnu General Public License. It is ©
-Dominic Ford 2015 - 2025.
+This code is distributed under the Gnu General Public License Version 3. It is
+© Dominic Ford 2015 - 2025.
 
 ### Supported operating systems
 
-`StarCharter` is written in C and runs in Linux, macOS, and other Unix-like
-operating systems.  A Docker container is provided to facilitate running
-`StarCharter` in the widest possible range of operating systems. The
-installation scripts require Python 3. `StarCharter` uses `libcairo` to
+`StarCharter` is written in C and runs in Linux, macOS, and most other
+Unix-like operating systems.  A Docker container is provided to facilitate
+running `StarCharter` in the widest possible range of operating systems. The
+installation scripts require Python 3; these scripts download and merge various
+astronomical catalogues from online sources. `StarCharter` uses `libcairo` to
 produce its graphical output.
 
-The build process requires a minimum of 4GB RAM. Note that Docker Desktop for
-MacOS imposes a default memory limit of 2GB, which needs to be increased to
-build `StarCharter` successfully.
+The build process requires a minimum of 4GB RAM, but once built, the software
+requires much less memory. Note that Docker Desktop for MacOS imposes a default
+memory limit of 2GB, which needs to be increased to build `StarCharter`
+successfully.
 
 ### Build process
 
@@ -52,20 +55,19 @@ git clone https://github.com/dcf21/star-charter.git
 ```
 
 If you wish to run `StarCharter` locally (not within a Docker container), then
-you must run the shell script `setup.sh` to download the data required by each
-tool and to compile the software.  This script downloads various data from the
-internet, including the DE430 solar system ephemeris, star catalogues, deep sky
-catalogues, and an image of the Milky Way to use to shade the background of
-star charts.
+you must run the shell script `setup.sh` to download the required astronomical
+catalogs from online sources and to compile the software.  The downloaded data
+includes the DE430 solar system ephemeris, star catalogues, deep sky
+catalogues, and an image of the Milky Way used to shade the background of star
+charts.
 
 The total download size will be around 500 MB, and it will take around 10-15
 minutes to process the downloaded files.
 
-Note that once you have built `StarCharter`, you must not change its location
-within your file system.  During the build process, the absolute path to the
-downloaded data files is stored, and the code will be unable to find these data
-files if their path changes. If you move the code, you must fully rebuild the
-code:
+Once you have built `StarCharter`, you must not change its location within your
+file system.  During the build process, the absolute path to the downloaded
+data files is stored, and the code will be unable to find these data files if
+their path changes. If you move the code, you must fully rebuild it:
 
 ```
 make clean
@@ -77,9 +79,9 @@ make clean
 If you would rather run `StarCharter` within a Docker container, then a
 `Dockerfile` is provided to build such a container.  This automatically
 installs all the software's dependencies within the containerised environment
-to make the build process as simple as possible. Additionally, a `docker
-compose` script is provided, which automatically build a selection of example
-star charts.
+to make the build process as simple as possible. Additionally, a
+`docker-compose` script is provided, which automatically builds a selection of
+example star charts.
 
 To build the `StarCharter` container (this takes 15 minutes):
 
@@ -102,30 +104,31 @@ docker run -it star-charter:v8 /bin/bash
 
 ## Generating your own star charts
 
-The configuration options for each star chart are specified in a configuration
-file, where options are specified in the format
+The settings for each star chart are specified in a configuration file, where
+options are specified in the format
 
 ```
 <option_name>=<option_value>
 ```
 
 The available options include which portion of the sky should be charted, what
-labels should be placed on the chart, etc.  The directory `examples` within
-this repository contains numerous example configuration files, and there is a
-complete list of all the available configuration options below.
+labels should be placed on the chart, colours, etc. There is a complete list of
+all the available configuration options below.
 
-There are some examples in the `examples` directory, and so a good starting
-point is to generate one of these:
+The directory `examples` within this repository contains numerous example
+configuration files; a good starting point is to try generating one of these,
+for example:
 
 ```
 cd examples
 ../bin/starchart.bin orion.sch
 ```
 
-This will generate a chart of the constellation Orion in the `output`
-directory. Three files are created, in PNG, SVG and PDF formats.
+This will generate a set of PNG charts of the constellation Orion in the
+`output` directory, with a variety of labelling schemes.
 
-The file `orion.sch` reads as follows:
+
+The example configuration files generally follow the pattern:
 
 ```
 DEFAULTS
@@ -134,41 +137,28 @@ dec_central=4.0
 angular_width=29.0
 mag_min=7
 width=15.0
-aspect=1.41421356
-show_grid_lines=1
-constellation_boundaries=1
-constellation_sticks=1
-coords=ra_dec
-projection=stereographic
-star_names=1
-star_flamsteed_labels=0
-constellation_names=1
-plot_galaxy_map=1
-plot_equator=0
-plot_ecliptic=0
-plot_galactic_plane=1
-font_size=1.2
+....
 
 CHART
-output_filename=output/orion.png
+... more settings
+output_filename=output/demo_1.png
 
 CHART
-output_filename=output/orion.svg
+... more settings
+output_filename=output/demo_2.png
 
-CHART
-output_filename=output/orion.pdf
 ```
 
 Settings are arranged in blocks which are headed by the words `DEFAULTS` or
 `CHART`. Settings in a `DEFAULTS` block do not themselves produce a star chart,
 but change the default settings which are applied to all subsequent charts.
-Settings in a `CHART` relate to a specific chart that is to be rendered, and do
-not affect any subsequent charts which may be rendered later in the same
+Settings in a `CHART` block relate to a specific chart that is to be rendered,
+and do not affect any subsequent charts which may be rendered later in the same
 configuration file.
 
-The file above configures the required parameters to produce a chart of the
-constellation Orion, and makes these the default settings. It then produces
-three copies of the star chart, in three different graphic formats.
+This makes it as easy as possible to render multiple charts with very similar
+settings - for example, copies of the same star chart in multiple different
+graphic formats.
 
 A complete list of all the configuration settings which are recognised are
 listed below under 'Configuration settings'.
