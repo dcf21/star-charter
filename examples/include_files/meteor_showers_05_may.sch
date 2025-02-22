@@ -1,7 +1,7 @@
-# Configuration options to produce solar system ephemerides with a nice twilight colour scheme
+# Configuration options to label meteor shower radiants visible in May
 #
 # -------------------------------------------------
-# Copyright 2015-2024 Dominic Ford
+# Copyright 2015-2025 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -18,21 +18,3 @@
 # You should have received a copy of the GNU General Public License
 # along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 # -------------------------------------------------
-
-ephemeris_col=1,1,1  # Mercury
-ephemeris_col=1,1,0.6  # Venus
-ephemeris_col=1,0.7,0.6  # Mars
-ephemeris_col=1,0.7,1  # Jupiter
-ephemeris_col=1,1,0.6  # Saturn
-
-ephemeris_arrow_col=1,1,1  # Mercury
-ephemeris_arrow_col=1,1,0.6  # Venus
-ephemeris_arrow_col=1,0.7,0.6  # Mars
-ephemeris_arrow_col=1,0.7,1  # Jupiter
-ephemeris_arrow_col=1,1,0.6  # Saturn
-
-solar_system_col=1,1,1  # Mercury
-solar_system_col=1,1,0.6  # Venus
-solar_system_col=1,0.7,0.6  # Mars
-solar_system_col=1,0.7,1  # Jupiter
-solar_system_col=1,1,0.6  # Saturn

@@ -1,7 +1,7 @@
 # Demonstration configuration file to produce an alt/az projection
 # 
 # -------------------------------------------------
-# Copyright 2015-2024 Dominic Ford
+# Copyright 2015-2025 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -21,25 +21,29 @@
 
 # Default chart settings
 DEFAULTS
-plot_equator=1
-plot_galactic_plane=1
-plot_ecliptic=1
+INCLUDE include_files/colour_scheme_pastel.sch
 ra_central=5.5
 dec_central=52.0
 position_angle=15
 width=18.0
 constellation_sticks=1
-coords=ra_dec
+mag_min=4.0
+dso_mag_min=6
 star_names=1
 star_label_mag_min=1.5
+plot_equator=1
+plot_galactic_plane=1
+plot_ecliptic=1
+magnitude_key=0
+great_circle_key=0
 
 # Produce a copy of this chart using alt/az projection of the whole sky, with specified central point at the zenith
 CHART
-output_filename=output/altaz.png
+output_filename=output/alt_az_projection.png
 projection=alt_az
 
 # Produce a copy of this chart which shows the sky wrapped onto a sphere viewed from the outside
 CHART
-output_filename=output/sphere.png
+output_filename=output/alt_az_sphere_projection.png
 projection=sphere
 

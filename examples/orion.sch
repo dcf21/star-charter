@@ -1,7 +1,7 @@
 # Demonstration configuration file to show the constellation of Orion
 # 
 # -------------------------------------------------
-# Copyright 2015-2024 Dominic Ford
+# Copyright 2015-2025 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -21,11 +21,13 @@
 
 # Default settings which affect all the charts below
 DEFAULTS
+INCLUDE include_files/colour_scheme_light_bg.sch
 ra_central=5.5
 dec_central=4.0
 angular_width=29.0
-mag_min=7
-width=15.0
+mag_min=6
+dso_mag_min=8
+width=13.0
 aspect=1.41421356
 show_grid_lines=1
 constellation_boundaries=1
@@ -36,23 +38,38 @@ star_names=1
 star_flamsteed_labels=0
 constellation_names=1
 plot_galaxy_map=1
-plot_equator=0
+plot_equator=1
 plot_ecliptic=0
-plot_galactic_plane=1
-font_size=1.2
+plot_galactic_plane=0
 
-# Produce a PNG copy of this star chart
+# Produce a default version of this star chart
 CHART
-output_filename=output/orion.png
+output_filename=output/orion_default.png
 
-# Produce a SVG copy of this star chart
+# Show Bayer designation
 CHART
-output_filename=output/orion.svg
+star_names=0
+star_bayer_labels=1
+star_flamsteed_labels=0
+star_mag_labels=off
+mag_min=5
+dso_mag_min=8
+output_filename=output/orion_bayer.png
 
-# Produce a PDF copy of this star chart
+# Show star catalogue numbers
 CHART
-output_filename=output/orion.pdf
+star_names=0
+constellation_names=0
+star_catalogue_numbers=1
+star_catalogue=hipparcos
+mag_min=4.5
+dso_mag_min=8
+output_filename=output/orion_hip.png
 
-# Produce an EPS copy of this star chart
+# Show star magnitudes
 CHART
-output_filename=output/orion.eps
+star_names=0
+star_mag_labels=on
+mag_min=5
+dso_mag_min=8
+output_filename=output/orion_magnitudes.png

@@ -1,5 +1,5 @@
-# Demonstration configuration file which produces a chart of the whole sky
-# 
+# Configuration options for a light-background colour scheme
+#
 # -------------------------------------------------
 # Copyright 2015-2025 Dominic Ford
 #
@@ -19,38 +19,24 @@
 # along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 # -------------------------------------------------
 
-# Common settings which apply to all the charts we produce
-DEFAULTS
-ra_central=12.0
-dec_central=0.0
-angular_width=360.0
-width=32.0
-aspect=0.5
-coords=ra_dec
-projection=flat
-star_names=0
-constellation_names=1
-mag_min=5.0
-mag_max=0.5
-mag_step=0.5
-dso_mag_min=10
-axis_ticks_value_only=1
-plot_equator=1
-plot_galactic_plane=1
-plot_ecliptic=1
-
-# All-sky chart on a light background
-CHART
-INCLUDE include_files/colour_scheme_light_bg.sch
-output_filename=output/all_sky_light.png
+constellation_stick_col=0,0.6,0
+constellation_boundary_col=0.8,0.8,0.8
+constellation_label_col=0.4,0.4,0.4
+galaxy_col=0.68,0.76,1
+galaxy_col0=1,1,1
+twilight_zenith_col=1,1,1
+twilight_horizon_col=1,1,1
+star_col=0.2,0.2,0.2
+star_label_col=0.4,0.4,0.4
 grid_col=0.7,0.7,0.7
+equator_col=0.65,0,0.65
+galactic_plane_col=0,0,0.75
+ecliptic_col=0.8,0.65,0
+ephemeris_col=0,0,0
+ephemeris_label_col=0,0,0
+horizon_cardinal_points_marker_col=1,1,0.7
+horizon_cardinal_points_labels_col=1,1,0.7
+horizon_cardinal_points_marker_elevate=1
+constellations_capitalise=1
+constellations_label_shadow=0
 
-# All-sky chart chart on a dark background
-CHART
-INCLUDE include_files/colour_scheme_dark_bg.sch
-output_filename=output/all_sky_dark.png
-
-# All-sky chart chart in pastel colours
-CHART
-INCLUDE include_files/colour_scheme_pastel.sch
-output_filename=output/all_sky_pastel.png

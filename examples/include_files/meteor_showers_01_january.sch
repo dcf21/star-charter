@@ -1,7 +1,7 @@
-# A unit test which produces a map of in galactic coordinates, and applies a small tilt
+# Configuration options to label meteor shower radiants visible in January
 #
 # -------------------------------------------------
-# Copyright 2015-2024 Dominic Ford
+# Copyright 2015-2025 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -19,31 +19,5 @@
 # along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 # -------------------------------------------------
 
-# Common settings which apply to all the charts we produce
-DEFAULTS
-coords=galactic
-grid_coords=galactic
-galactic_b_central=50
-galactic_l_central=0
-angular_width=130.0
-width=36.0
-aspect=0.7
-constellation_boundaries=1
-constellation_sticks=1
-projection=stereographic
-star_names=1
-maximum_star_label_count=20
-dso_names=0
-constellation_names=1
+meteor_radiant=Quadrantids,230.0000,49.0000
 
-CHART
-output_filename=output/unit_test_galactic_tilt_00.png
-position_angle=-15
-
-CHART
-output_filename=output/unit_test_galactic_tilt_01.png
-position_angle=0
-
-CHART
-output_filename=output/unit_test_galactic_tilt_02.png
-position_angle=15

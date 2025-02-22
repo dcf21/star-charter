@@ -130,7 +130,7 @@ void default_config(chart_config *i) {
     i->star_allow_multiple_labels = 0;
     i->star_mag_labels = SW_MAG_LABEL_OFF;
     i->star_label_mag_min = 9999;
-    i->star_clip_outline = 1;
+    i->star_clip_outline = 0;
     i->dso_style = SW_DSO_STYLE_COLOURED;
     i->dso_label_mag_min = 9999;
     i->dso_names = 1;

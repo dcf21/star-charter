@@ -1,8 +1,8 @@
-# Demonstration configuration file to show the path of Jupiter across the sky
-# in 2020
+# Demonstration configuration file to show the paths of a selection of objects
+# across the sky in 2025
 # 
 # -------------------------------------------------
-# Copyright 2015-2024 Dominic Ford
+# Copyright 2015-2025 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -22,6 +22,7 @@
 
 # Default settings which affect all the charts below
 DEFAULTS
+INCLUDE include_files/colour_scheme_pastel.sch
 width=32.0
 show_grid_lines=1
 constellation_boundaries=1
@@ -32,29 +33,35 @@ constellation_names=1
 plot_galaxy_map=1
 ephemeris_autoscale=1
 ephemeris_table=1
-draw_ephemeris=jupiter,2458849.5,2459216.5
 
-# Produce a PNG copy of this star chart
+# Produce Jupiter chart
 CHART
-output_filename=output/jupiter_2020_00.png
+draw_ephemeris=jupiter,2460676.5,2461041.5
+output_filename=output/jupiter_2025.png
 
-# Produce a SVG copy of this star chart
+# Produce Saturn chart
 CHART
-output_filename=output/jupiter_2020_00.svg
+draw_ephemeris=saturn,2460676.5,2461041.5
+output_filename=output/saturn_2025.png
 
-# Produce a PDF copy of this star chart
+# Produce Moon chart
 CHART
-output_filename=output/jupiter_2020_00.pdf
-
-# Produce an EPS copy of this star chart
-CHART
-output_filename=output/jupiter_2020_00.eps
-
-# Produce charts with alternative track representations
-CHART
+draw_ephemeris=p301,2460678.5,2460685.5  # Use 'P301' here, not 'Moon', to ensure phases are drawn
 ephemeris_style=side_by_side
-output_filename=output/jupiter_2020_01.png
+ephemeris_table=0
+must_show_all_ephemeris_labels=1
+star_clip_outline=1  # This makes the Pleiades stand out more clearly, but can be slow on wide-field charts
+output_filename=output/moon_2025_01.png
 
+# Produce A1 finder chart
 CHART
+draw_ephemeris=A1,2460676.5,2460766.5
+mag_min=7.5
+output_filename=output/a1_2025.png
+
+# Produce 1P/Halley finder chart
+CHART
+draw_ephemeris=0001P,2460676.5,2460766.5
+mag_min=12
 ephemeris_style=side_by_side_with_track
-output_filename=output/jupiter_2020_02.png
+output_filename=output/c1_2025.png

@@ -985,7 +985,8 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
     const colour colour_label_final = s->ephemeris_label_col[ephemeris_label_index];
 
     // Test if we are plotting the Moon
-    const int is_moon = (str_cmp_no_case(e->obj_id, "P301") == 0);
+    const int is_moon = ((str_cmp_no_case(e->obj_id, "P301") == 0) ||
+                         (str_cmp_no_case(e->obj_id, "moon") == 0));
 
     // Test if we are plotting the Sun
     const int is_sun = (str_cmp_no_case(e->obj_id, "sun") == 0);

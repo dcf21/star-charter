@@ -2,7 +2,7 @@
 # all_constellations.py
 #
 # -------------------------------------------------
-# Copyright 2015-2024 Dominic Ford
+# Copyright 2015-2025 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -25,13 +25,17 @@ Plot star charts showing all 88 constellations in turn
 """
 
 import logging
+import multiprocessing
 import os
+import re
 import sys
-import time
+
+from math import log
+from typing import List, Sequence, Tuple
 
 # List of all constellations, and details of the plot to produce for each one
 # Abbreviated name, full name, central RA (hr), central Dec (deg), angular width of field of view (deg)
-constellations_list = (
+constellations_list: Sequence[Tuple[str, str, float, float, float]] = (
     ('AND', 'Andromeda', 0.5, 37.0, 70),
     ('ANT', 'Antlia', 10.2, -33.0, 50),
     ('APS', 'Apus', 16.0, -75.0, 40),
@@ -124,7 +128,7 @@ constellations_list = (
 )
 
 # Template configuration file that we use to make all the star charts
-template_configuration = """
+template_configuration: str = """
 DEFAULTS
 ra_central={ra}
 dec_central={dec}
@@ -134,16 +138,24 @@ aspect=0.63
 show_grid_lines=1
 constellation_boundaries=1
 constellation_sticks=1
+constellation_stick_design={stick_design}
 constellation_highlight={constellation_abbrev}
+constellations_capitalise=1
+constellation_label_size=1.4
 coords=ra_dec
 projection=stereographic
 star_names=1
+#star_catalogue_numbers=1
+#star_catalogue=hipparcos
 star_flamsteed_labels=0
 constellation_names=1
-mag_min=6.5
+mag_min={mag_min}
 mag_step=1
 mag_alpha=1.3754439
-dso_mag_min=12
+mag_size_maximum_permitted=2.8
+solar_system_topocentric_correction=0
+ephemeris_coords=ra_dec
+dso_mag_min={dso_mag_min}
 
 CHART
 output_filename={output_dir}/{output_filename}.png
@@ -151,33 +163,56 @@ output_filename={output_dir}/{output_filename}.png
 
 
 def draw_constellation_charts():
-    os.system("mkdir -p output")
+    """
+    Create diagrams of all the constellations in parallel.
+    """
+    os.system("mkdir -p output/constellations")
+
+    # Compile list of all the arguments we will pass to <draw_chart>
+    arguments: List[Tuple[str, str, float, float, float, str]] = []
 
     # Loop through each constellation in turn
     for item in constellations_list:
-        # Unpack constellation information tuple
-        abbrev, name, ra, dec, fov = item
+        # Use each of two sets of constellation figures
+        for stick_design in ('iau', 'rey', 'simplified'):
+            # Unpack constellation information tuple
+            abbrev, name, ra, dec, fov = item
 
-        # Logging update
-        logging.info("Working on <{}>".format(name))
+            arguments.append(
+                (abbrev, name, ra, dec, fov, stick_design)
+            )
 
-        # Create configuration file
-        config_filename = "/tmp/constellation_chart.sch"
+    # Create all charts in parallel
+    p = multiprocessing.Pool()
+    p.starmap(draw_chart, arguments)
 
-        with open(config_filename, "w") as out:
-            out.write(template_configuration.format(
-                output_dir="output",
-                output_filename=name,
-                constellation_abbrev=abbrev,
-                ra=ra,
-                dec=dec,
-                angular_width=fov))
 
-        # Make star chart
-        os.system("../bin/starchart.bin {}".format(config_filename))
+def draw_chart(abbrev: str, name: str, ra: float, dec: float, fov: float, stick_design: str):
+    """
+    Create a single constellation chart.
+    """
 
-        # Sleep means CTRL-C works...
-        time.sleep(0.1)
+    # Logging update
+    output_filename: str = "{}_{}".format(name, stick_design)
+    output_filename_no_spaces: str = re.sub(" ", "_", output_filename)
+    logging.info("Working on <{}>".format(output_filename_no_spaces))
+
+    # Create configuration file
+    config_filename = "/tmp/constellation_chart_{}.sch".format(output_filename_no_spaces)
+    with open(config_filename, "w") as out:
+        out.write(template_configuration.format(
+            output_dir="output/constellations",
+            output_filename=output_filename_no_spaces,
+            stick_design=stick_design,
+            constellation_abbrev=abbrev,
+            mag_min=7.0 - log(fov / 50) / log(1.5),
+            dso_mag_min=7.5 - log(fov / 50) / log(1.5),
+            ra=ra,
+            dec=dec,
+            angular_width=fov))
+
+    # Make star chart
+    os.system("../bin/starchart.bin {}".format(config_filename))
 
 
 # Do it right away if we're run as a script

@@ -1,7 +1,8 @@
-# A unit test which produces a map of the local sky seen from London on 1 Dec 2023, and makes timelapse frames
+# Demonstration configuration file which produces a chart of the whole sky,
+# in equatorial and galactic coordinates
 #
 # -------------------------------------------------
-# Copyright 2015-2024 Dominic Ford
+# Copyright 2015-2025 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -21,27 +22,36 @@
 
 # Common settings which apply to all the charts we produce
 DEFAULTS
-INCLUDE include_files/twilight_colour_scheme.sch
-julian_date=2460280.4583  # Fri 2023 Dec 1 23:00:00
-alt_central=50
-az_central=180
-position_angle=0
-angular_width=130.0
+INCLUDE include_files/colour_scheme_light_bg.sch
+angular_width=360.0
 width=36.0
-aspect=0.7
-constellation_boundaries=1
-constellation_sticks=1
-horizon_latitude=52
-horizon_longitude=0
+aspect=0.5
+projection=flat
+star_names=1
+constellation_names=1
+constellation_boundaries=0
+mag_min=5.0
+mag_max=0.5
+mag_step=0.5
+dso_mag_min=7
+maximum_star_label_count=20
+axis_ticks_value_only=1
+plot_equator=1
+plot_galactic_plane=1
+plot_ecliptic=1
 
+# Demo chart in ecliptic coordinates
 CHART
-output_filename=output/unit_test_altaz_timelapse_00.png
-julian_date=2460280.4583  # Fri 2023 Dec 1 23:00:00
+output_filename=output/coordinates_ecliptic.png
+coords=ra_dec
+ra_central=12.0
+dec_central=0.0
+grid_coords=ra_dec
 
+# Demo chart in galactic coordinates
 CHART
-output_filename=output/unit_test_altaz_timelapse_01.png
-julian_date=2460280.5  # Sat 2023 Dec 2 00:00:00
-
-CHART
-output_filename=output/unit_test_altaz_timelapse_02.png
-julian_date=2460280.5417  # Sat 2023 Dec 2 01:00:00
+output_filename=output/coordinates_galactic.png
+coords=galactic
+galactic_l_central=0.0
+galactic_b_central=0.0
+grid_coords=galactic

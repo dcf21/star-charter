@@ -2,7 +2,7 @@
 # seen from London on 1 Dec 2023
 #
 # -------------------------------------------------
-# Copyright 2015-2024 Dominic Ford
+# Copyright 2015-2025 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -22,43 +22,32 @@
 
 # Common settings which apply to all the charts we produce
 DEFAULTS
-INCLUDE include_files/twilight_colour_scheme.sch
-INCLUDE include_files/twilight_ephemeris_style.sch
-INCLUDE include_files/meteor_showers_december.sch
-alt_central=50
-angular_width=180.0
-width=28.0
+INCLUDE include_files/colour_scheme_pastel.sch
+INCLUDE include_files/meteor_showers_12_december.sch
+coords=alt_az
+grid_coords=alt_az
+show_horizon=1
+horizon_cardinal_points_marker_count=16
+az_central=180
+alt_central=42
+angular_width=120.0
+width=21.0
 aspect=0.7
 projection=stereographic
-dso_mag_min=7
+mag_min=4
+dso_mag_min=3
 horizon_latitude=52
 horizon_longitude=0
-horizon_cardinal_points_marker_col=0,0,0
-horizon_cardinal_points_labels_col=0,0,0
+shade_twilight=1
 copyright=The sky from London at 11pm on 1 Dec 2023
 julian_date=2460280.4583  # Fri 2023 Dec 1 23:00:00
 
 # Chart at 11pm on 1 Dec 2023
 CHART
-az_central=180
-output_filename=output/local_sky_202312_wide_00.png
+output_filename=output/local_sky_202312_wide.png
 
 CHART
-az_central=180
-output_filename=output/local_sky_202312_wide_00.pdf
+output_filename=output/local_sky_202312_wide.pdf
 
 CHART
-az_central=180
-output_filename=output/local_sky_202312_wide_00.svg
-
-CHART
-az_central=0
-output_filename=output/local_sky_202312_wide_01.png
-
-CHART
-az_central=0
-output_filename=output/local_sky_202312_wide_01.pdf
-
-CHART
-az_central=0
-output_filename=output/local_sky_202312_wide_01.svg
+output_filename=output/local_sky_202312_wide.svg

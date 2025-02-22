@@ -1,7 +1,7 @@
-# Configuration options to label meteor shower radiants visible in December
+# Configuration options to label meteor shower radiants visible in October
 #
 # -------------------------------------------------
-# Copyright 2015-2024 Dominic Ford
+# Copyright 2015-2025 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -19,5 +19,5 @@
 # along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 # -------------------------------------------------
 
-meteor_radiant=Geminids,112.0000,33.0000
-meteor_radiant=Ursid,217.0000,76.0000
+meteor_radiant=Orionids,95.0000,16.0000
+meteor_radiant=Southern Taurids,32.0000,9.0000

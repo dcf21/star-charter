@@ -1,8 +1,8 @@
-# Demonstration configuration file which produces a map of the whole sky
+# Demonstration configuration file which produces a chart of the whole sky
 # in a Peters projection
 #
 # -------------------------------------------------
-# Copyright 2015-2024 Dominic Ford
+# Copyright 2015-2025 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -22,12 +22,14 @@
 
 # Common settings which apply to all the charts we produce
 DEFAULTS
+INCLUDE include_files/colour_scheme_light_bg.sch
 ra_central=12.0
 dec_central=0.0
 angular_width=360.0
 width=36.0
 constellation_boundaries=1
 constellation_sticks=1
+constellation_boundaries=0
 coords=ra_dec
 projection=peters
 star_names=1
@@ -35,12 +37,12 @@ maximum_star_label_count=20
 dso_names=0
 constellation_names=1
 
-# Chart with a grid of RA/Dec
+# Chart with a grid of equatorial coordinates (RA/Dec)
 CHART
-output_filename=output/peters_0.png
+output_filename=output/peters_equatorial.png
 grid_coords=ra_dec
 
-# Chart with a grid of ecliptic coordinates
+# Chart with a grid of galactic coordinates
 CHART
-output_filename=output/peters_1.png
+output_filename=output/peters_galactic.png
 grid_coords=galactic

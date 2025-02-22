@@ -166,6 +166,10 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
     FILE *file;
     char line[FNAME_LENGTH];
 
+    // Set up line-drawing class
+    ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
+    ld_label(ld, NULL, 1, 1);
+
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgb(s->cairo_draw, s->constellation_stick_col.red,

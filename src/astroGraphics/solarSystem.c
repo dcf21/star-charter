@@ -392,7 +392,8 @@ void plot_solar_system(chart_config *s, cairo_page *page) {
             const int is_comet = e->is_comet;
 
             // Check whether this is the Moon
-            const int is_moon = (str_cmp_no_case(e->obj_id, "P301") == 0);
+            const int is_moon = ((str_cmp_no_case(e->obj_id, "P301") == 0) ||
+                                 (str_cmp_no_case(e->obj_id, "moon") == 0));
 
             // Check whether this is the Sun
             const int is_sun = (str_cmp_no_case(e->obj_id, "sun") == 0);

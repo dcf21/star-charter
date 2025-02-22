@@ -910,7 +910,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         return 0;
     } else if (strcmp(key, "star_clip_outline") == 0) {
         //! star_clip_outline - Boolean (0 or 1) indicating whether we clip a thin line around the edges of stars. This
-        //! makes star clusters like M45 stand out better. Default: 1.
+        //! makes star clusters like M45 stand out better. Default: 0.
         CHECK_VALUE_NUMERIC("star_clip_outline")
         x->star_clip_outline = (int) key_val_num;
         return 0;
