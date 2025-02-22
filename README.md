@@ -374,5 +374,6 @@ ephemerides.
 
 ## Author
 
-This code was developed by Dominic Ford <https://dcford.org.uk>. It is
-distributed under the Gnu General Public License V3.
+This code was developed by Dominic Ford
+[https://dcford.org.uk](https://dcford.org.uk). It is distributed under the Gnu
+General Public License V3.
