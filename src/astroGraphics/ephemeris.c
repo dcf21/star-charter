@@ -236,9 +236,9 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
             (*ephemeris_data_out)[i].data[line_counter].jd = jd;
             (*ephemeris_data_out)[i].data[line_counter].ra = fmod(ra + 20 * M_PI, 2 * M_PI);  // radians
             (*ephemeris_data_out)[i].data[line_counter].dec = dec;  // radians
-            (*ephemeris_data_out)[i].data[line_counter].mag = magnitude;
+            (*ephemeris_data_out)[i].data[line_counter].mag = magnitude;  // 0-1
             (*ephemeris_data_out)[i].data[line_counter].phase = phase;
-            (*ephemeris_data_out)[i].data[line_counter].angular_size = angular_size;
+            (*ephemeris_data_out)[i].data[line_counter].angular_size = angular_size;  // diameter; arcseconds
             (*ephemeris_data_out)[i].data[line_counter].sun_pa = pa_to_sun;  // radians
             (*ephemeris_data_out)[i].data[line_counter].text_label = NULL;
             (*ephemeris_data_out)[i].data[line_counter].sub_month_label = 0;
@@ -249,11 +249,11 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
             }
 
             if (phase < (*ephemeris_data_out)[i].minimum_phase) {
-                (*ephemeris_data_out)[i].minimum_phase = phase;
+                (*ephemeris_data_out)[i].minimum_phase = phase;  // 0-1
             }
 
             if (angular_size > (*ephemeris_data_out)[i].maximum_angular_size) {
-                (*ephemeris_data_out)[i].maximum_angular_size = angular_size;
+                (*ephemeris_data_out)[i].maximum_angular_size = angular_size;  // diameter; arcseconds
             }
 
         }

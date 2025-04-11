@@ -541,6 +541,12 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("solar_system_sun_actual_size")
         x->solar_system_sun_actual_size = (int) key_val_num;
         return 0;
+    } else if (strcmp(key, "solar_system_sun_actual_size_scaling") == 0) {
+        //! solar_system_sun_actual_size_scaling - Scaling factor to apply to the actual size on the Sun and Moon when
+        //! drawing them at actual size and phase. Default: 1.
+        CHECK_VALUE_NUMERIC("solar_system_sun_actual_size_scaling")
+        x->solar_system_sun_actual_size_scaling = key_val_num;
+        return 0;
     } else if (strcmp(key, "solar_system_sun_col") == 0) {
         //! solar_system_sun_col - The colour to use when drawing the Sun's actual size (when
         //! `solar_system_sun_actual_size` is turned on).

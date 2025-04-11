@@ -31,6 +31,7 @@ plot_ecliptic=0
 plot_equator=0
 draw_ephemeris=p301,2460557.9479,2460560.9479
 ephemeris_style=side_by_side
+solar_system_sun_actual_size_scaling=3
 must_show_all_ephemeris_labels=1
 solar_system_ids=P2
 solar_system_labels=Venus

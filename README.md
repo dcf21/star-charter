@@ -299,6 +299,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `solar_system_moon_colour` - The colour to use to represent the illuminated portion of the Moon.
 * `solar_system_show_moon_phase` - Boolean flag (0 or 1) indicating whether to show the Moon's phase (1), or show a simple marker (0).
 * `solar_system_sun_actual_size` - Boolean flag (0 or 1) indicating whether to show the Sun's actual size (true), or whether to give it a generic marker like the other planets (false). Default: 0.
+* `solar_system_sun_actual_size_scaling` - Scaling factor to apply to the actual size on the Sun and Moon when drawing them at actual size and phase. Default: 1.
 * `solar_system_sun_col` - The colour to use when drawing the Sun's actual size (when `solar_system_sun_actual_size` is turned on).
 * `solar_system_topocentric_correction` - Boolean flag (0 or 1) indicating whether to apply topocentric correction to the positions of solar system objects, based on `horizon_latitude` and `horizon_longitude`.
 * `star_allow_multiple_labels` - Boolean (0 or 1) indicating whether we allow multiple labels next to a single star. If false, we only include the highest-priority label for each object.

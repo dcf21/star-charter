@@ -68,6 +68,7 @@ settings: Dict[str, Union[str, float, int]] = {
     "horizon_cardinal_points_marker_count": 16,
     "scale_bar_col": "1,1,1",
     "ephemeris_style": "side_by_side",
+    "solar_system_sun_actual_size_scaling": 2,
     "must_show_all_ephemeris_labels": 1,
     "scale_bar": "0.05,0.3,0,10"
 }

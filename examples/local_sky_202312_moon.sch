@@ -50,6 +50,7 @@ horizon_cardinal_points_marker_count=16
 scale_bar=0.05,0.4,0,10
 scale_bar_col=1,1,1
 ephemeris_style=side_by_side
+solar_system_sun_actual_size_scaling=2
 
 show_solar_system=1
 solar_system_ids=P2

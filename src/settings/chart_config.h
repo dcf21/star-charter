@@ -110,20 +110,22 @@ typedef struct colour {
 //! A structure defining a point in an ephemeris
 typedef struct ephemeris_point {
     double jd;
-    double ra, dec; // radians, J2000
+    double ra, dec;  // radians, J2000
     double mag;
-    double phase; // 0-1
-    double angular_size; // arcseconds
-    double sun_pa; // radians; J2000
+    double phase;  // 0-1
+    double angular_size;  // diameter; arcseconds
+    double sun_pa;  // radians; J2000
     char *text_label;
     int sub_month_label;
 } ephemeris_point;
 
 //! A structure defining an ephemeris of a solar system object
 typedef struct ephemeris {
-    double jd_start, jd_end, jd_step; // Julian day numbers
-    char obj_id[FNAME_LENGTH]; // DE450 ID for the object
-    double maximum_angular_size, minimum_phase, brightest_magnitude;
+    double jd_start, jd_end, jd_step;  // Julian day numbers
+    char obj_id[FNAME_LENGTH];  // DE450 ID for the object
+    double maximum_angular_size;  // diameter; arcseconds
+    double minimum_phase;  // 0-1
+    double brightest_magnitude;
     int point_count, is_comet;
     ephemeris_point *data;
 } ephemeris;
@@ -274,6 +276,10 @@ typedef struct chart_config {
     //! Boolean flag (0 or 1) indicating whether to show the Sun's actual size (true), or whether to give it a generic
     //! marker like the other planets (false). Default: 0.
     int solar_system_sun_actual_size;
+
+    //! Scaling factor to apply to the actual size on the Sun and Moon when drawing them at actual size and phase.
+    //! Default: 1.
+    double solar_system_sun_actual_size_scaling;
 
     //! The colour to use when drawing the Sun's actual size (when `solar_system_sun_actual size` is turned on).
     colour solar_system_sun_col;

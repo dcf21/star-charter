@@ -215,7 +215,7 @@ void draw_solar_system_object(chart_config *s, cairo_page *page, const colour ob
 //! \param [in] y - Tangent-plane coordinates of this object (radians)
 //! \param [in] ra - Right ascension of the Moon (radians; J2000)
 //! \param [in] dec - Declination of the Moon (radians; J2000)
-//! \param [in] ang_size - Angular size of the Moon (arcseconds)
+//! \param [in] ang_size - Angular size of the Moon (diameter; arcseconds)
 //! \param [in] julian_date - Julian date of the chart (used to compute the Moon's phase)
 //! \param [in] label - Text label to place next to this object
 
@@ -246,7 +246,7 @@ void draw_moon(chart_config *s, cairo_page *page, const colour label_colour,
     double angle_scaling = cairo_units_per_degree(s);
 
     // Calculate the radius of this object on tha canvas
-    double size_cairo = (ang_size / 3600.) * angle_scaling;
+    double size_cairo = (ang_size / 2 / 3600.) * s->solar_system_sun_actual_size_scaling * angle_scaling;
 
     // Draw a circular splodge on the star chart
     cairo_set_source_rgba(s->cairo_draw, s->solar_system_moon_colour.red, s->solar_system_moon_colour.grn,
@@ -324,7 +324,7 @@ void draw_moon(chart_config *s, cairo_page *page, const colour label_colour,
 //! \param [in] label_colour - The colour to use when labelling the object.
 //! \param [in] x - Tangent-plane coordinates of this object (radians)
 //! \param [in] y - Tangent-plane coordinates of this object (radians)
-//! \param [in] ang_size - Angular size of the Moon (arcseconds)
+//! \param [in] ang_size - Angular size of the Sun (diameter; arcseconds)
 //! \param [in] label - Text label to place next to this object
 
 void draw_sun(chart_config *s, cairo_page *page, const colour label_colour,
@@ -337,7 +337,7 @@ void draw_sun(chart_config *s, cairo_page *page, const colour label_colour,
     double angle_scaling = cairo_units_per_degree(s);
 
     // Calculate the radius of this object on tha canvas
-    double size_cairo = (ang_size / 3600.) * angle_scaling;
+    double size_cairo = (ang_size / 2 / 3600.) * s->solar_system_sun_actual_size_scaling * angle_scaling;
 
     // Draw a circular splodge on the star chart
     cairo_set_source_rgba(s->cairo_draw, s->solar_system_sun_col.red, s->solar_system_sun_col.grn,
@@ -384,11 +384,11 @@ void plot_solar_system(chart_config *s, cairo_page *page) {
         if (e->point_count > 0) {
             // Look up the celestial coordinates of this object
             const double jd = e->data[0].jd;
-            const double ra = e->data[0].ra; // radians
-            const double dec = e->data[0].dec; // radians
-            const double ang_size = e->data[0].angular_size; // arcseconds
+            const double ra = e->data[0].ra;  // radians
+            const double dec = e->data[0].dec;  // radians
+            const double ang_size = e->data[0].angular_size;  // diameter; arcseconds
             const double mag = e->data[0].mag;
-            const double sun_pa = e->data[0].sun_pa; // radians
+            const double sun_pa = e->data[0].sun_pa;  // radians
             const int is_comet = e->is_comet;
 
             // Check whether this is the Moon

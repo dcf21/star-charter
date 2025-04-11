@@ -96,6 +96,7 @@ void default_config(chart_config *i) {
     i->solar_system_minimum_size = 999.;
     i->solar_system_show_moon_phase = 1;
     i->solar_system_sun_actual_size = 0;
+    i->solar_system_sun_actual_size_scaling = 1.;
     i->solar_system_sun_col = (colour) {1, 1, 0};
     i->solar_system_moon_earthshine_intensity = 0.12;
     i->solar_system_moon_colour = (colour) {1, 1, 0.8};

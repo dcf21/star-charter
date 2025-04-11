@@ -48,6 +48,7 @@ output_filename=output/saturn_2025.png
 CHART
 draw_ephemeris=p301,2460678.5,2460685.5  # Use 'P301' here, not 'Moon', to ensure phases are drawn
 ephemeris_style=side_by_side
+solar_system_sun_actual_size_scaling=4
 ephemeris_table=0
 must_show_all_ephemeris_labels=1
 star_clip_outline=1  # This makes the Pleiades stand out more clearly, but can be slow on wide-field charts
