@@ -938,6 +938,11 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         x->dso_names = (int) key_val_num;
         x->dso_names_is_set = 1;
         return 0;
+    } else if (strcmp(key, "dso_names_openclusters") == 0) {
+        //! dso_names_openclusters - Boolean (0 or 1) indicating whether we label the names of openclusters
+        CHECK_VALUE_NUMERIC("dso_names_openclusters")
+        x->dso_names_openclusters = (int) key_val_num;
+        return 0;
     } else if (strcmp(key, "dso_mags") == 0) {
         //! dso_mags - Boolean (0 or 1) indicating whether we label the magnitudes of deep sky objects
         CHECK_VALUE_NUMERIC("dso_mags")

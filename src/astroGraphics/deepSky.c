@@ -710,17 +710,19 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
 
             // Write a text label for this object
             const int show_name = s->dso_names;
+            const int show_name_openclusters = s->dso_names_openclusters;
             const int show_mag = s->dso_mags && (mag < 40);
             const int multiple_labels = show_name && show_mag;
+            const int dso_type_filter = !is_open_cluster || show_name_openclusters;
 
-            if (show_name) {
+            if (show_name && dso_type_filter) {
                 chart_label_buffer(page, s, s->dso_label_col, object_name,
                                    possible_positions, possible_position_count,
                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
                                    0, 0, 0, priority);
                 label_counter++;
             }
-            if (show_mag) {
+            if (show_mag && dso_type_filter) {
                 snprintf(temp_err_string, FNAME_LENGTH, "%.1f", mag);
                 chart_label_buffer(page, s, s->dso_label_col, temp_err_string,
                                    possible_positions, possible_position_count,
