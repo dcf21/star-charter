@@ -134,6 +134,7 @@ void default_config(chart_config *i) {
     i->dso_style = SW_DSO_STYLE_COLOURED;
     i->dso_label_mag_min = 9999;
     i->dso_names = 1;
+    i->dso_names_openclusters = 1;
     i->dso_mags = 0;
     i->dso_mag_min = 14;
     i->must_label_all_dsos = 0;

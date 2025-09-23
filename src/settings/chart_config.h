@@ -367,6 +367,9 @@ typedef struct chart_config {
     //! Boolean indicating whether we label the names of NGC objects
     int dso_names;
 
+    //! Boolean indicating whether we label the names of open clusters
+    int dso_names_openclusters;
+
     //! Boolean indicating whether we label the magnitudes of NGC objects
     int dso_mags;
 

@@ -204,6 +204,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `dso_mag_min` - Only show deep-sky objects down to this faintest magnitude
 * `dso_mags` - Boolean (0 or 1) indicating whether we label the magnitudes of deep-sky objects
 * `dso_names` - Boolean (0 or 1) indicating whether we label the names of deep-sky objects
+* `dso_names_openclusters` - Boolean (0 or 1) indicating whether we label the names of openclusters
 * `dso_nebula_col` - Colour to use when drawing nebulae
 * `dso_outline_col` - Colour to use when drawing the outline of deep-sky objects
 * `dso_point_size_scaling` - Size scaling of deep-sky object symbols. Default 1.
