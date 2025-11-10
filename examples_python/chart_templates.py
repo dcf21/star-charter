@@ -96,7 +96,7 @@ colour_schemes: Final[Dict[str, Dict[str, dict]]] = {
             "galaxy_col": "0.7,0.8,1",
             "galaxy_col0": "0.337,0.547,0.820",
             'star_col': '1,1,1',
-            'grid_col': '0.5,0.5,0.5',
+            'grid_col': '0,0,0,0.2',
             'ephemeris_col': '1,1,0.7',
             "constellation_label_col": "0,0,0",
             "dso_label_col": "0,0,0",
@@ -109,7 +109,7 @@ colour_schemes: Final[Dict[str, Dict[str, dict]]] = {
             "horizon_cardinal_points_marker_col": "1,1,0.7",
             "horizon_cardinal_points_labels_col": "1,1,0.7",
             "horizon_cardinal_points_marker_elevate": "1",
-            "constellation_stick_col": "0.9,0.9,0.9",
+            "constellation_stick_col": "0.9,0.9,0.9,0.5",
             "constellation_boundary_col": "0.9,0.9,0.9",
             "dso_cluster_col": "0.9,0.9,0.9",
             "dso_nebula_col": "0.9,0.9,0.9",
@@ -120,8 +120,7 @@ colour_schemes: Final[Dict[str, Dict[str, dict]]] = {
             "ephemeris_label_col": "1,0.9,0.75",
             "ephemeris_arrow_col": "1,0.9,0.75",
             "constellations_capitalise": "1",
-            "constellations_label_shadow": "0",
-            "constellation_sticks_line_width": "0.7",
+            "constellations_label_shadow": "0"
         },
         'flat_background': {
             "galaxy_col": "0.337,0.547,0.820",

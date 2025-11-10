@@ -37,11 +37,14 @@
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 
 void close_dso_outline(chart_config *s) {
-    cairo_set_source_rgb(s->cairo_draw, s->dso_nebula_col.red, s->dso_nebula_col.grn,
-                         s->dso_nebula_col.blu);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_nebula_col.red, s->dso_nebula_col.grn, s->dso_nebula_col.blu,
+                          s->dso_nebula_col.alpha);
     cairo_fill_preserve(s->cairo_draw);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
-    cairo_set_line_width(s->cairo_draw, 0.8);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu,
+                          s->dso_outline_col.alpha);
+    cairo_set_line_width(s->cairo_draw, 0.6 * s->line_width_base);
     cairo_stroke(s->cairo_draw);
 }
 
@@ -92,7 +95,7 @@ void plot_deep_sky_outlines(chart_config *s, cairo_page *page) {
                 char line[FNAME_LENGTH];
                 const char *line_ptr = line;
 
-                file_readline(file, line);
+                file_readline(file, line, sizeof line);
 
                 // Ignore comment lines
                 if (line[0] != 'l') continue;

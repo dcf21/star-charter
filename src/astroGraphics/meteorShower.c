@@ -73,12 +73,13 @@ void plot_meteor_showers(chart_config *s, cairo_page *page) {
         // Draw radiant marker
         double x_canvas, y_canvas; // Cairo native coordinates
         fetch_canvas_coordinates(&x_canvas, &y_canvas, x, y, s);
-        cairo_set_source_rgb(s->cairo_draw, s->meteor_radiant_colour.red,
-                             s->meteor_radiant_colour.grn, s->meteor_radiant_colour.blu);
+        cairo_set_source_rgba(s->cairo_draw,
+                              s->meteor_radiant_colour.red, s->meteor_radiant_colour.grn, s->meteor_radiant_colour.blu,
+                              s->meteor_radiant_colour.alpha);
 
         // Calculate marker size
         const double marker_size = 0.25 * s->meteor_radiant_marker_size * s->cm;
-        const double marker_line_width = 1;
+        const double marker_line_width = 0.36;
 
         // Draw outward-pointing arrows
         for (int j = 0; j < 6; j++) {
@@ -92,7 +93,7 @@ void plot_meteor_showers(chart_config *s, cairo_page *page) {
         }
 
         // Draw circle
-        cairo_set_line_width(s->cairo_draw, marker_line_width);
+        cairo_set_line_width(s->cairo_draw, marker_line_width * s->line_width_base);
         cairo_new_path(s->cairo_draw);
         cairo_arc(s->cairo_draw, x_canvas, y_canvas, marker_size, 0, 2 * M_PI);
         cairo_stroke(s->cairo_draw);

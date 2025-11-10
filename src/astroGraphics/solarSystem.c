@@ -134,19 +134,19 @@ void draw_solar_system_object(chart_config *s, cairo_page *page, const colour ob
     }
 
     // Draw a circular splodge on the star chart
-    cairo_set_source_rgb(s->cairo_draw, object_colour.red, object_colour.grn, object_colour.blu);
+    cairo_set_source_rgba(s->cairo_draw, object_colour.red, object_colour.grn, object_colour.blu, object_colour.alpha);
     cairo_new_path(s->cairo_draw);
     cairo_arc(s->cairo_draw, x_canvas, y_canvas, size_cairo, 0, 2 * M_PI);
 
     if (!is_comet) {
         cairo_fill_preserve(s->cairo_draw);
         cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
-        cairo_set_line_width(s->cairo_draw, 0.5);
+        cairo_set_line_width(s->cairo_draw, 0.36 * s->line_width_base);
         cairo_stroke(s->cairo_draw);
     } else {
         cairo_fill(s->cairo_draw);
         cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
-        cairo_set_line_width(s->cairo_draw, 0.5);
+        cairo_set_line_width(s->cairo_draw, 0.36 * s->line_width_base);
         cairo_new_path(s->cairo_draw);
         cairo_arc(s->cairo_draw, x_canvas, y_canvas, size_cairo,
                   M_PI - sun_pa, -sun_pa);
@@ -203,7 +203,7 @@ void draw_solar_system_object(chart_config *s, cairo_page *page, const colour ob
     // Label this solar system object
     chart_label_buffer(page, s, label_colour, label,
                        possible_positions, possible_positions_count,
-                       0, 0, 1.2 * s->label_font_size_scaling,
+                       0, 0, 1.4 * s->label_font_size_scaling,
                        0, 0, 0, priority);
 }
 
@@ -256,8 +256,11 @@ void draw_moon(chart_config *s, cairo_page *page, const colour label_colour,
     cairo_fill(s->cairo_draw);
 
     // Trace illuminated portion of the Moon
-    cairo_set_source_rgb(s->cairo_draw, s->solar_system_moon_colour.red, s->solar_system_moon_colour.grn,
-                         s->solar_system_moon_colour.blu);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->solar_system_moon_colour.red,
+                          s->solar_system_moon_colour.grn,
+                          s->solar_system_moon_colour.blu,
+                          s->solar_system_moon_colour.alpha);
     cairo_new_path(s->cairo_draw);
 
     // Trace illuminated edge of Moon

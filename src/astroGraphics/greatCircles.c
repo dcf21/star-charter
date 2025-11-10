@@ -109,8 +109,10 @@ void plot_equator(chart_config *s, line_drawer *ld, cairo_page *page) {
 
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
-    cairo_set_source_rgb(s->cairo_draw, s->equator_col.red, s->equator_col.grn, s->equator_col.blu);
-    cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->equator_col.red, s->equator_col.grn, s->equator_col.blu,
+                          s->equator_col.alpha);
+    cairo_set_line_width(s->cairo_draw, s->great_circle_line_width * s->line_width_base);
 
     plot_great_circle(0, 90, s, ld, page, 0, NULL, s->equator_col);
 
@@ -133,9 +135,10 @@ void plot_galactic_plane(chart_config *s, line_drawer *ld, cairo_page *page) {
 
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
-    cairo_set_source_rgb(s->cairo_draw, s->galactic_plane_col.red, s->galactic_plane_col.grn,
-                         s->galactic_plane_col.blu);
-    cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->galactic_plane_col.red, s->galactic_plane_col.grn, s->galactic_plane_col.blu,
+                          s->galactic_plane_col.alpha);
+    cairo_set_line_width(s->cairo_draw, s->great_circle_line_width * s->line_width_base);
 
     plot_great_circle((12. + 51. / 60 + 26.282 / 3600.) / 24. * 360., (27. + 7.0 / 60. + 42.01 / 3600.), s,
                       ld, page, 0, NULL, s->galaxy_col);
@@ -172,8 +175,10 @@ void plot_ecliptic(chart_config *s, line_drawer *ld, cairo_page *page) {
 
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
-    cairo_set_source_rgb(s->cairo_draw, s->ecliptic_col.red, s->ecliptic_col.grn, s->ecliptic_col.blu);
-    cairo_set_line_width(s->cairo_draw, s->great_circle_line_width);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->ecliptic_col.red, s->ecliptic_col.grn, s->ecliptic_col.blu,
+                          s->ecliptic_col.alpha);
+    cairo_set_line_width(s->cairo_draw, s->great_circle_line_width * s->line_width_base);
 
     plot_great_circle(18. / 24. * 360., 90. - 23.4, s, ld, page, s->label_ecliptic ? 12 : 0, labels,
                       s->ecliptic_col);
@@ -228,7 +233,9 @@ double draw_great_circle_key(chart_config *s, double legend_y_pos) {
         const char *label = "The Equator";
 
         // Draw a line in the right colour
-        cairo_set_source_rgb(s->cairo_draw, s->equator_col.red, s->equator_col.grn, s->equator_col.blu);
+        cairo_set_source_rgba(s->cairo_draw,
+                              s->equator_col.red, s->equator_col.grn, s->equator_col.blu,
+                              s->equator_col.alpha);
         cairo_new_path(s->cairo_draw);
         cairo_move_to(s->cairo_draw, x * s->cm, y1 * s->cm);
         cairo_line_to(s->cairo_draw, (x + size) * s->cm, y1 * s->cm);
@@ -252,7 +259,9 @@ double draw_great_circle_key(chart_config *s, double legend_y_pos) {
         const char *label = "Ecliptic Plane";
 
         // Draw a line in the right colour
-        cairo_set_source_rgb(s->cairo_draw, s->ecliptic_col.red, s->ecliptic_col.grn, s->ecliptic_col.blu);
+        cairo_set_source_rgba(s->cairo_draw,
+                              s->ecliptic_col.red, s->ecliptic_col.grn, s->ecliptic_col.blu,
+                              s->ecliptic_col.alpha);
         cairo_new_path(s->cairo_draw);
         cairo_move_to(s->cairo_draw, x * s->cm, y1 * s->cm);
         cairo_line_to(s->cairo_draw, (x + size) * s->cm, y1 * s->cm);
@@ -276,8 +285,9 @@ double draw_great_circle_key(chart_config *s, double legend_y_pos) {
         const char *label = "Galactic Plane";
 
         // Draw a line in the right colour
-        cairo_set_source_rgb(s->cairo_draw, s->galactic_plane_col.red, s->galactic_plane_col.grn,
-                             s->galactic_plane_col.blu);
+        cairo_set_source_rgba(s->cairo_draw,
+                              s->galactic_plane_col.red, s->galactic_plane_col.grn, s->galactic_plane_col.blu,
+                              s->galactic_plane_col.alpha);
         cairo_new_path(s->cairo_draw);
         cairo_move_to(s->cairo_draw, x * s->cm, y1 * s->cm);
         cairo_line_to(s->cairo_draw, (x + size) * s->cm, y1 * s->cm);

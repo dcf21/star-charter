@@ -19,20 +19,19 @@
 // along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------
 
-#define ORBITALELEMENTS_C 1
-
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <math.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #include <gsl/gsl_math.h>
 
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
 #include "coreUtils/strConstants.h"
-
-#include "listTools/ltMemory.h"
 
 #include "mathsTools/julianDate.h"
 
@@ -41,699 +40,1469 @@
 #include "orbitalElements.h"
 #include "magnitudeEstimate.h"
 
+// Maximum size of each catalogue of solar system objects
+#define MAX_ASTEROIDS 1500000
+#define MAX_COMETS     200000
+#define MAX_PLANETS        50
+
+#define DATA_IN_PATH SRCDIR "/../data/"
+#define DATA_OUT_PATH SRCDIR "/../data/"
+
 // Numerical constants
 const static double ORBIT_CONST_SPEED_OF_LIGHT = 299792458.; // m/s
 const static double ORBIT_CONST_ASTRONOMICAL_UNIT = 149597870700.; // m
 const static double ORBIT_CONST_GM_SOLAR = 1.32712440041279419e20; // m^3 s^-2
 
+// Utility functions for reading orbital elements from ASCII lines
+int orbitalElements_readAsciiLine_planets(const char *line, orbitalElementSet *set, orbitalElements *output,
+                                          char *name, char *name2);
+
+int orbitalElements_readAsciiLine_asteroids(const char *line, orbitalElementSet *set, orbitalElements *output,
+                                            char *name, char *name2);
+
+int orbitalElements_readAsciiLine_comets(const char *line, orbitalElementSet *set, orbitalElements *output,
+                                         char *name, char *name2);
+
 // Binary files containing the orbital elements of solar system objects
-FILE *planet_database_file = NULL;
-FILE *asteroid_database_file = NULL;
-FILE *comet_database_file = NULL;
+orbitalElementSet planet_database = {
+        "planet", 1, NULL,
+        NULL,
+        DATA_OUT_PATH "/binary_planets.bin",
+        DATA_IN_PATH "/list_planet_files.txt",
+        0, NULL,
+        0, 0, DCFVERSION, "",
+        MAX_PLANETS, -1, -1,
+        -1, 0, 0, 0, 0,
+        orbitalElements_readAsciiLine_planets
+};
 
-// Filenames of binary files
-char planet_database_filename[FNAME_LENGTH];
-char asteroid_database_filename[FNAME_LENGTH];
-char comet_database_filename[FNAME_LENGTH];
+orbitalElementSet asteroid_database = {
+        "asteroid", 0, NULL,
+        NULL,
+        DATA_OUT_PATH "/binary_asteroids.bin",
+        DATA_IN_PATH "/list_astorb_files.txt",
+        0, NULL,
+        0, 0, DCFVERSION, "",
+        MAX_ASTEROIDS, -1, -1,
+        -1, 0, 0, 0, 0,
+        orbitalElements_readAsciiLine_asteroids
+};
 
-// Blocks of memory used to hold the orbital elements
-orbitalElements *planet_database = NULL;
-orbitalElements *asteroid_database = NULL;
-orbitalElements *comet_database = NULL;
+orbitalElementSet comet_database = {
+        "comet", 1, NULL,
+        NULL,
+        DATA_OUT_PATH "/binary_comet.bin",
+        DATA_IN_PATH "/list_comet_files.txt",
+        0, NULL,
+        0, 0, DCFVERSION, "",
+        MAX_COMETS, -1, -1,
+        -1, 0, 0, 0, 0,
+        orbitalElements_readAsciiLine_comets
+};
 
-// Record of which entries we have loaded from each database
-unsigned char *planet_database_items_loaded = NULL;
-unsigned char *asteroid_database_items_loaded = NULL;
-unsigned char *comet_database_items_loaded = NULL;
+//! orbitalElements_nullOrbitalElements - Create a null set of orbital elements, with fields set to NaN.
+//! @return - Null set of orbital elements
 
-// Pointers to the positions in the files where the orbitalElement structures begin
-int planet_database_offset = -1;
-int asteroid_database_offset = -1;
-int comet_database_offset = -1;
+orbitalElements orbitalElements_nullOrbitalElements() {
+    const orbitalElements null_elements = {
+            -1, 0,
+            GSL_NAN, GSL_NAN,
+            GSL_NAN, GSL_NAN,
+            GSL_NAN, 0,
+            GSL_NAN, 0,
+            GSL_NAN, 0,
+            GSL_NAN, 0,
+            GSL_NAN, 0,
+            2, -999
+    };
 
-// Number of objects in each list
-int planet_count = 0;
-int asteroid_count = 0;
-int comet_count = 0;
+    return null_elements;
+}
 
-// Number of objects with securely determined orbits
-int planet_secure_count = 0;
-int asteroid_secure_count = 0;
-int comet_secure_count = 0;
+//! orbitalElements_nullObjectNames - Create an object name structure with null contents.
+//! @return - Null object name structure
 
-//! OrbitalElements_ReadBinaryData - restore orbital elements from a binary dump of the data in a file such as
-//! <data/dcfbinary.ast>. This saves time parsing original text file every time we are run. For further efficiency,
-//! we don't actually read the orbital elements from disk straight away, until they're actually needed. We merely
-//! malloc a buffer to hold them. This massively reduces the start-up time.
+objectNames orbitalElements_nullObjectNames() {
+    const objectNames null_name = {
+            -1, -1, "", ""
+    };
+
+    return null_name;
+}
+
+//! orbitalElements_writeHeaders - Dump the headers to an orbital element set to a binary file.
 //!
-//! \param [in] filename - The filename of the binary data dump
-//! \param [out] file_pointer - Return a file handle for the binary data dump
-//! \param [out] elements_offset  - Return the offset of the start of the table of <orbitalElements> structures from the
-//! beginning of the file.
-//! \param [out] data_buffer - Return a malloced buffer which is big enough to contain the table of <orbitalElements>
-//! structures.
-//! \param [out] data_buffer_items_loaded - Return an array which we use to keep track of which orbital elements we have
-//! already loaded.
-//! \param [out] item_count - Return the number of orbital elements in this binary file.
-//! \param [out] item_secure_count - Return the number of securely determined orbital elements in this binary file.
+//! \param [in] f - File handle for the binary file
+//! \param [in] set - Descriptor for the set of orbital elements to be written.
+//! \return - The file position of the end of the headers
+
+long orbitalElements_writeHeaders(const orbitalElementSet *set) {
+    FILE *f = set->binary_data_file;
+    long pos = -1;
+
+    // Check we don't have a local cache
+    if (set->binary_file_cache != NULL) {
+        ephem_fatal(__FILE__, __LINE__, "Attempting to update binary file after it has been cached");
+        exit(1);
+    }
+
+#pragma omp critical (binary_file_access)
+    {
+        // Rewind to the beginning of the file
+        fseek(f, 0, SEEK_SET);
+
+        // Write the headers into the binary data file
+        fwrite(&set->ready, sizeof(set->ready), 1, f);
+        fwrite(&set->file_creation_epoch, sizeof(set->file_creation_epoch), 1, f);
+        fwrite(&set->software_version, sizeof(set->software_version), 1, f);
+        fwrite(&set->file_creation_hostname, sizeof(set->file_creation_hostname), 1, f);
+        fwrite(&set->max_objects, sizeof(set->max_objects), 1, f);
+        fwrite(&set->object_count, sizeof(set->object_count), 1, f);
+        fwrite(&set->object_secure_count, sizeof(set->object_secure_count), 1, f);
+        fwrite(&set->epoch_max_count, sizeof(set->epoch_max_count), 1, f);
+
+        // Check the position of the end of the headers
+        pos = ftell(f);
+    }
+
+    return pos;
+}
+
+//! orbitalElements_startWritingBinaryData - Dump orbital element set to a binary file, to save parsing original text
+//! files every time we are run.
+//!
+//! \param [in|out] set - Descriptor for the set of orbital elements to be written.
 //! \return - Zero on success
 
-int OrbitalElements_ReadBinaryData(const char *filename, FILE **file_pointer, int *elements_offset,
-                                   orbitalElements **data_buffer, unsigned char **data_buffer_items_loaded,
-                                   int *item_count, int *item_secure_count) {
-    char filename_with_path[FNAME_LENGTH];
-
+int orbitalElements_startWritingBinaryData(orbitalElementSet *set) {
     // Work out the full path of the binary data file we are to read
-    sprintf(filename_with_path, "%s/../data/%s", SRCDIR, filename);
     if (DEBUG) {
-        sprintf(temp_err_string, "Trying to fetch binary data from file <%s>.", filename_with_path);
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        sprintf(msg, "%ss: Starting to write binary data to file <%s>.",
+                set->object_type, set->binary_filename);
+        ephem_log(msg);
     }
 
     // Open binary data file
-    *file_pointer = fopen(filename_with_path, "rb");
-    if (*file_pointer == NULL) return 1; // FAIL
-
-    // Read the number of objects with orbital elements in this file
-    dcf_fread((void *) item_count, sizeof(int), 1, *file_pointer, filename_with_path, __FILE__, __LINE__);
-    if (DEBUG) {
-        sprintf(temp_err_string, "Object count = %d", *item_count);
-        ephem_log(temp_err_string);
-    }
-
-    // Read the number of secure orbits described in this file
-    dcf_fread((void *) item_secure_count, sizeof(int), 1, *file_pointer, filename_with_path, __FILE__, __LINE__);
-    if (DEBUG) {
-        sprintf(temp_err_string, "Objects with secure orbits = %d", *item_secure_count);
-        ephem_log(temp_err_string);
-    }
-
-    // Check that numbers are sensible
-    if ((*item_count < 1) || (*item_count > 1e6)) {
-        if (DEBUG) { ephem_log("Rejecting this as implausible"); }
-        fclose(*file_pointer);
-        *file_pointer = NULL;
+    set->binary_data_file = fopen(set->binary_filename, "w+b");
+    if (set->binary_data_file == NULL) {
         return 1;
     }
 
-    // We have now reached the orbital elements. Store their offset from the start of the file.
-    *elements_offset = ftell(*file_pointer);
+    // Abbreviations
+    const int n = set->max_objects;
+    FILE *f = set->binary_data_file;
 
-    // Allocate memory to store records as we load them
-    *data_buffer = (orbitalElements *) lt_malloc((*item_count) * sizeof(orbitalElements));
-    *data_buffer_items_loaded = (unsigned char *) lt_malloc((*item_count) * sizeof(unsigned char));
+    // Write the headers into the binary data file
+    set->offset_table_names = orbitalElements_writeHeaders(set);
 
-    // Zero array telling us which records we have read
-    memset(*data_buffer_items_loaded, 0, *item_count);
+    // We have now reached the table of booleans indicating which objects have secure orbits.
+    // Store their offset from the start of the file.
+    set->offset_table_secure = set->offset_table_names + n * sizeof(objectNames);
+
+    // We have now reached the table of epochs per object. Store their offset from the start of the file.
+    set->offset_table_epoch_counts = set->offset_table_secure + n * sizeof(int);
+
+    // We have now reached the orbital element set. Store their offset from the start of the file.
+    set->offset_table_orbital_elements = set->offset_table_epoch_counts + n * sizeof(int);
+
+    // Expected position of the end of the file
+    const long expected_file_end = (set->offset_table_orbital_elements +
+                                    set->max_objects * set->epoch_max_count * sizeof(orbitalElements));
 
     if (DEBUG) {
-        sprintf(temp_err_string, "Data file opened successfully.");
-        ephem_log(temp_err_string);
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "Expected file length %ld bytes.\n\
+Max objects = %d\n\
+Max epochs = %d\n\
+Offset of object names table = %ld.\n\
+Offset of secure orbits table = %ld.\n\
+Offset of epoch counts table = %ld.\n\
+Offset of orbital elements table = %ld.\n\
+", expected_file_end, set->max_objects, set->epoch_max_count, set->offset_table_names, set->offset_table_secure,
+                set->offset_table_epoch_counts, set->offset_table_orbital_elements);
+        ephem_log(buffer);
+
+    }
+
+    // Create a null set of orbital elements
+    const objectNames null_name = orbitalElements_nullObjectNames();
+    const orbitalElements null_elements = orbitalElements_nullOrbitalElements();
+
+#pragma omp critical (binary_file_access)
+    {
+        // Position file after headers
+        fseek(f, set->offset_table_names, SEEK_SET);
+
+        // Write a table of object names
+        for (int i = 0; i < set->max_objects; i++) {
+            fwrite(&null_name, sizeof(null_name), 1, f);
+        }
+
+        // Write a table of which objects have secure orbits
+        {
+            const long pos = ftell(f);
+            if (pos != set->offset_table_secure) {
+                char buffer[LSTR_LENGTH];
+                sprintf(buffer, "Unexpected file position (%ld) when writing secure orbits table. Expected %ld.",
+                        pos, set->offset_table_secure);
+                ephem_warning(buffer);
+            }
+        }
+        for (int i = 0; i < set->max_objects; i++) {
+            const int zero = 0;
+            fwrite(&zero, sizeof(zero), 1, f);
+        }
+
+        // Write a table of the number of epochs for each object
+        {
+            const long pos = ftell(f);
+            if (pos != set->offset_table_epoch_counts) {
+                char buffer[LSTR_LENGTH];
+                sprintf(buffer,
+                        "Unexpected file position (%ld) when writing epoch counts table. Expected %ld.",
+                        pos, set->offset_table_epoch_counts);
+                ephem_warning(buffer);
+            }
+        }
+        for (int i = 0; i < set->max_objects; i++) {
+            const int zero = 0;
+            fwrite(&zero, sizeof(zero), 1, f);
+        }
+
+        // Write a table of NaN-filled orbital elements
+        {
+            const long pos = ftell(f);
+            if (pos != set->offset_table_orbital_elements) {
+                char buffer[LSTR_LENGTH];
+                sprintf(buffer,
+                        "Unexpected file position (%ld) when writing orbital elements table. Expected %ld.",
+                        pos, set->offset_table_orbital_elements);
+                ephem_warning(buffer);
+            }
+        }
+        for (int i = 0; i < set->max_objects; i++) {
+            for (int j = 0; j < set->epoch_max_count; j++) {
+                fwrite(&null_elements, sizeof(orbitalElements), 1, f);
+            }
+        }
+
+        // Check that the file has the expected length
+        {
+            const long pos = ftell(f);
+            if (pos != expected_file_end) {
+                char buffer[LSTR_LENGTH];
+                sprintf(buffer,
+                        "Unexpected file position (%ld) at the end of the file. Expected %ld.",
+                        pos, expected_file_end);
+                ephem_warning(buffer);
+            }
+        }
+
+        // Finished
+        if (DEBUG) {
+            char msg[LSTR_LENGTH];
+            sprintf(msg, "Binary file successfully initialised.");
+            ephem_log(msg);
+        }
+    }
+
+    return 0;
+}
+
+//! orbitalElements_binary_setObjectName - Set the object name for a specified object index.
+//! \param [in] set - Descriptor for the set of orbital elements to be updated.
+//! \param [in] object_index - Index of the object within the set of orbital elements.
+//! \param [in] name - The name(s) for this object.
+
+void orbitalElements_binary_setObjectName(orbitalElementSet *set, int object_index, objectNames *name) {
+    // Check <object_index> is within range
+    if ((object_index < 0) || (object_index >= set->max_objects)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "%ss: Illegal object index <%d>", set->object_type, object_index);
+        ephem_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    // Check we don't have a local cache
+    if (set->binary_file_cache != NULL) {
+        ephem_fatal(__FILE__, __LINE__, "Attempting to update binary file after it has been cached");
+        exit(1);
+    }
+
+    // Calculate position within the file to write to
+    const long pos = set->offset_table_names + object_index * sizeof(objectNames);
+
+#pragma omp critical (binary_file_access)
+    {
+        // Write to disk
+        fseek(set->binary_data_file, pos, SEEK_SET);
+
+        // Write data structure with this object's name
+        fwrite(name, sizeof(*name), 1, set->binary_data_file);
+    }
+}
+
+//! orbitalElements_binary_getSecureFlag - Fetch the flag indicating whether the specified object index has a secure
+//! orbit.
+//! \param [in] set - Descriptor for the set of orbital elements to be queried.
+//! \param [in] object_index - Index of the object within the set of orbital elements.
+
+int orbitalElements_binary_getSecureFlag(orbitalElementSet *set, int object_index) {
+    int output = -123456;
+
+    // Check <object_index> is within range
+    if ((object_index < 0) || (object_index >= set->max_objects)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "%ss: Illegal object index <%d>", set->object_type, object_index);
+        ephem_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    // Calculate position within the file to read from
+    const long pos = set->offset_table_secure + object_index * sizeof(int);
+
+    // Fetch value
+    if (set->binary_file_cache != NULL) {
+        // Fetch from in-memory copy
+        memcpy(&output, set->binary_file_cache + pos, sizeof(output));
+    } else {
+#pragma omp critical (binary_file_access)
+        {
+            // Fetch from disk
+            fseek(set->binary_data_file, pos, SEEK_SET);
+
+            // Read secure flag
+            dcf_fread(&output, sizeof(output), 1, set->binary_data_file,
+                      set->binary_filename, __FILE__, __LINE__);
+        }
+    }
+
+    // Sanity check value
+    if ((output != 0) && (output != 1)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "Illegal value (%d) of secure orbit flag read for object %d from position %ld.",
+                output, object_index, pos);
+        ephem_warning(buffer);
+    }
+
+    // Return value
+    return output;
+}
+
+//! orbitalElements_binary_setSecureFlag - Set the flag indicating whether the specified object index has a secure
+//! orbit.
+//! \param [in] set - Descriptor for the set of orbital elements to be updated.
+//! \param [in] object_index - Index of the object within the set of orbital elements.
+//! \param [in] secure_flag - Boolean flag indicating whether this object has a secure orbit.
+
+void orbitalElements_binary_setSecureFlag(orbitalElementSet *set, int object_index, int secure_flag) {
+    // Check <object_index> is within range
+    if ((object_index < 0) || (object_index >= set->max_objects)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "%ss: Illegal object index <%d>", set->object_type, object_index);
+        ephem_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    // Check we don't have a local cache
+    if (set->binary_file_cache != NULL) {
+        ephem_fatal(__FILE__, __LINE__, "Attempting to update binary file after it has been cached");
+        exit(1);
+    }
+
+    // Calculate position within the file to write to
+    const long pos = set->offset_table_secure + object_index * sizeof(int);
+
+    // Sanity check value
+    if ((secure_flag != 0) && (secure_flag != 1)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer,
+                "Illegal value (%d) of secure orbit flag being written for object %d to position %ld.",
+                secure_flag, object_index, pos);
+        ephem_warning(buffer);
+    }
+
+#pragma omp critical (binary_file_access)
+    {
+        // Write to disk
+        fseek(set->binary_data_file, pos, SEEK_SET);
+
+        // Update secure flag
+        fwrite(&secure_flag, sizeof(secure_flag), 1, set->binary_data_file);
+    }
+}
+
+//! orbitalElements_binary_getEpochCount - Fetch the count of epochs at which orbital elements are available for an
+//! object.
+//! \param [in] set - Descriptor for the set of orbital elements to be queried.
+//! \param [in] object_index - Index of the object within the set of orbital elements.
+
+int orbitalElements_binary_getEpochCount(orbitalElementSet *set, int object_index) {
+    int output = -123456;
+
+    // Check <object_index> is within range
+    if ((object_index < 0) || (object_index >= set->max_objects)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "%ss: Illegal object index <%d>", set->object_type, object_index);
+        ephem_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    // Calculate position within the file to read from
+    const long pos = set->offset_table_epoch_counts + object_index * sizeof(int);
+
+    // Fetch value
+    if (set->binary_file_cache != NULL) {
+        // Fetch from in-memory copy
+        memcpy(&output, set->binary_file_cache + pos, sizeof(output));
+    } else {
+#pragma omp critical (binary_file_access)
+        {
+            // Fetch from disk
+            fseek(set->binary_data_file, pos, SEEK_SET);
+
+            // Fetch epoch count
+            dcf_fread(&output, sizeof(output), 1, set->binary_data_file,
+                      set->binary_filename, __FILE__, __LINE__);
+        }
+    }
+
+    // Sanity check value
+    if ((output < 0) || (output > set->epoch_max_count)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "Illegal value (%d) of epoch count read for object %d from position %ld.",
+                output, object_index, pos);
+        ephem_warning(buffer);
+    }
+
+    // Return value
+    return output;
+}
+
+//! orbitalElements_binary_setEpochCount - Set the count of epochs at which orbital elements are available for an
+//! object.
+//! \param [in] set - Descriptor for the set of orbital elements to be updated.
+//! \param [in] object_index - Index of the object within the set of orbital elements.
+//! \param [in] epoch_count - Count of epochs.
+
+void orbitalElements_binary_setEpochCount(orbitalElementSet *set, int object_index, int epoch_count) {
+    // Check <object_index> is within range
+    if ((object_index < 0) || (object_index >= set->max_objects)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "%ss: Illegal object index <%d>", set->object_type, object_index);
+        ephem_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    // Check we don't have a local cache
+    if (set->binary_file_cache != NULL) {
+        ephem_fatal(__FILE__, __LINE__, "Attempting to update binary file after it has been cached");
+        exit(1);
+    }
+
+    // Calculate position within the file to write to
+    const long pos = set->offset_table_epoch_counts + object_index * sizeof(int);
+
+    // Sanity check value
+    if ((epoch_count < 0) || (epoch_count > set->epoch_max_count)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "Illegal value (%d) of epoch count being written for object %d to position %ld.",
+                epoch_count, object_index, pos);
+        ephem_warning(buffer);
+    }
+
+#pragma omp critical (binary_file_access)
+    {
+        // Write to disk
+        fseek(set->binary_data_file, pos, SEEK_SET);
+
+        // Update epoch count
+        fwrite(&epoch_count, sizeof(epoch_count), 1, set->binary_data_file);
+    }
+}
+
+//! orbitalElements_binary_getElements - Fetch an array of orbital elements for an object at various epochs
+//! \param [in] set - Descriptor for the set of orbital elements to be queried.
+//! \param [in] object_index - Index of the object within the set of orbital elements.
+//! \param [out] output - Storage space into which to write the output <orbitalElements> structures.
+//! \param [in] buffer_size - The maximum number of <orbitalElements> structures which can be written to <output>.
+//! \return - The number of <orbitalElements> structures returned.
+
+int orbitalElements_binary_getElements(orbitalElementSet *set, int object_index,
+                                       orbitalElements *output, int buffer_size) {
+    // Check <object_index> is within range
+    if ((object_index < 0) || (object_index >= set->max_objects)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "%ss: Illegal object index <%d>", set->object_type, object_index);
+        ephem_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    // Look up how many sets of orbital elements we already have for this object
+    const int epoch_count = orbitalElements_binary_getEpochCount(set, object_index);
+
+    // Work out the number of elements to read
+    const int elements_to_read = (int) gsl_min(buffer_size, epoch_count);
+
+    // Calculate position within the binary file to read elements from
+    const long stride = set->epoch_max_count * sizeof(orbitalElements);
+    const long pos = set->offset_table_orbital_elements + object_index * stride;
+
+    // Fetch value
+    if (set->binary_file_cache != NULL) {
+        // Fetch from in-memory copy
+        memcpy(output, set->binary_file_cache + pos, sizeof(orbitalElements) * elements_to_read);
+    } else {
+#pragma omp critical (binary_file_access)
+        {
+            // Fetch from disk
+            fseek(set->binary_data_file, pos, SEEK_SET);
+
+            // Read orbital elements
+            dcf_fread(output, sizeof(orbitalElements), elements_to_read, set->binary_data_file,
+                      set->binary_filename, __FILE__, __LINE__);
+        }
+    }
+
+    // Return the number of orbital elements structures we read
+    return elements_to_read;
+}
+
+//! orbitalElements_binary_writeElements - Write an array of <orbitalElements> structures for an object.
+//! \param [in] set - Descriptor for the set of orbital elements to be updated.
+//! \param [in] object_index - Index of the object within the set of orbital elements.
+//! \param [in] output - Storage space from which to read the <orbitalElements> structures to write to disk.
+//! \param [in] element_count - The number of <orbitalElements> structures in <output> (at various epochs).
+
+void orbitalElements_binary_writeElements(orbitalElementSet *set, int object_index,
+                                          orbitalElements *output, int element_count) {
+    // Check <object_index> is within range
+    if ((object_index < 0) || (object_index >= set->max_objects)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "%ss: Illegal object index <%d>", set->object_type, object_index);
+        ephem_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    // Check we don't have a local cache
+    if (set->binary_file_cache != NULL) {
+        ephem_fatal(__FILE__, __LINE__, "Attempting to update binary file after it has been cached");
+        exit(1);
+    }
+
+    // Calculate position within the binary file to read elements from
+    const long stride = set->epoch_max_count * sizeof(orbitalElements);
+    const long pos = set->offset_table_orbital_elements + object_index * stride;
+
+#pragma omp critical (binary_file_access)
+    {
+        // Write to disk
+        fseek(set->binary_data_file, pos, SEEK_SET);
+
+        // Write orbital elements
+        fwrite(output, sizeof(orbitalElements), element_count, set->binary_data_file);
+    }
+
+    // Update epoch count
+    orbitalElements_binary_setEpochCount(set, object_index, element_count);
+}
+
+//! orbitalElements_binary_appendElements - Append a set of orbital elements to the array of <orbitalElements>
+//! structures available for an object.
+//! \param [in] set - Descriptor for the set of orbital elements to be queried.
+//! \param [in] object_index - Index of the object within the set of orbital elements.
+//! \param [in] elements - The <orbitalElements> structure to append to the array of epochs available for this object.
+
+void orbitalElements_binary_appendElements(orbitalElementSet *set, int object_index, orbitalElements *elements) {
+    // Look up how many sets of orbital elements we already have for this object
+    const int epoch_count = orbitalElements_binary_getEpochCount(set, object_index);
+
+    // Check <object_index> is within range
+    if ((object_index < 0) || (object_index >= set->max_objects)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "%ss: Illegal object index <%d>", set->object_type, object_index);
+        ephem_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    // Check <epoch_count> is within range
+    if ((epoch_count < 0) || (epoch_count >= set->epoch_max_count)) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "%ss: Illegal epoch index <%d>", set->object_type, epoch_count);
+        ephem_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    // Check we don't have a local cache
+    if (set->binary_file_cache != NULL) {
+        ephem_fatal(__FILE__, __LINE__, "Attempting to update binary file after it has been cached");
+        exit(1);
+    }
+
+    // Calculate position within the binary file to write elements to
+    const long stride = set->epoch_max_count * sizeof(orbitalElements);
+    const long pos = (set->offset_table_orbital_elements
+                      + object_index * stride
+                      + epoch_count * sizeof(orbitalElements)
+    );
+
+#pragma omp critical (binary_file_access)
+    {
+        // Write to disk
+        fseek(set->binary_data_file, pos, SEEK_SET);
+
+        // Add orbital elements to file
+        fwrite(elements, sizeof(*elements), 1, set->binary_data_file);
+    }
+
+    // Increment epoch count
+    orbitalElements_binary_setEpochCount(set, object_index, epoch_count + 1);
+}
+
+//! orbitalElements_binary_epochExists - Test whether a specified epoch of osculation already exists in the orbital
+//! elements for a specific object.
+//! \param [in] set - The descriptor for the set of orbital elements we are reading
+//! \param [in] object_index - Index of the object within the set of orbital elements.
+//! \param [in] epoch - The epoch to search for within the existing orbital elements.
+//! \return - Boolean flag indicating whether this epoch is already present.
+
+int orbitalElements_binary_epochExists(orbitalElementSet *set, int object_index, double epoch) {
+    // Create a temporary workspace for fetching a single object's elements
+    const int buffer_size = set->epoch_max_count;
+    orbitalElements *buffer = (orbitalElements *) malloc(buffer_size * sizeof(orbitalElements));
+    if (buffer == NULL) {
+        ephem_fatal(__FILE__, __LINE__, "Malloc fail.");
+        exit(1);
+    }
+
+    // Fetch all the existing elements available for this object
+    const int n = orbitalElements_binary_getElements(set, object_index, buffer, buffer_size);
+
+    // Check whether any of the existing epochs match
+    int got_match = 0;
+    for (int i = 0; i < n; i++) {
+        if (buffer[i].epochOsculation == epoch) {
+            got_match = 1;
+            break;
+        }
+    }
+
+    // Free temporary workspace
+    free(buffer);
+
+    // Return the boolean flag
+    return got_match;
+}
+
+//! orbitalElements_searchByObjectName - Search for an existing object with matching name
+//! @param [in] set - The descriptor for the set of orbital elements we are reading
+//! @param [in] name - The name of the object to search for
+//! @param [out] last_seen_file_index - The file index at which this name was last seen
+//! @return - The number of the matching object, or -1 for no match
+
+int orbitalElements_searchByObjectName(const orbitalElementSet *set, const char *name, int *last_seen_file_index) {
+    if (last_seen_file_index != NULL) {
+        *last_seen_file_index = -1;
+    }
+
+    // If we don't have a table of object names, give up immediately
+    if (!set->match_by_name) return -1;
+
+    // Search for objects whose <name> or <name2> fields match the supplied name
+    for (int object_index = 0; object_index < set->object_count; object_index++) {
+        if ((str_cmp_no_case(name, set->object_names[object_index].name) == 0) ||
+            (str_cmp_no_case(name, set->object_names[object_index].name2) == 0)) {
+            if (last_seen_file_index != NULL) {
+                *last_seen_file_index = set->object_names[object_index].last_seen_file_index;
+            }
+            return object_index;
+        }
+    }
+
+    // No match was found
+    return -1;
+}
+//! orbitalElements_maximumEpochCount - Count how many ASCII input files we will process, to determine the maximum
+//! number of epochs of data an object might have.
+//! @param [in] set - The descriptor for the set of orbital elements we are reading
+//! @return - The number of ASCII input files we will process
+
+int orbitalElements_maximumEpochCount(const orbitalElementSet *set) {
+    int output = 0;
+
+    if (DEBUG) {
+        char msg[LSTR_LENGTH];
+        sprintf(msg, "%ss: Opening file ASCII list of orbital elements files <%s>",
+                set->object_type, set->ascii_filename_catalogue);
+        ephem_log(msg);
+    }
+
+    // Open catalogue of files containing orbital elements
+    FILE *input = fopen(set->ascii_filename_catalogue, "rt");
+    if (input == NULL) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "%ss: Could not open input ASCII data file <%s>",
+                set->object_type, set->ascii_filename_catalogue);
+        ephem_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    // Read through the input ASCII file, line by line
+    while ((!feof(input)) && (!ferror(input))) {
+        char line[LSTR_LENGTH];
+
+        // Read a line from the input file
+        file_readline(input, line, sizeof line);
+        str_strip(line, line);
+
+        // Ignore blank lines and comment lines
+        if (line[0] == '\0') continue;
+        if (line[0] == '#') continue;
+
+        // Count this file
+        output++;
+    }
+
+    // Close input ASCII file
+    fclose(input);
+
+    // Return the number of files we counted
+    return output;
+}
+
+//! orbitalElements_sortByEpoch - Objective function for using qsort to sort orbital elements by epoch of osculation
+//! @param [in] p - First set of orbital elements
+//! @param [in] q - Second set of orbital elements
+//! @return - Integer indicating the sorting direction
+
+int orbitalElements_sortByEpoch(const void *p, const void *q) {
+    const double x = ((const orbitalElements *) p)->epochOsculation;
+    const double y = ((const orbitalElements *) q)->epochOsculation;
+
+    if (x < y) {
+        return -1; // Return -1 if you want ascending, 1 if you want descending order.
+    }
+    if (x > y) {
+        return 1; // Return 1 if you want ascending, -1 if you want descending order.
+    }
+    return 0;
+}
+
+//! orbitalElements_readAsciiLine_planets - Read a line of an ASCII file containing orbital elements for planets
+//! @param line [in] - The line of text containing the orbital elements
+//! @param set [in|out] - The descriptor for the set of orbital elements we are reading
+//! @param output [out] - The orbital elements that we read
+//! @param name [out] - The name of the object that we read
+//! @param name2 [out] - The alternative name of the object that we read
+//! @return - The number of objects we read (0 or 1)
+
+int orbitalElements_readAsciiLine_planets(const char *line, orbitalElementSet *set, orbitalElements *output,
+                                          char *name, char *name2) {
+    int i, j;
+
+    // Initialise name outputs
+    name[0] = '\0';
+    name2[0] = '\0';
+
+    // Ignore blank lines and comment lines
+    if (line[0] == '\0') return 0;
+    if (line[0] == '#') return 0;
+    if (strlen(line) < 168) return 0;
+
+    // Read body id
+    const int body_id = (int) get_float(line, NULL);
+    output->number = body_id;
+
+    // Read planet name
+    for (i = 166, j = 0; (line[i] > ' '); i++, j++) name[j] = line[i];
+    name[j] = '\0';
+
+    // Fill out dummy information
+    output->absoluteMag = 999;
+    output->slopeParam_G = 2;
+    output->secureOrbit = 1;
+
+    // Now start reading orbital elements of the planet
+
+    // Read semi-major axis of orbit -- AU
+    for (i = 18; line[i] == ' '; i++);
+    output->semiMajorAxis = get_float(line + i, NULL);
+
+    // Read rate of change of semi-major axis of orbit -- convert <AU per century> to <AU per day>
+    for (i = 30; line[i] == ' '; i++);
+    output->semiMajorAxis_dot = get_float(line + i, NULL) / 36525.;
+
+    // Read eccentricity of orbit -- dimensionless
+    for (i = 42; line[i] == ' '; i++);
+    output->eccentricity = get_float(line + i, NULL);
+
+    // Read rate of change of eccentricity of orbit -- convert <per century> into <per day>
+    for (i = 53; line[i] == ' '; i++);
+    output->eccentricity_dot = get_float(line + i, NULL) / 36525.;
+
+    // Read longitude of ascending node -- convert <degrees> to <radians; J2000.0>
+    for (i = 65; line[i] == ' '; i++);
+    output->longAscNode = get_float(line + i, NULL) * M_PI / 180;
+
+    // Read rate of change of longitude of ascending node -- convert <degrees/century> into <radians/day>
+    for (i = 79; line[i] == ' '; i++);
+    output->longAscNode_dot = get_float(line + i, NULL) / 36525. * M_PI / 180;
+
+    // Read inclination of orbit -- convert <degrees> to <radians; J2000.0>
+    for (i = 91; line[i] == ' '; i++);
+    output->inclination = get_float(line + i, NULL) * M_PI / 180;
+
+    // Read rate of change of inclination -- convert <degrees/century> into <radians/day>
+    for (i = 104; line[i] == ' '; i++);
+    output->inclination_dot = get_float(line + i, NULL) / 36525. * M_PI / 180;
+
+    // Read longitude of perihelion -- convert <degrees> to <radians; J2000.0>
+    for (i = 116; line[i] == ' '; i++);
+    const double longitude_perihelion = get_float(line + i, NULL) * M_PI / 180;
+
+    // Read rate of change of longitude of perihelion -- convert <degrees/century> into <radians/day>
+    for (i = 129; line[i] == ' '; i++);
+    const double longitude_perihelion_dot = get_float(line + i, NULL) / 36525. * M_PI / 180;
+
+    // Read mean longitude -- convert <degrees> to <radians; J2000.0>
+    for (i = 141; line[i] == ' '; i++);
+    const double mean_longitude = get_float(line + i, NULL) * M_PI / 180;
+
+    // Read epoch of osculation -- convert <unix time> to <julian date>
+    for (i = 155; line[i] == ' '; i++);
+    output->epochOsculation = jd_from_unix(get_float(line + i, NULL));
+
+    // Calculate mean anomaly -- radians; J2000.0
+    output->meanAnomaly = mean_longitude - longitude_perihelion;
+
+    // Calculate argument of perihelion -- radians; J2000.0
+    output->argumentPerihelion = longitude_perihelion - output->longAscNode;
+
+    // Calculate the rate of change of argument of perihelion -- radians per day
+    output->argumentPerihelion_dot = (longitude_perihelion_dot - output->longAscNode_dot);
+
+    return 1;
+}
+
+//! orbitalElements_readAsciiLine_asteroids - Read a line of an ASCII file containing orbital elements for asteroids
+//! @param line [in] - The line of text containing the orbital elements
+//! @param set [in|out] - The descriptor for the set of orbital elements we are reading
+//! @param output [out] - The orbital elements that we read
+//! @param name [out] - The name of the object that we read
+//! @param name2 [out] - The alternative name of the object that we read
+//! @return - The number of objects we read (0 or 1)
+
+int orbitalElements_readAsciiLine_asteroids(const char *line, orbitalElementSet *set, orbitalElements *output,
+                                            char *name, char *name2) {
+    int i;
+
+    // Initialise name outputs
+    name[0] = '\0';
+    name2[0] = '\0';
+
+    // Ignore blank lines and comment lines
+    if (line[0] == '\0') return 0;
+    if (line[0] == '#') return 0;
+    if (strlen(line) < 250) return 0;
+
+    // Read asteroid number
+    for (i = 0; (line[i] > '\0') && (line[i] <= ' '); i++);
+
+    // Unnumbered asteroid; don't bother adding to catalogue
+    if (i >= 6) return 0;
+
+    // Read asteroid number
+    const int asteroid_number = (int) get_float(line + i, NULL);
+
+    // asteroid_count should be the highest number asteroid we have encountered
+    output->number = asteroid_number;
+
+    // Read asteroid name
+    for (i = 25; (i > 7) && (line[i] > '\0') && (line[i] <= ' '); i--);
+    strncpy(name, line + 7, i - 6);
+    name[i - 6] = '\0';
+
+    // Read absolute magnitude
+    for (i = 42; (line[i] > '\0') && (line[i] <= ' '); i++);
+    output->absoluteMag = get_float(line + i, NULL);
+
+    // Read slope parameter
+    for (i = 48; (line[i] > '\0') && (line[i] <= ' '); i++);
+    output->slopeParam_G = get_float(line + i, NULL);
+
+    // Read number of days spanned by data used to derive orbit
+    int day_obs_span;
+    {
+        int j;
+        char buffer[8];
+        snprintf(buffer, 7, "%s", line + 94);
+        for (j = 0; (buffer[j] > '\0') && (buffer[j] <= ' '); j++);
+        day_obs_span = (int) get_float(buffer + j, NULL);
+    }
+
+    // Read the number of observations used to derive orbit
+    for (i = 100; (line[i] > '\0') && (line[i] <= ' '); i++);
+    const int obs_count = (int) get_float(line + i, NULL);
+
+    // Orbit deemed secure if more than 10 yrs data
+    output->secureOrbit = (day_obs_span > 3650) && (obs_count > 500);
+
+    // Now start reading orbital elements of the asteroid
+    {
+        for (i = 106; (line[i] > '\0') && (line[i] <= ' '); i++);
+        const double tmp = get_float(line + i, NULL);
+        // julian date
+        output->epochOsculation = julian_day(
+                (int) floor(tmp / 10000), ((int) floor(tmp / 100)) % 100,
+                ((int) floor(tmp)) % 100, 0, 0, 0, &i, temp_err_string);
+    }
+
+    // Read mean anomaly -- radians; J2000.0
+    for (i = 115; (line[i] > '\0') && (line[i] <= ' '); i++);
+    output->meanAnomaly = get_float(line + i, NULL) * M_PI / 180;
+
+    // Read argument of perihelion -- radians; J2000.0
+    for (i = 126; (line[i] > '\0') && (line[i] <= ' '); i++);
+    output->argumentPerihelion = get_float(line + i, NULL) * M_PI / 180;
+
+    // Read longitude of ascending node -- radians; J2000.0
+    for (i = 137; (line[i] > '\0') && (line[i] <= ' '); i++);
+    output->longAscNode = get_float(line + i, NULL) * M_PI / 180;
+
+    // Read inclination of orbit -- radians; J2000.0
+    for (i = 147; (line[i] > '\0') && (line[i] <= ' '); i++);
+    output->inclination = get_float(line + i, NULL) * M_PI / 180;
+
+    // Read eccentricity of orbit -- dimensionless
+    for (i = 157; (line[i] > '\0') && (line[i] <= ' '); i++);
+    output->eccentricity = get_float(line + i, NULL);
+
+    // Read semi-major axis of orbit -- AU
+    for (i = 168; (line[i] > '\0') && (line[i] <= ' '); i++);
+    output->semiMajorAxis = get_float(line + i, NULL);
+
+    return 1;
+}
+
+//! orbitalElements_readAsciiLine_comets - Read a line of an ASCII file containing orbital elements for comets
+//! @param line [in] - The line of text containing the orbital elements
+//! @param set [in|out] - The descriptor for the set of orbital elements we are reading
+//! @param output [out] - The orbital elements that we read
+//! @param name [out] - The name of the object that we read
+//! @param name2 [out] - The alternative name of the object that we read
+//! @return - The number of objects we read (0 or 1)
+
+int orbitalElements_readAsciiLine_comets(const char *line, orbitalElementSet *set, orbitalElements *output,
+                                         char *name, char *name2) {
+    int j, k;
+
+    // Initialise name outputs
+    name[0] = '\0';
+    name2[0] = '\0';
+
+    // Ignore blank lines and comment lines
+    if (line[0] == '\0') return 0;
+    if (line[0] == '#') return 0;
+    if (strlen(line) < 100) return 0;
+
+    // Read comet name
+    for (j = 102, k = 0; (line[j] != '(') && (line[j] != '\0') && (k < 23); j++, k++) {
+        name[k] = line[j];
+    }
+    while ((k > 0) && (name[--k] == ' '));
+    name[k + 1] = '\0';
+
+    // Read comet's MPC designation
+    for (j = 0, k = 0; (line[j] > '\0') && (line[j] <= ' '); j++);
+    while ((line[j] > ' ') && (k < 23)) name2[k++] = line[j++];
+    name2[k] = '\0';
+
+    // If comet's MPC designation has a fragment letter, append that now (e.g. 0073P-AA)
+    const char fragment_letter_0 = line[10];
+    const char fragment_letter_1 = line[11];
+    if (isalpha(fragment_letter_1) && (k > 0) && ((name2[k - 1] == 'P') || (name2[k - 1] == 'I'))) {
+        name2[k++] = '-';
+        if (isalpha(fragment_letter_0)) {
+            name2[k++] = (char) toupper(fragment_letter_0);
+        }
+        name2[k++] = (char) toupper(fragment_letter_1);
+        name2[k] = '\0';
+    }
+
+    // Read perihelion distance
+    const double perihelion_dist = get_float(line + 31, NULL);
+
+    // Read perihelion date
+    for (j = 14; (line[j] > '\0') && (line[j] <= ' '); j++);
+    const int perihelion_year = (int) get_float(line + j, NULL);
+    for (j = 19; (line[j] > '\0') && (line[j] <= ' '); j++);
+    const int perihelion_month = (int) get_float(line + j, NULL);
+    for (j = 22; (line[j] > '\0') && (line[j] <= ' '); j++);
+    const double perihelion_day = get_float(line + j, NULL);
+
+    // julian date
+    const double perihelion_date = julian_day(
+            perihelion_year, perihelion_month, (int) floor(perihelion_day),
+            ((int) floor(perihelion_day * 24)) % 24,
+            ((int) floor(perihelion_day * 24 * 60)) % 60,
+            ((int) floor(perihelion_day * 24 * 3600)) % 60,
+            &j, temp_err_string);
+
+    // Read eccentricity of orbit
+    for (j = 41; (line[j] > '\0') && (line[j] <= ' '); j++);
+    const double eccentricity = output->eccentricity = get_float(line + j, NULL);
+
+    // Read argument of perihelion, radians, J2000.0
+    for (j = 51; (line[j] > '\0') && (line[j] <= ' '); j++);
+    output->argumentPerihelion = get_float(line + j, NULL) * M_PI / 180;
+
+    // Read longitude of ascending node, radians, J2000.0
+    for (j = 61; (line[j] > '\0') && (line[j] <= ' '); j++);
+    output->longAscNode = get_float(line + j, NULL) * M_PI / 180;
+
+    // Read orbital inclination, radians, J2000.0
+    for (j = 71; (line[j] > '\0') && (line[j] <= ' '); j++);
+    output->inclination = get_float(line + j, NULL) * M_PI / 180;
+
+    // Read epoch of osculation, julian date
+    for (j = 81; (line[j] > '\0') && (line[j] <= ' '); j++);
+    const double tmp = get_float(line + j, NULL);
+    const double epoch = output->epochOsculation = julian_day((int) floor(tmp / 10000),
+                                                              ((int) floor(tmp / 100)) % 100,
+                                                              ((int) floor(tmp)) % 100, 0, 0, 0,
+                                                              &j,
+                                                              temp_err_string);
+
+    // Read absolute magnitude
+    for (j = 90; (line[j] > '\0') && (line[j] <= ' '); j++);
+    if (!valid_float(line + j, NULL)) output->absoluteMag = GSL_NAN;
+    else output->absoluteMag = get_float(line + j, NULL);
+
+    // Read slope parameter
+    for (j = 96; (line[j] > '\0') && (line[j] <= ' '); j++);
+    if (!valid_float(line + j, NULL)) output->slopeParam_n = 2;
+    else output->slopeParam_n = get_float(line + j, NULL);
+
+    // Calculate derived quantities
+    output->secureOrbit = 1;
+    // AU
+    const double a = output->semiMajorAxis = perihelion_dist / (1 - eccentricity);
+    // radians; J2000.0
+    output->meanAnomaly = fmod(
+            sqrt(ORBIT_CONST_GM_SOLAR /
+                 gsl_pow_3(fabs(a) * ORBIT_CONST_ASTRONOMICAL_UNIT)) * (epoch - perihelion_date) * 24 * 3600 +
+            100 * M_PI, 2 * M_PI);
+    // julian date
+    output->epochPerihelion = perihelion_date;
+
+    return 1;
+}
+
+//! orbitalElements_readAsciiDataFile - Read the orbital elements contained in a single ASCII file
+//! @param [in] set - The descriptor for the set of orbital elements we are reading
+//! @param [in] filename - The filename of the ASCII file we are to read
+//! @param [in] file_index - The unique index of the ASCII file we are to read
+//! @return - None
+
+void orbitalElements_readAsciiDataFile(orbitalElementSet *set, const char *filename, const int file_index) {
+    if (DEBUG) {
+        char msg[LSTR_LENGTH];
+        sprintf(msg, "Opening file ASCII orbital elements file <%s>", filename);
+        ephem_log(msg);
+    }
+
+    FILE *input = fopen(filename, "rt");
+    if (input == NULL) {
+        char msg[LSTR_LENGTH];
+        sprintf(msg, "Could not open input ASCII data file <%s>", filename);
+        ephem_fatal(__FILE__, __LINE__, msg);
+        exit(1);
+    }
+
+    // Read through the input ASCII file, line by line
+    int lines_read = 0;
+    int objects_read = 0;
+    int duplicate_epochs = 0;
+
+    while ((!feof(input)) && (!ferror(input))) {
+        char line[LSTR_LENGTH];
+        orbitalElements elements = orbitalElements_nullOrbitalElements();
+        char name[OBJECT_NAME_LENGTH], name2[OBJECT_NAME_LENGTH];
+
+        // Read a line from the input file
+        file_readline(input, line, sizeof line);
+        lines_read++;
+
+        // Parse line of the ASCII file
+        const int status = set->ascii_reader(line, set, &elements, name, name2);
+        if (status == 0) continue;
+        objects_read++;
+
+        // Work out object number
+        int object_index = -1;
+        if (elements.number >= 0) {
+            object_index = elements.number;
+            if (object_index >= set->object_count) {
+                set->object_count = object_index + 1;
+            }
+        } else if (set->match_by_name) {
+            int name_last_seen_at_file_index = -1;
+
+            if ((object_index < 0) && (strlen(name) > 0)) {
+                object_index = orbitalElements_searchByObjectName(set, name, &name_last_seen_at_file_index);
+            }
+            if ((object_index < 0) && (strlen(name2) > 0)) {
+                object_index = orbitalElements_searchByObjectName(set, name2, &name_last_seen_at_file_index);
+            }
+
+            if (name_last_seen_at_file_index == file_index) {
+                char msg[LSTR_LENGTH];
+                sprintf(msg, "Duplicate orbital elements found for object <%s> / <%s>", name, name2);
+                ephem_log(msg);
+                continue;
+            }
+        }
+        if (object_index < 0) {
+            object_index = set->object_count;
+            set->object_count++;
+        }
+
+        // Check if these elements are a duplicate of an epoch we have already seen
+        if (!orbitalElements_binary_epochExists(set, object_index, elements.epochOsculation)) {
+            // Write elements to the binary file
+            orbitalElements_binary_appendElements(set, object_index, &elements);
+        } else {
+            duplicate_epochs++;
+        }
+
+        // Write object name to the binary file
+        objectNames name_structure;
+        name_structure.number = object_index;
+        name_structure.last_seen_file_index = file_index;
+        snprintf(name_structure.name, OBJECT_NAME_LENGTH, "%s", name);
+        snprintf(name_structure.name2, OBJECT_NAME_LENGTH, "%s", name2);
+        orbitalElements_binary_setObjectName(set, object_index, &name_structure);
+        if (set->object_names != NULL) {
+            set->object_names[object_index] = name_structure;
+        }
+
+        // Update secure orbit flag
+        if (elements.secureOrbit) {
+            orbitalElements_binary_setSecureFlag(set, object_index, 1);
+        }
+    }
+
+    // Close input ASCII file
+    fclose(input);
+
+    // Report outcomes
+    if (DEBUG) {
+        char msg[LSTR_LENGTH];
+        sprintf(msg, "Line count       = %7d", lines_read);
+        ephem_log(msg);
+        sprintf(msg, "Object count     = %7d", objects_read);
+        ephem_log(msg);
+        sprintf(msg, "Duplicate epochs = %7d", duplicate_epochs);
+        ephem_log(msg);
+    }
+}
+
+
+//! orbitalElements_readAsciiDataFiles - Read the orbital elements contained in a set of ASCII files
+//! @param [in] set - The descriptor for the set of orbital elements we are reading
+//! @return - None
+
+void orbitalElements_readAsciiDataFiles(orbitalElementSet *set) {
+    // Reset counters of how many objects we have
+    set->ready = 0;
+    set->object_count = 0;
+    set->object_secure_count = 0;
+    set->epoch_max_count = orbitalElements_maximumEpochCount(set);
+    set->file_creation_epoch = (double) time(NULL);
+    snprintf(set->software_version, sizeof(set->software_version), "%s", DCFVERSION);
+    gethostname(set->file_creation_hostname, sizeof(set->file_creation_hostname));
+    set->file_creation_hostname[sizeof(set->file_creation_hostname) - 1] = '\0';
+    if (set->binary_file_cache != NULL) free(set->binary_file_cache);
+    set->binary_file_cache = NULL;
+
+    // Start writing the binary output file
+    {
+        int status = orbitalElements_startWritingBinaryData(set);
+        if (status) return;
+    }
+
+    // Allocate buffer for storing object names
+    if (set->object_names != NULL) free(set->object_names);
+    if (set->match_by_name) {
+        // Abbreviations
+        const int n = set->max_objects;
+        FILE *f = set->binary_data_file;
+        const char *fn = set->binary_filename;
+
+        set->object_names = (objectNames *) malloc(n * sizeof(objectNames));
+        if (set->object_names == NULL) {
+            ephem_fatal(__FILE__, __LINE__, "Malloc fail.");
+            exit(1);
+        }
+
+        // Read table of names into memory
+#pragma omp critical (binary_file_access)
+        {
+            fseek(set->binary_data_file, set->offset_table_names, SEEK_SET);
+            dcf_fread(set->object_names, sizeof(objectNames), n, f, fn, __FILE__, __LINE__);
+        }
+    }
+
+    // Open catalogue of files containing orbital elements
+    FILE *input = fopen(set->ascii_filename_catalogue, "rt");
+    if (input == NULL) {
+        char buffer[LSTR_LENGTH];
+        sprintf(buffer, "%ss: Could not open input ASCII data file <%s>",
+                set->object_type, set->ascii_filename_catalogue);
+        ephem_fatal(__FILE__, __LINE__, buffer);
+        exit(1);
+    }
+
+    // Read through the input ASCII file, line by line
+    int file_counter = 0;
+    while ((!feof(input)) && (!ferror(input))) {
+        char line[LSTR_LENGTH];
+
+        // Read a line from the input file
+        file_readline(input, line, sizeof line);
+        str_strip(line, line);
+
+        // Ignore blank lines and comment lines
+        if (line[0] == '\0') continue;
+        if (line[0] == '#') continue;
+
+        // Process this file
+        orbitalElements_readAsciiDataFile(set, line, file_counter);
+        file_counter++;
+    }
+
+    // Close input ASCII file
+    fclose(input);
+
+    // Sort orbital elements into ascending order of epoch of osculation
+    {
+        if (DEBUG) {
+            ephem_log("Sorting orbital elements into order is ascending epoch of osculation.");
+        }
+
+        // Create a temporary workspace for sorting a single object's elements
+        const int buffer_size = set->epoch_max_count;
+        orbitalElements *buffer = (orbitalElements *) malloc(buffer_size * sizeof(orbitalElements));
+        if (buffer == NULL) {
+            ephem_fatal(__FILE__, __LINE__, "Malloc fail.");
+            exit(1);
+        }
+
+        // Sort the elements for each object in turn
+        for (int object_index = 0; object_index < set->object_count; object_index++) {
+            const int n = orbitalElements_binary_getElements(set, object_index, buffer, buffer_size);
+            qsort(buffer, n, sizeof(orbitalElements), orbitalElements_sortByEpoch);
+            orbitalElements_binary_writeElements(set, object_index, buffer, n);
+        }
+
+        // On request, output debugging information about the catalogue
+        if (0 && DEBUG) {
+            for (int object_index = 0; object_index < set->object_count; object_index++) {
+                const int n = orbitalElements_binary_getElements(set, object_index, buffer, buffer_size);
+                const char *nameA = (set->match_by_name) ? (set->object_names[object_index].name) : "null";
+                const char *nameB = (set->match_by_name) ? (set->object_names[object_index].name2) : "null";
+                const double t0 = buffer[0].epochOsculation;
+                const double t1 = buffer[1].epochOsculation;
+                const double t2 = buffer[2].epochOsculation;
+
+                char msg[LSTR_LENGTH];
+                sprintf(msg, "%8d | %4d | %4ld <%s> | %4ld <%s> | %.2f %.2f %.2f", object_index, n,
+                        strlen(nameA), nameA, strlen(nameB), nameB, t0, t1, t2);
+                ephem_log(msg);
+            }
+        }
+
+        // Free temporary workspace
+        free(buffer);
+    }
+
+    // Calculate the number of objects with secure orbits
+    for (int object_index = 0; object_index < set->object_count; object_index++) {
+        const int secure = orbitalElements_binary_getSecureFlag(set, object_index);
+        if (secure) set->object_secure_count++;
+    }
+
+    // Write final headers
+    set->ready = 1;
+    orbitalElements_writeHeaders(set);
+
+    // Close binary file
+    fclose(set->binary_data_file);
+
+    // Report outcomes
+    if (DEBUG) {
+        char msg[LSTR_LENGTH];
+        sprintf(msg, "%ss: Object count                = %8d", set->object_type, set->object_count);
+        ephem_log(msg);
+        sprintf(msg, "%ss: Objects with secure orbits  = %8d", set->object_type, set->object_secure_count);
+        ephem_log(msg);
+    }
+}
+
+//! orbitalElements_readBinaryData - Restore orbital element set from a binary data file which holds the compressed
+//! contents of the ASCII input data files. This saves time parsing the original text file every time we are run. For
+//! further efficiency, we don't read the orbital element set from disk straight away, until they're actually needed.
+//! This massively reduces the start-up time and memory footprint.
+//!
+//! \param [in|out] set - Descriptor for the set of orbital elements to read.
+//! \return - Zero on success
+
+int orbitalElements_readBinaryData(orbitalElementSet *set) {
+    long binary_file_size = 0;
+
+    // Work out the full path of the binary data file we are to read
+    if (DEBUG) {
+        char msg[LSTR_LENGTH];
+        sprintf(msg, "Fetching binary data from file <%s>.", set->binary_filename);
+        ephem_log(msg);
+    }
+
+    // Open binary data file
+    set->binary_data_file = fopen(set->binary_filename, "rb");
+    if (set->binary_data_file == NULL) {
+        // Read from ASCII
+        orbitalElements_readAsciiDataFiles(set);
+
+        // Retry opening binary data file
+        set->binary_data_file = fopen(set->binary_filename, "rb");
+        if (set->binary_data_file == NULL) {
+            // Give up
+            return 1;
+        }
+    }
+
+    // Abbreviations
+    const int n = set->max_objects;
+    FILE *f = set->binary_data_file;
+    const char *fn = set->binary_filename;
+
+#pragma omp critical (binary_file_access)
+    {
+        // Rewind to the beginning of the file
+        fseek(f, 0, SEEK_SET);
+
+        // Read the flags from the beginning of the binary file
+        dcf_fread(&set->ready, sizeof(set->ready), 1, f, fn, __FILE__, __LINE__);
+        dcf_fread(&set->file_creation_epoch, sizeof(set->file_creation_epoch), 1, f, fn, __FILE__, __LINE__);
+        dcf_fread(&set->software_version, sizeof(set->software_version), 1, f, fn, __FILE__, __LINE__);
+        dcf_fread(&set->file_creation_hostname, sizeof(set->file_creation_hostname), 1, f, fn, __FILE__,
+                  __LINE__);
+        dcf_fread(&set->max_objects, sizeof(set->max_objects), 1, f, fn, __FILE__, __LINE__);
+        dcf_fread(&set->object_count, sizeof(set->object_count), 1, f, fn, __FILE__, __LINE__);
+        dcf_fread(&set->object_secure_count, sizeof(set->object_secure_count), 1, f, fn, __FILE__, __LINE__);
+        dcf_fread(&set->epoch_max_count, sizeof(set->epoch_max_count), 1, f, fn, __FILE__, __LINE__);
+
+        if (DEBUG) {
+            char msg[LSTR_LENGTH], buffer[FNAME_LENGTH];
+            time_t t = (time_t) set->file_creation_epoch;
+
+            sprintf(msg, "Elements for <%ss> created on <%s> at <%s> using software version <%s>",
+                    set->object_type, set->file_creation_hostname,
+                    str_strip(ctime(&t), buffer), set->software_version
+            );
+            ephem_log(msg);
+            sprintf(msg, "%ss: Max objects = %d", set->object_type, set->max_objects);
+            ephem_log(msg);
+            sprintf(msg, "%ss: Object count = %d", set->object_type, set->object_count);
+            ephem_log(msg);
+            sprintf(msg, "%ss: Objects with secure orbits = %d", set->object_type, set->object_secure_count);
+            ephem_log(msg);
+            sprintf(msg, "%ss: Max epochs = %d", set->object_type, set->epoch_max_count);
+            ephem_log(msg);
+        }
+
+        // We have now reached the table of object names
+        set->offset_table_names = ftell(f);
+
+        // We have now reached the table of booleans indicating which objects have secure orbits.
+        // Store their offset from the start of the file.
+        set->offset_table_secure = set->offset_table_names + n * sizeof(objectNames);
+
+        // We have now reached the table of epochs per object. Store their offset from the start of the file.
+        set->offset_table_epoch_counts = set->offset_table_secure + n * sizeof(int);
+
+        // We have now reached the orbital element set. Store their offset from the start of the file.
+        set->offset_table_orbital_elements = set->offset_table_epoch_counts + n * sizeof(int);
+
+        // Expected position of the end of the file
+        const long expected_file_end = (set->offset_table_orbital_elements +
+                                        set->max_objects * set->epoch_max_count * sizeof(orbitalElements));
+
+        // Check that the length of the file matches what we expect
+        fseek(set->binary_data_file, 0L, SEEK_END);
+        binary_file_size = ftell(set->binary_data_file);
+
+        if (binary_file_size != expected_file_end) {
+            char buffer[LSTR_LENGTH];
+            sprintf(buffer,
+                    "Unexpected binary file length (%ld). Expected %ld.",
+                    binary_file_size, expected_file_end);
+            ephem_warning(buffer);
+        }
+
+        // Allocate buffer for storing object names
+        if (set->object_names != NULL) free(set->object_names);
+        if (set->match_by_name) {
+            set->object_names = (objectNames *) malloc(n * sizeof(objectNames));
+            if (set->object_names == NULL) {
+                ephem_fatal(__FILE__, __LINE__, "Malloc fail.");
+                exit(1);
+            }
+
+            // Read table of names into memory
+            fseek(set->binary_data_file, set->offset_table_names, SEEK_SET);
+            dcf_fread(set->object_names, sizeof(objectNames), n, f, fn, __FILE__, __LINE__);
+        }
+    }
+
+    // Check that numbers are sensible
+    if ((set->object_count < 1) || (set->object_count > MAX_ALLOWED_OBJECTS)) {
+        if (DEBUG) { ephem_log("Rejecting this as implausible"); }
+        fclose(set->binary_data_file);
+        set->binary_data_file = NULL;
+        return 1;
+    }
+
+    // If requested, cache the entire binary file in memory
+    if (set->binary_file_cache != NULL) free(set->binary_file_cache);
+
+    if (set->cache_in_memory) {
+        set->binary_file_cache = malloc(binary_file_size);
+        if (set->binary_file_cache == NULL) {
+            ephem_fatal(__FILE__, __LINE__, "Malloc fail.");
+            exit(1);
+        }
+
+#pragma omp critical (binary_file_access)
+        {
+            // Rewind to the beginning of the file
+            fseek(f, 0, SEEK_SET);
+
+            // Read table of names into memory
+            dcf_fread(set->binary_file_cache, binary_file_size, 1, f, fn, __FILE__, __LINE__);
+        }
+    }
+
+    // Logging update
+    if (DEBUG) {
+        char msg[LSTR_LENGTH];
+        sprintf(msg, "Data file opened successfully.");
+        ephem_log(msg);
     }
 
     // Success
     return 0;
-}
-
-//! OrbitalElements_DumpBinaryData - dump orbital elements to a binary dump such as <data/dcfbinary.ast>,
-//! to save parsing original text file every time we are run.
-//!
-//! \param [in] filename - The filename of the binary dump we are to produce
-//! \param [in] data - The table of orbitalElements structures to write
-//! \param [out] elements_offset  - Return the offset of the start of the table of <orbitalElements> structures from the
-//! beginning of the file.
-//! \param [in] item_count - The number of orbital elements structures to write
-//! \param [in] item_secure_count - The number of objects in this table which have secure orbits
-
-void OrbitalElements_DumpBinaryData(const char *filename, const orbitalElements *data, int *elements_offset,
-                                    const int item_count, const int item_secure_count) {
-    FILE *output;
-    char filename_with_path[FNAME_LENGTH];
-
-    // Work out the full path of the binary data file we are to write
-    sprintf(filename_with_path, "%s/../data/%s", SRCDIR, filename);
-    if (DEBUG) {
-        sprintf(temp_err_string, "Dumping binary data to file <%s>.", filename_with_path);
-        ephem_log(temp_err_string);
-    }
-
-    // Open binary data file
-    output = fopen(filename_with_path, "wb");
-    if (output == NULL) return; // FAIL
-
-    // Write the number of objects with orbital elements in this file
-    fwrite((void *) &item_count, sizeof(int), 1, output);
-    fwrite((void *) &item_secure_count, sizeof(int), 1, output);
-
-    // We have now reached the orbital elements. Store their offset from the start of the file.
-    *elements_offset = ftell(output);
-
-    // Write the orbital elements themselves
-    fwrite((void *) data, sizeof(orbitalElements), item_count, output);
-
-    // Close output file
-    fclose(output);
-
-    // Finished
-    if (DEBUG) {
-        sprintf(temp_err_string, "Data successfully dumped.");
-        ephem_log(temp_err_string);
-    }
-}
-
-//! orbitalElements_planets_readAsciiData - Read the asteroid orbital elements contained in the file <data/planets.dat>
-
-void orbitalElements_planets_readAsciiData() {
-    int i, j;
-    char fname[FNAME_LENGTH];
-    FILE *input = NULL;
-
-    // Try and read data from binary dump. Only proceed with parsing the text files if binary dump doesn't exist.
-    int status = OrbitalElements_ReadBinaryData("dcfbinary.plt", &planet_database_file, &planet_database_offset,
-                                                &planet_database, &planet_database_items_loaded,
-                                                &planet_count, &planet_secure_count);
-
-    // If successful, return
-    if (status == 0) return;
-
-    // Allocate memory to store asteroid orbital elements, and reset counters of how many objects we have
-    planet_count = 0;
-    planet_secure_count = 0;
-    planet_database = (orbitalElements *) lt_malloc(MAX_PLANETS * sizeof(orbitalElements));
-    if (planet_database == NULL) {
-        ephem_fatal(__FILE__, __LINE__, "Malloc fail.");
-        exit(1);
-    }
-
-    // Pre-fill columns with NANs, which is the best value for data we don't populate later
-    for (i = 0; i < MAX_PLANETS; i++) {
-        memset(&planet_database[i], 0, sizeof(orbitalElements));
-        planet_database[i].absoluteMag = GSL_NAN;
-        planet_database[i].meanAnomaly = GSL_NAN;
-        planet_database[i].argumentPerihelion = GSL_NAN;
-        planet_database[i].longAscNode = GSL_NAN;
-        planet_database[i].inclination = GSL_NAN;
-        planet_database[i].eccentricity = GSL_NAN;
-        planet_database[i].semiMajorAxis = GSL_NAN;
-        planet_database[i].epochPerihelion = GSL_NAN;
-        planet_database[i].epochOsculation = GSL_NAN;
-        planet_database[i].slopeParam_n = 2;
-        planet_database[i].slopeParam_G = -999;
-        planet_database[i].number = -1;
-        planet_database[i].secureOrbit = 0;
-        planet_database[i].argumentPerihelion_dot = 0;
-        planet_database[i].longAscNode_dot = 0;
-        planet_database[i].inclination_dot = 0;
-        planet_database[i].eccentricity_dot = 0;
-        planet_database[i].semiMajorAxis_dot = 0;
-        strcpy(planet_database[i].name, "Undefined");
-        strcpy(planet_database[i].name2, "Undefined");
-    }
-
-    if (DEBUG) {
-        sprintf(temp_err_string, "Beginning to read ASCII planet list.");
-        ephem_log(temp_err_string);
-    }
-    sprintf(fname, "%s/../data/planets.dat", SRCDIR);
-    if (DEBUG) {
-        sprintf(temp_err_string, "Opening file <%s>", fname);
-        ephem_log(temp_err_string);
-    }
-    input = fopen(fname, "rt");
-    if (input == NULL) {
-        ephem_fatal(__FILE__, __LINE__, "Could not open planet data file.");
-        exit(1);
-    }
-
-    // Read through planet.dat, line by line
-    while ((!feof(input)) && (!ferror(input))) {
-        char line[FNAME_LENGTH];
-        int body_id;
-
-        // Read a line from the input file
-        file_readline(input, line);
-
-        // Ignore blank lines and comment lines
-        if (line[0] == '\0') continue;
-        if (line[0] == '#') continue;
-        if (strlen(line) < 168) continue;
-
-        // Read body id
-        body_id = (int) get_float(line, NULL);
-        if (planet_count <= body_id) planet_count = body_id + 1;
-        planet_database[body_id].number = body_id;
-        planet_secure_count++;
-
-        // Read planet name
-        for (i = 166, j = 0; (line[i] > ' '); i++, j++) planet_database[body_id].name[j] = line[i];
-        planet_database[body_id].name[j] = '\0';
-
-        // Fill out dummy information
-        planet_database[body_id].absoluteMag = 999;
-        planet_database[body_id].slopeParam_G = 2;
-        planet_database[body_id].secureOrbit = 1;
-
-        // Now start reading orbital elements of object
-        for (i = 18; line[i] == ' '; i++);
-        // AU
-        planet_database[body_id].semiMajorAxis = get_float(line + i, NULL);
-        for (i = 30; line[i] == ' '; i++);
-        // convert <AU per century> to <AU per day>
-        planet_database[body_id].semiMajorAxis_dot = get_float(line + i, NULL) / 36525.;
-        for (i = 42; line[i] == ' '; i++);
-        planet_database[body_id].eccentricity = get_float(line + i, NULL);
-        for (i = 53; line[i] == ' '; i++);
-        // convert <per century> into <per day>
-        planet_database[body_id].eccentricity_dot = get_float(line + i, NULL) / 36525.;
-        for (i = 65; line[i] == ' '; i++);
-        // convert <degrees> to <radians; J2000.0>
-        planet_database[body_id].longAscNode = get_float(line + i, NULL) * M_PI / 180;
-        for (i = 79; line[i] == ' '; i++);
-        // Convert <degrees/century> into <radians/day>
-        planet_database[body_id].longAscNode_dot = get_float(line + i, NULL) / 36525. * M_PI / 180;
-        for (i = 91; line[i] == ' '; i++);
-        // radians; J2000.0
-        planet_database[body_id].inclination = get_float(line + i, NULL) * M_PI / 180;
-        for (i = 104; line[i] == ' '; i++);
-        // Convert <degrees/century> into <radians/day>
-        planet_database[body_id].inclination_dot = get_float(line + i, NULL) / 36525. * M_PI / 180;
-        for (i = 116; line[i] == ' '; i++);
-        // convert <degrees> to <radians; J2000.0>
-        const double longitude_perihelion = get_float(line + i, NULL) * M_PI / 180;
-        for (i = 129; line[i] == ' '; i++);
-        // Convert <degrees/century> into <radians/day>
-        const double longitude_perihelion_dot = get_float(line + i, NULL) / 36525. * M_PI / 180;
-        for (i = 141; line[i] == ' '; i++);
-        // convert <degrees> to <radians; J2000.0>
-        const double mean_longitude = get_float(line + i, NULL) * M_PI / 180;
-        for (i = 155; line[i] == ' '; i++);
-        // convert <unix time> to <julian date>
-        planet_database[body_id].epochOsculation = jd_from_unix(get_float(line + i, NULL));
-
-        // radians; J2000.0
-        planet_database[body_id].meanAnomaly = mean_longitude - longitude_perihelion;
-
-        // radians; J2000.0
-        planet_database[body_id].argumentPerihelion = longitude_perihelion - planet_database[body_id].longAscNode;
-
-        // radians per day
-        planet_database[body_id].argumentPerihelion_dot = (longitude_perihelion_dot -
-                                                           planet_database[body_id].longAscNode_dot);
-    }
-    fclose(input);
-
-    if (DEBUG) {
-        sprintf(temp_err_string, "Planet count                 = %7d", planet_count);
-        ephem_log(temp_err_string);
-    }
-    if (DEBUG) {
-        sprintf(temp_err_string, "Planets with secure orbits   = %7d", planet_secure_count);
-        ephem_log(temp_err_string);
-    }
-
-    // Now that we've parsed the text-based version of this data, dump a binary version to make loading faster next time
-    OrbitalElements_DumpBinaryData("dcfbinary.plt", planet_database, &planet_database_offset,
-                                   planet_count, planet_secure_count);
-
-    // Make table indicating that we have loaded all the orbital elements in this table
-    planet_database_items_loaded = (unsigned char *) lt_malloc(planet_count * sizeof(unsigned char));
-    memset(planet_database_items_loaded, 1, planet_count);
-
-    // Open a file pointer to the file
-    char filename_with_path[FNAME_LENGTH];
-    snprintf(filename_with_path, FNAME_LENGTH, "%s/../data/%s", SRCDIR, "dcfbinary.plt");
-    planet_database_file = fopen(filename_with_path, "rb");
-    snprintf(planet_database_filename, FNAME_LENGTH, "%s", filename_with_path);
-}
-
-//! orbitalElements_asteroids_readAsciiData - Read the asteroid orbital elements contained in the original astorb.dat
-//! file downloaded from Ted Bowell's website
-
-void orbitalElements_asteroids_readAsciiData() {
-    int i;
-    char fname[FNAME_LENGTH];
-    FILE *input = NULL;
-
-    // Try and read data from binary dump. Only proceed with parsing the text files if binary dump doesn't exist.
-    int status = OrbitalElements_ReadBinaryData("dcfbinary.ast", &asteroid_database_file, &asteroid_database_offset,
-                                                &asteroid_database, &asteroid_database_items_loaded,
-                                                &asteroid_count, &asteroid_secure_count);
-
-    // If successful, return
-    if (status == 0) return;
-
-    // Allocate memory to store asteroid orbital elements, and reset counters of how many objects we have
-    asteroid_count = 0;
-    asteroid_secure_count = 0;
-    asteroid_database = (orbitalElements *) lt_malloc(MAX_ASTEROIDS * sizeof(orbitalElements));
-    if (asteroid_database == NULL) {
-        ephem_fatal(__FILE__, __LINE__, "Malloc fail.");
-        exit(1);
-    }
-
-    // Pre-fill columns with NANs, which is the best value for data we don't populate later
-    for (i = 0; i < MAX_ASTEROIDS; i++) {
-        memset(&asteroid_database[i], 0, sizeof(orbitalElements));
-        asteroid_database[i].absoluteMag = GSL_NAN;
-        asteroid_database[i].meanAnomaly = GSL_NAN;
-        asteroid_database[i].argumentPerihelion = GSL_NAN;
-        asteroid_database[i].longAscNode = GSL_NAN;
-        asteroid_database[i].inclination = GSL_NAN;
-        asteroid_database[i].eccentricity = GSL_NAN;
-        asteroid_database[i].semiMajorAxis = GSL_NAN;
-        asteroid_database[i].epochPerihelion = GSL_NAN;
-        asteroid_database[i].epochOsculation = GSL_NAN;
-        asteroid_database[i].slopeParam_n = 2;
-        asteroid_database[i].slopeParam_G = -999;
-        asteroid_database[i].number = -1;
-        asteroid_database[i].secureOrbit = 0;
-        asteroid_database[i].argumentPerihelion_dot = 0;
-        asteroid_database[i].longAscNode_dot = 0;
-        asteroid_database[i].inclination_dot = 0;
-        asteroid_database[i].eccentricity_dot = 0;
-        asteroid_database[i].semiMajorAxis_dot = 0;
-        strcpy(asteroid_database[i].name, "Undefined");
-        strcpy(asteroid_database[i].name2, "Undefined");
-    }
-
-    if (DEBUG) {
-        sprintf(temp_err_string, "Beginning to read ASCII asteroid list.");
-        ephem_log(temp_err_string);
-    }
-    sprintf(fname, "%s/../data/astorb.dat", SRCDIR);
-    if (DEBUG) {
-        sprintf(temp_err_string, "Opening file <%s>", fname);
-        ephem_log(temp_err_string);
-    }
-    input = fopen(fname, "rt");
-    if (input == NULL) {
-        ephem_fatal(__FILE__, __LINE__, "Could not open asteroid data file.");
-        exit(1);
-    }
-
-    // Read through astorb.dat, line by line
-    while ((!feof(input)) && (!ferror(input))) {
-        char line[FNAME_LENGTH];
-
-        // Read a line from the input file
-        file_readline(input, line);
-
-        // Ignore blank lines and comment lines
-        if (line[0] == '\0') continue;
-        if (line[0] == '#') continue;
-        if (strlen(line) < 250) continue;
-
-        // Read asteroid number
-        for (i = 0; (line[i] > '\0') && (line[i] <= ' '); i++);
-
-        // Unnumbered asteroid; don't bother adding to catalogue
-        if (i >= 6) continue;
-
-        const int n = (int) get_float(line + i, NULL);
-
-        // asteroid_count should be the highest number asteroid we have encountered
-        if (asteroid_count <= n) asteroid_count = n + 1;
-        asteroid_database[n].number = n;
-
-        // Read asteroid name
-        for (i = 25; (i > 7) && (line[i] > '\0') && (line[i] <= ' '); i--);
-        strncpy(asteroid_database[n].name, line + 7, i - 6);
-        asteroid_database[n].name[i - 6] = '\0';
-
-        // Read absolute magnitude
-        for (i = 42; (line[i] > '\0') && (line[i] <= ' '); i++);
-        asteroid_database[n].absoluteMag = get_float(line + i, NULL);
-
-        // Read slope parameter
-        for (i = 48; (line[i] > '\0') && (line[i] <= ' '); i++);
-        asteroid_database[n].slopeParam_G = get_float(line + i, NULL);
-
-        // Read number of days spanned by data used to derive orbit
-        int day_obs_span;
-        {
-            int j;
-            char buffer[8];
-            snprintf(buffer, 7, "%s", line + 94);
-            for (j = 0; (buffer[j] > '\0') && (buffer[j] <= ' '); j++);
-            day_obs_span = (int) get_float(buffer + j, NULL);
-        }
-
-        // Read number of observations used to derive orbit
-        for (i = 100; (line[i] > '\0') && (line[i] <= ' '); i++);
-        const int obs_count = (int) get_float(line + i, NULL);
-
-        // Orbit deemed secure if more than 10 yrs data
-        asteroid_database[n].secureOrbit = (day_obs_span > 3650) && (obs_count > 500);
-
-        // Count how many objects we've seen with secure orbits
-        if (asteroid_database[n].secureOrbit) asteroid_secure_count++;
-
-        // Now start reading orbital elements of object
-        {
-            for (i = 106; (line[i] > '\0') && (line[i] <= ' '); i++);
-            const double tmp = get_float(line + i, NULL);
-            // julian date
-            asteroid_database[n].epochOsculation = julian_day((int) floor(tmp / 10000), ((int) floor(tmp / 100)) % 100,
-                                                              ((int) floor(tmp)) % 100, 0, 0, 0, &i, temp_err_string);
-        }
-
-        // Read mean anomaly -- radians; J2000.0
-        for (i = 115; (line[i] > '\0') && (line[i] <= ' '); i++);
-        asteroid_database[n].meanAnomaly = get_float(line + i, NULL) * M_PI / 180;
-
-        // Read argument of perihelion -- radians; J2000.0
-        for (i = 126; (line[i] > '\0') && (line[i] <= ' '); i++);
-        asteroid_database[n].argumentPerihelion = get_float(line + i, NULL) * M_PI / 180;
-
-        // Read longitude of ascending node -- radians; J2000.0
-        for (i = 137; (line[i] > '\0') && (line[i] <= ' '); i++);
-        asteroid_database[n].longAscNode = get_float(line + i, NULL) * M_PI / 180;
-
-        // Read inclination of orbit -- radians; J2000.0
-        for (i = 147; (line[i] > '\0') && (line[i] <= ' '); i++);
-        asteroid_database[n].inclination = get_float(line + i, NULL) * M_PI / 180;
-
-        // Read eccentricity of orbit -- dimensionless
-        for (i = 157; (line[i] > '\0') && (line[i] <= ' '); i++);
-        asteroid_database[n].eccentricity = get_float(line + i, NULL);
-
-        // Read semi-major axis of orbit -- AU
-        for (i = 168; (line[i] > '\0') && (line[i] <= ' '); i++);
-        asteroid_database[n].semiMajorAxis = get_float(line + i, NULL);
-    }
-    fclose(input);
-
-    if (DEBUG) {
-        sprintf(temp_err_string, "Asteroid count               = %7d", asteroid_count);
-        ephem_log(temp_err_string);
-    }
-    if (DEBUG) {
-        sprintf(temp_err_string, "Asteroids with secure orbits = %7d", asteroid_secure_count);
-        ephem_log(temp_err_string);
-    }
-
-    // Now that we've parsed the text-based version of this data, dump a binary version to make loading faster next time
-    OrbitalElements_DumpBinaryData("dcfbinary.ast", asteroid_database, &asteroid_database_offset,
-                                   asteroid_count, asteroid_secure_count);
-
-    // Make table indicating that we have loaded all the orbital elements in this table
-    asteroid_database_items_loaded = (unsigned char *) lt_malloc(asteroid_count * sizeof(unsigned char));
-    memset(asteroid_database_items_loaded, 1, asteroid_count);
-
-    // Open a file pointer to the file
-    char filename_with_path[FNAME_LENGTH];
-    snprintf(filename_with_path, FNAME_LENGTH, "%s/../data/%s", SRCDIR, "dcfbinary.ast");
-    asteroid_database_file = fopen(filename_with_path, "rb");
-    snprintf(asteroid_database_filename, FNAME_LENGTH, "%s", filename_with_path);
-}
-
-
-//! orbitalElements_comets_readAsciiData - Read the comet orbital elements contained in the ASCII file downloaded
-//! from the Minor Planet Center's website
-
-void orbitalElements_comets_readAsciiData() {
-    int i;
-    char fname[FNAME_LENGTH];
-    FILE *input = NULL;
-
-    // Try and read data from binary dump. Only proceed with parsing the text files if binary dump doesn't exist.
-    int status = OrbitalElements_ReadBinaryData("dcfbinary.cmt", &comet_database_file, &comet_database_offset,
-                                                &comet_database, &comet_database_items_loaded,
-                                                &comet_count, &comet_secure_count);
-
-    // If successful, return
-    if (status == 0) return;
-
-    // Allocate memory to store asteroid orbital elements, and reset counters of how many objects we have
-    comet_count = 0;
-    comet_secure_count = 0;
-    comet_database = (orbitalElements *) lt_malloc(MAX_COMETS * sizeof(orbitalElements));
-    if (comet_database == NULL) {
-        ephem_fatal(__FILE__, __LINE__, "Malloc fail.");
-        exit(1);
-    }
-
-    // Pre-fill columns with NANs, which is the best value for data we don't populate later
-    for (i = 0; i < MAX_COMETS; i++) {
-        memset(&comet_database[i], 0, sizeof(orbitalElements));
-        comet_database[i].absoluteMag = GSL_NAN;
-        comet_database[i].meanAnomaly = GSL_NAN;
-        comet_database[i].argumentPerihelion = GSL_NAN;
-        comet_database[i].longAscNode = GSL_NAN;
-        comet_database[i].inclination = GSL_NAN;
-        comet_database[i].eccentricity = GSL_NAN;
-        comet_database[i].semiMajorAxis = GSL_NAN;
-        comet_database[i].epochPerihelion = GSL_NAN;
-        comet_database[i].epochOsculation = GSL_NAN;
-        comet_database[i].slopeParam_n = 2;
-        comet_database[i].slopeParam_G = -999;
-        comet_database[i].number = -1;
-        comet_database[i].secureOrbit = 0;
-        comet_database[i].argumentPerihelion_dot = 0;
-        comet_database[i].longAscNode_dot = 0;
-        comet_database[i].inclination_dot = 0;
-        comet_database[i].eccentricity_dot = 0;
-        comet_database[i].semiMajorAxis_dot = 0;
-        strcpy(comet_database[i].name, "Undefined");
-        strcpy(comet_database[i].name2, "Undefined");
-    }
-
-    // Now start reading the orbital elements of comets from Soft00Cmt.txt
-
-    if (DEBUG) {
-        sprintf(temp_err_string, "Beginning to read ASCII comet list.");
-        ephem_log(temp_err_string);
-    }
-    sprintf(fname, "%s/../data/Soft00Cmt.txt", SRCDIR);
-    if (DEBUG) {
-        sprintf(temp_err_string, "Opening file <%s>", fname);
-        ephem_log(temp_err_string);
-    }
-    input = fopen(fname, "rt");
-    if (input == NULL) {
-        ephem_fatal(__FILE__, __LINE__, "Could not open comet data file.");
-        exit(1);
-    }
-
-    // Iterate over Soft00Cmt.txt, line by line
-    while ((!feof(input)) && (!ferror(input))) {
-        char line[FNAME_LENGTH];
-        int j, k;
-        double tmp, perihelion_dist, eccentricity, perihelion_date, epoch, a;
-
-        // Read a line from the input file
-        file_readline(input, line);
-
-        // Ignore blank lines and comment lines
-        if (line[0] == '\0') continue;
-        if (line[0] == '#') continue;
-        if (strlen(line) < 100) continue;
-
-        // Read comet name
-        for (j = 102, k = 0; (line[j] != '(') && (line[j] != '\0') && (k < 23); j++, k++) {
-            comet_database[comet_count].name[k] = line[j];
-        }
-        while ((k > 0) && (comet_database[comet_count].name[--k] == ' '));
-        comet_database[comet_count].name[k + 1] = '\0';
-
-        // Read comet's MPC designation
-        for (j = 0, k = 0; (line[j] > '\0') && (line[j] <= ' '); j++);
-        while ((line[j] > ' ') && (k < 23)) comet_database[comet_count].name2[k++] = line[j++];
-        comet_database[comet_count].name2[k] = '\0';
-
-        // Read perihelion distance
-        perihelion_dist = get_float(line + 31, NULL);
-
-        // Read perihelion date
-        for (j = 14; (line[j] > '\0') && (line[j] <= ' '); j++);
-        const int perihelion_year = (int) get_float(line + j, NULL);
-        for (j = 19; (line[j] > '\0') && (line[j] <= ' '); j++);
-        const int perihelion_month = (int) get_float(line + j, NULL);
-        for (j = 22; (line[j] > '\0') && (line[j] <= ' '); j++);
-        const double perihelion_day = get_float(line + j, NULL);
-
-        // julian date
-        perihelion_date = julian_day(perihelion_year, perihelion_month, (int) floor(perihelion_day),
-                                     ((int) floor(perihelion_day * 24)) % 24,
-                                     ((int) floor(perihelion_day * 24 * 60)) % 60,
-                                     ((int) floor(perihelion_day * 24 * 3600)) % 60,
-                                     &j, temp_err_string);
-
-        // Read eccentricity of orbit
-        for (j = 41; (line[j] > '\0') && (line[j] <= ' '); j++);
-        comet_database[comet_count].eccentricity = eccentricity = get_float(line + j, NULL);
-
-        // Read argument of perihelion, radians, J2000.0
-        for (j = 51; (line[j] > '\0') && (line[j] <= ' '); j++);
-        comet_database[comet_count].argumentPerihelion = get_float(line + j, NULL) * M_PI / 180;
-
-        // Read longitude of ascending node, radians, J2000.0
-        for (j = 61; (line[j] > '\0') && (line[j] <= ' '); j++);
-        comet_database[comet_count].longAscNode = get_float(line + j, NULL) * M_PI / 180;
-
-        // Read orbital inclination, radians, J2000.0
-        for (j = 71; (line[j] > '\0') && (line[j] <= ' '); j++);
-        comet_database[comet_count].inclination = get_float(line + j, NULL) * M_PI / 180;
-
-        // Read epoch of osculation, julian date
-        for (j = 81; (line[j] > '\0') && (line[j] <= ' '); j++);
-        tmp = get_float(line + j, NULL);
-        comet_database[comet_count].epochOsculation = epoch = julian_day((int) floor(tmp / 10000),
-                                                                         ((int) floor(tmp / 100)) % 100,
-                                                                         ((int) floor(tmp)) % 100, 0, 0, 0,
-                                                                         &j,
-                                                                         temp_err_string);
-
-        // Read absolute magnitude
-        for (j = 90; (line[j] > '\0') && (line[j] <= ' '); j++);
-        if (!valid_float(line + j, NULL)) comet_database[comet_count].absoluteMag = GSL_NAN;
-        else comet_database[comet_count].absoluteMag = get_float(line + j, NULL);
-
-        // Read slope parameter
-        for (j = 96; (line[j] > '\0') && (line[j] <= ' '); j++);
-        if (!valid_float(line + j, NULL)) comet_database[comet_count].slopeParam_n = 2;
-        else comet_database[comet_count].slopeParam_n = get_float(line + j, NULL);
-
-        // Calculate derived quantities
-        comet_database[comet_count].secureOrbit = 1;
-        // AU
-        comet_database[comet_count].semiMajorAxis = a = perihelion_dist / (1 - eccentricity);
-        // radians; J2000.0
-        comet_database[comet_count].meanAnomaly = fmod(
-                sqrt(ORBIT_CONST_GM_SOLAR /
-                     gsl_pow_3(fabs(a) * ORBIT_CONST_ASTRONOMICAL_UNIT)) * (epoch - perihelion_date) * 24 * 3600 +
-                100 * M_PI, 2 * M_PI);
-        // julian date
-        comet_database[comet_count].epochPerihelion = perihelion_date;
-
-        // Increment the comet counter
-        comet_count++;
-        comet_secure_count++;
-    }
-    fclose(input);
-
-    if (DEBUG) {
-        sprintf(temp_err_string, "Comet count                  = %7d", comet_count);
-        ephem_log(temp_err_string);
-    }
-    if (DEBUG) {
-        sprintf(temp_err_string, "Comets with secure orbits    = %7d", comet_secure_count);
-        ephem_log(temp_err_string);
-    }
-
-    // Now that we've parsed the text-based version of this data, dump a binary version to make loading faster next time
-    OrbitalElements_DumpBinaryData("dcfbinary.cmt", comet_database, &comet_database_offset,
-                                   comet_count, comet_secure_count);
-
-    // Make table indicating that we have loaded all the orbital elements in this table
-    comet_database_items_loaded = (unsigned char *) lt_malloc(comet_count * sizeof(unsigned char));
-    memset(comet_database_items_loaded, 1, comet_count);
-
-    // Open a file pointer to the file
-    char filename_with_path[FNAME_LENGTH];
-    snprintf(filename_with_path, FNAME_LENGTH, "%s/../data/%s", SRCDIR, "dcfbinary.cmt");
-    comet_database_file = fopen(filename_with_path, "rb");
-    snprintf(comet_database_filename, FNAME_LENGTH, "%s", filename_with_path);
 }
 
 //! orbitalElements_planets_init - Make sure that planet orbital elements are initialised, in thread-safe fashion
@@ -741,66 +1510,20 @@ void orbitalElements_comets_readAsciiData() {
 void orbitalElements_planets_init() {
 #pragma omp critical (planets_init)
     {
-        if (planet_database_file == NULL) orbitalElements_planets_readAsciiData();
+        if (planet_database.binary_data_file == NULL) orbitalElements_readBinaryData(&planet_database);
     }
-}
-
-//! orbitalElements_planets_fetch - Fetch the orbitalElements record for bodyId <index>. If needed, load them from disk.
-//! \param index - The bodyId of the object whose orbital elements are to be loaded
-//! \return - An orbitalElements structure for bodyId
-
-orbitalElements *orbitalElements_planets_fetch(int index) {
-    // Check that request is within allowed range
-    if ((index < 0) || (index > planet_count)) return NULL;
-
-    // If we have already loaded these orbital elements, we can return a pointer immediately
-    if (planet_database_items_loaded[index]) return &planet_database[index];
-
-#pragma omp critical (planets_fetch)
-    {
-        // If not, then read them from disk now
-        long data_position_needed = planet_database_offset + index * sizeof(orbitalElements);
-        fseek(planet_database_file, data_position_needed, SEEK_SET);
-        dcf_fread((void *) &planet_database[index], sizeof(orbitalElements), 1, planet_database_file,
-                  planet_database_filename, __FILE__, __LINE__);
-        planet_database_items_loaded[index] = 1;
-    }
-
-    return &planet_database[index];
 }
 
 //! orbitalElements_asteroids_init - Make sure that asteroid orbital elements are initialised, in thread-safe fashion
 
-void orbitalElements_asteroids_init() {
+void orbitalElements_asteroids_init(const int load_names) {
 #pragma omp critical (asteroids_init)
     {
-        if (asteroid_database_file == NULL) orbitalElements_asteroids_readAsciiData();
+        if (asteroid_database.binary_data_file == NULL) {
+            asteroid_database.match_by_name |= load_names;
+            orbitalElements_readBinaryData(&asteroid_database);
+        }
     }
-}
-
-//! orbitalElements_asteroids_fetch - Fetch the orbitalElements record for bodyId (10000000 + index). If needed, load
-//! them from disk.
-//! \param index - The index of the object whose orbital elements are to be loaded (bodyId = 10000000 + index)
-//! \return - An orbitalElements structure for bodyId
-
-orbitalElements *orbitalElements_asteroids_fetch(int index) {
-    // Check that request is within allowed range
-    if ((index < 0) || (index > asteroid_count)) return NULL;
-
-    // If we have already loaded these orbital elements, we can return a pointer immediately
-    if (asteroid_database_items_loaded[index]) return &asteroid_database[index];
-
-#pragma omp critical (asteroids_fetch)
-    {
-        // If not, then read them from disk now
-        long data_position_needed = asteroid_database_offset + index * sizeof(orbitalElements);
-        fseek(asteroid_database_file, data_position_needed, SEEK_SET);
-        dcf_fread((void *) &asteroid_database[index], sizeof(orbitalElements), 1, asteroid_database_file,
-                  asteroid_database_filename, __FILE__, __LINE__);
-        asteroid_database_items_loaded[index] = 1;
-    }
-
-    return &asteroid_database[index];
 }
 
 //! orbitalElements_comets_init - Make sure that comet orbital elements are initialised, in thread-safe fashion
@@ -808,100 +1531,145 @@ orbitalElements *orbitalElements_asteroids_fetch(int index) {
 void orbitalElements_comets_init() {
 #pragma omp critical (comets_init)
     {
-        if (comet_database_file == NULL) orbitalElements_comets_readAsciiData();
+        if (comet_database.binary_data_file == NULL) orbitalElements_readBinaryData(&comet_database);
     }
 }
 
-//! orbitalElements_comets_fetch - Fetch the orbitalElements record for bodyId (20000000 + index). If needed, load
-//! them from disk.
-//! \param index - The index of the object whose orbital elements are to be loaded (bodyId = 20000000 + index)
-//! \return - An orbitalElements structure for bodyId
+//! orbitalElements_fetch - Fetch the orbitalElements record for bodyId <object_index>. If needed, load them from disk.
+//! \param [in] set_index - Index of the set of orbital elements to read. 0=planets; 1=asteroids; 2=comets.
+//! \param [in] object_index - The index of the object within the set of orbital elements.
+//! \param [in] epoch_requested - The JD for which orbital elements are required.
+//! \param [out] output_1 - The 1st set of orbital elements to be used in linear interpolation.
+//! \param [out] weight_1 - The weighting of the 1st set of orbital elements.
+//! \param [out] output_2 - The 2nd set of orbital elements to be used in linear interpolation.
+//! \param [out] weight_2 - The weighting of the 2nd set of orbital elements.
+//! \return - The number of orbital elements found (0, 1 or 2)
 
-orbitalElements *orbitalElements_comets_fetch(int index) {
-    // Check that request is within allowed range
-    if ((index < 0) || (index > comet_count)) return NULL;
-
-    // If we have already loaded these orbital elements, we can return a pointer immediately
-    if (comet_database_items_loaded[index]) return &comet_database[index];
-
-#pragma omp critical (comets_fetch)
-    {
-        // If not, then read them from disk now
-        long data_position_needed = comet_database_offset + index * sizeof(orbitalElements);
-        fseek(comet_database_file, data_position_needed, SEEK_SET);
-        dcf_fread((void *) &comet_database[index], sizeof(orbitalElements), 1, comet_database_file,
-                  comet_database_filename, __FILE__, __LINE__);
-        comet_database_items_loaded[index] = 1;
+int orbitalElements_fetch(const int set_index, const int object_index, const double epoch_requested,
+                          orbitalElements *output_1, double *weight_1,
+                          orbitalElements *output_2, double *weight_2
+) {
+    // Fetch the set of orbital elements to operate on.
+    orbitalElementSet *set;
+    switch (set_index) {
+        case 0:
+            orbitalElements_planets_init();
+            set = &planet_database;
+            break;
+        case 1:
+            orbitalElements_asteroids_init(0);
+            set = &asteroid_database;
+            break;
+        case 2:
+            orbitalElements_comets_init();
+            set = &comet_database;
+            break;
+        default:
+            ephem_fatal(__FILE__, __LINE__, "Illegal set_index.");
+            exit(1);
     }
 
-    return &comet_database[index];
+    // Check that request is within the allowed range
+    if ((object_index < 0) || (object_index >= set->object_count)) return 0;
+
+    // Create a temporary workspace for cycling through a single object's elements
+    const int buffer_size = set->epoch_max_count;
+    orbitalElements *buffer = (orbitalElements *) malloc(buffer_size * sizeof(orbitalElements));
+    if (buffer == NULL) {
+        ephem_fatal(__FILE__, __LINE__, "Malloc fail.");
+        exit(1);
+    }
+
+    // Fetch all the available elements
+    const int n = orbitalElements_binary_getElements(set, object_index, buffer, buffer_size);
+
+    // Request falls before first epoch_requested
+    if (epoch_requested <= buffer[0].epochOsculation) {
+        // Logging update
+        if (DEBUG) {
+            char msg[LSTR_LENGTH], t_str[FNAME_LENGTH];
+            time_t t = (time_t) unix_from_jd(buffer[0].epochOsculation);
+            sprintf(msg, "%d epochs available. Using first epoch_requested: <%s>.",
+                    n, str_strip(ctime(&t), t_str));
+            ephem_log(msg);
+        }
+
+        // Output orbital elements
+        *output_1 = buffer[0];
+        *weight_1 = 1;
+        *weight_2 = 0;
+
+        // Free temporary workspace
+        free(buffer);
+        return 1;
+    }
+
+    // Request falls after final epoch_requested
+    if (epoch_requested >= buffer[n - 1].epochOsculation) {
+        // Logging update
+        if (DEBUG) {
+            char msg[LSTR_LENGTH], t_str[FNAME_LENGTH];
+            const time_t t = (time_t) unix_from_jd(buffer[n - 1].epochOsculation);
+            sprintf(msg, "%d epochs available. Using last epoch_requested: <%s>.",
+                    n, str_strip(ctime(&t), t_str));
+            ephem_log(msg);
+        }
+
+        // Output orbital elements
+        *output_1 = buffer[n - 1];
+        *weight_1 = 1;
+        *weight_2 = 0;
+
+        // Free temporary workspace
+        free(buffer);
+        return 1;
+    }
+
+    // Interpolate between two epochs
+    int i;
+    for (i = 1; i < n; i++) {
+        if (buffer[i].epochOsculation > epoch_requested) break;
+    }
+
+    // Logging update
+    if (DEBUG) {
+        char msg[LSTR_LENGTH], t0_str[FNAME_LENGTH], t1_str[FNAME_LENGTH];
+        const time_t t0 = (time_t) unix_from_jd(buffer[i - 1].epochOsculation);
+        const time_t t1 = (time_t) unix_from_jd(buffer[i].epochOsculation);
+        sprintf(msg, "%d epochs available. Interpolating between %d and %d. Epochs are: <%s> and <%s>.",
+                n, i - 1, i, str_strip(ctime(&t0), t0_str), str_strip(ctime(&t1), t1_str));
+        ephem_log(msg);
+    }
+
+    // Set weighting parameters for linear interpolation
+    const double t0 = buffer[i - 1].epochOsculation;
+    const double t1 = buffer[i].epochOsculation;
+    const double gap = gsl_max(1e-6, t1 - t0);
+
+    // Output orbital elements
+    *weight_1 = fabs(t1 - epoch_requested) / gap;
+    *output_1 = buffer[i - 1];
+    *weight_2 = fabs(t0 - epoch_requested) / gap;
+    *output_2 = buffer[i];
+
+    // Free temporary workspace
+    free(buffer);
+    return 2;
 }
 
-//! orbitalElements_computeXYZ - Main orbital elements computer. Return 3D position in ICRF, in AU, relative to the
+//! orbitalElements_computeXYZ_fromElements - Main orbital elements computer - solves Kepler's equation to calculate
+//! an object's 3D position using a single set of orbital elements. Return 3D position in ICRF, in AU, relative to the
 //! Sun (not the solar system barycentre!!). z-axis points towards the J2000.0 north celestial pole.
-//! \param [in] body_id - The id number of the object whose position is being queried
+//!
+//! \param [in] orbital_elements - The set of orbital elements to use for the object
 //! \param [in] jd - The Julian day number at which the object's position is wanted; TT
 //! \param [out] x - The x position of the object relative to the Sun (in AU; ICRF; points to RA=0)
 //! \param [out] y - The y position of the object relative to the Sun (in AU; ICRF; points to RA=6h)
 //! \param [out] z - The z position of the object relative to the Sun (in AU; ICRF; points to NCP)
 
-void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, double *z) {
-    orbitalElements *orbital_elements;
-
+void orbitalElements_computeXYZ_fromElements(const orbitalElements *orbital_elements, const double jd,
+                                             double *x, double *y, double *z) {
     double v, r;
-
-    // const double epsilon = (23.4393 - 3.563E-7 * (jd - 2451544.5)) * M_PI / 180;
-
-    // Case 1: Object is a planet
-    if (body_id < 10000000) {
-        // Planets occupy body numbers 1-19
-        const int index = body_id;
-
-        orbitalElements_planets_init();
-
-        // Return NaN if object is not in database
-        if ((planet_database_file == NULL) || (index >= planet_count)) {
-            *x = *y = *z = GSL_NAN;
-            return;
-        }
-
-        // Fetch data from the binary database file
-        orbital_elements = orbitalElements_planets_fetch(index);
-    }
-
-        // Case 2: Object is an asteroid
-    else if (body_id < 20000000) {
-        // Asteroids occupy body numbers 1e7 - 2e7
-        const int index = body_id - 10000000;
-
-        orbitalElements_asteroids_init();
-
-        // Return NaN if object is not in database
-        if ((asteroid_database_file == NULL) || (index >= asteroid_count)) {
-            *x = *y = *z = GSL_NAN;
-            return;
-        }
-
-        // Fetch data from the binary database file
-        orbital_elements = orbitalElements_asteroids_fetch(index);
-    }
-
-        // Case 3: Object is a comet
-    else {
-        // Comets occupy body numbers 2e7 - 3e7
-        const int index = body_id - 20000000;
-
-        orbitalElements_comets_init();
-
-        // Return NaN if object is not in database
-        if ((comet_database_file == NULL) || (index >= comet_count)) {
-            *x = *y = *z = GSL_NAN;
-            return;
-        }
-
-        // Fetch data from the binary database file
-        orbital_elements = orbitalElements_comets_fetch(index);
-    }
 
     // Extract orbital elements from structure
     const double offset_from_epoch = jd - orbital_elements->epochOsculation;
@@ -922,10 +1690,11 @@ void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, do
 
     // When debugging, show intermediate calculation
     if (DEBUG) {
-        sprintf(temp_err_string, "Object ID = %d", body_id);
-        ephem_log(temp_err_string);
-        sprintf(temp_err_string, "JD = %.5f", jd);
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        sprintf(msg, "Object ID = %d", orbital_elements->number);
+        ephem_log(msg);
+        sprintf(msg, "JD = %.5f", jd);
+        ephem_log(msg);
     }
 
     if (e > 1.02) {
@@ -972,16 +1741,17 @@ void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, do
 
         // When debugging, show intermediate calculation
         if (DEBUG) {
-            sprintf(temp_err_string, "E0 = %.10f deg", E0 * 180 / M_PI);
-            ephem_log(temp_err_string);
-            sprintf(temp_err_string, "delta_E = %.10e deg", delta_E * 180 / M_PI);
-            ephem_log(temp_err_string);
-            sprintf(temp_err_string, "xv = %.10f km", xv * ORBIT_CONST_ASTRONOMICAL_UNIT / 1e3);
-            ephem_log(temp_err_string);
-            sprintf(temp_err_string, "yv = %.10f km", yv * ORBIT_CONST_ASTRONOMICAL_UNIT / 1e3);
-            ephem_log(temp_err_string);
-            sprintf(temp_err_string, "j = %d iterations", j);
-            ephem_log(temp_err_string);
+            char msg[LSTR_LENGTH];
+            sprintf(msg, "E0 = %.10f deg", E0 * 180 / M_PI);
+            ephem_log(msg);
+            sprintf(msg, "delta_E = %.10e deg", delta_E * 180 / M_PI);
+            ephem_log(msg);
+            sprintf(msg, "xv = %.10f km", xv * ORBIT_CONST_ASTRONOMICAL_UNIT / 1e3);
+            ephem_log(msg);
+            sprintf(msg, "yv = %.10f km", yv * ORBIT_CONST_ASTRONOMICAL_UNIT / 1e3);
+            ephem_log(msg);
+            sprintf(msg, "j = %d iterations", j);
+            ephem_log(msg);
         }
     } else {
         // Near-parabolic orbit
@@ -1019,25 +1789,138 @@ void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, do
 
     // When debugging, show intermediate calculation
     if (DEBUG) {
-        sprintf(temp_err_string, "a = %.10e km", a * ORBIT_CONST_ASTRONOMICAL_UNIT / 1e3);
-        ephem_log(temp_err_string);
-        sprintf(temp_err_string, "e = %.10f", e);
-        ephem_log(temp_err_string);
-        sprintf(temp_err_string, "N = %.10f deg", N * 180 / M_PI);
-        ephem_log(temp_err_string);
-        sprintf(temp_err_string, "inc = %.10f deg", inc * 180 / M_PI);
-        ephem_log(temp_err_string);
-        sprintf(temp_err_string, "w = %.10f deg", w * 180 / M_PI);
-        ephem_log(temp_err_string);
-        sprintf(temp_err_string, "mean_motion = %.10e deg/sec", mean_motion * 180 / M_PI);
-        ephem_log(temp_err_string);
-        sprintf(temp_err_string, "M = %.10f deg (mean anomaly)", M * 180 / M_PI);
-        ephem_log(temp_err_string);
-        sprintf(temp_err_string, "v = %.10f deg", v * 180 / M_PI);
-        ephem_log(temp_err_string);
-        sprintf(temp_err_string, "r = %.10f km", r * ORBIT_CONST_ASTRONOMICAL_UNIT / 1e3);
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        sprintf(msg, "a = %.10e km", a * ORBIT_CONST_ASTRONOMICAL_UNIT / 1e3);
+        ephem_log(msg);
+        sprintf(msg, "e = %.10f", e);
+        ephem_log(msg);
+        sprintf(msg, "N = %.10f deg", N * 180 / M_PI);
+        ephem_log(msg);
+        sprintf(msg, "inc = %.10f deg", inc * 180 / M_PI);
+        ephem_log(msg);
+        sprintf(msg, "w = %.10f deg", w * 180 / M_PI);
+        ephem_log(msg);
+        sprintf(msg, "mean_motion = %.10e deg/sec", mean_motion * 180 / M_PI);
+        ephem_log(msg);
+        sprintf(msg, "M = %.10f deg (mean anomaly)", M * 180 / M_PI);
+        ephem_log(msg);
+        sprintf(msg, "v = %.10f deg", v * 180 / M_PI);
+        ephem_log(msg);
+        sprintf(msg, "r = %.10f km", r * ORBIT_CONST_ASTRONOMICAL_UNIT / 1e3);
+        ephem_log(msg);
     }
+}
+
+//! orbitalElements_computeXYZ - Main orbital elements computer. Return 3D position in ICRF, in AU, relative to the
+//! Sun (not the solar system barycentre!!). z-axis points towards the J2000.0 north celestial pole.
+//! \param [in] body_id - The id number of the object whose position is being queried
+//! \param [in] jd - The Julian day number at which the object's position is wanted; TT
+//! \param [out] x - The x position of the object relative to the Sun (in AU; ICRF; points to RA=0)
+//! \param [out] y - The y position of the object relative to the Sun (in AU; ICRF; points to RA=6h)
+//! \param [out] z - The z position of the object relative to the Sun (in AU; ICRF; points to NCP)
+
+void orbitalElements_computeXYZ(int body_id, double jd, double *x, double *y, double *z) {
+    orbitalElements orbital_elements_0 = orbitalElements_nullOrbitalElements();
+    orbitalElements orbital_elements_1 = orbitalElements_nullOrbitalElements();
+    double weight_0 = 0;
+    double weight_1 = 0;
+    int element_count = 0;
+
+    // Fetch the orbital elements we are to use
+    if (body_id < ASTEROIDS_OFFSET) {
+        // Case 1: Object is a planet
+        // Planets occupy body numbers 1-19
+        const int index = body_id;
+
+        orbitalElements_planets_init();
+
+        // Return NaN if the object is not in the database
+        if ((planet_database.binary_data_file == NULL) || (index >= planet_database.object_count)) {
+            if (DEBUG) {
+                char buffer[LSTR_LENGTH];
+                sprintf(buffer, "Unrecognised planet index <%d>", index);
+                ephem_log(buffer);
+            }
+            *x = *y = *z = GSL_NAN;
+            return;
+        }
+
+        // Fetch data from the binary database file
+        element_count = orbitalElements_fetch(
+                0, index, jd,
+                &orbital_elements_0, &weight_0, &orbital_elements_1, &weight_1);
+    } else if (body_id < COMETS_OFFSET) {
+        // Case 2: Object is an asteroid
+        // Asteroids occupy body numbers 1e7 - 2e7
+        const int index = body_id - ASTEROIDS_OFFSET;
+
+        orbitalElements_asteroids_init(0);
+
+        // Return NaN if the object is not in the database
+        if ((asteroid_database.binary_data_file == NULL) || (index >= asteroid_database.object_count)) {
+            if (DEBUG) {
+                char buffer[LSTR_LENGTH];
+                sprintf(buffer, "Unrecognised asteroid index <%d>", index);
+                ephem_log(buffer);
+            }
+            *x = *y = *z = GSL_NAN;
+            return;
+        }
+
+        // Fetch data from the binary database file
+        element_count = orbitalElements_fetch(
+                1, index, jd,
+                &orbital_elements_0, &weight_0, &orbital_elements_1, &weight_1);
+    } else {
+        // Case 3: Object is a comet
+        // Comets occupy body numbers 2e7 - 3e7
+        const int index = body_id - COMETS_OFFSET;
+
+        orbitalElements_comets_init();
+
+        // Return NaN if the object is not in the database
+        if ((comet_database.binary_data_file == NULL) || (index >= comet_database.object_count)) {
+            if (DEBUG) {
+                char buffer[LSTR_LENGTH];
+                sprintf(buffer, "Unrecognised comet index <%d>", index);
+                ephem_log(buffer);
+            }
+            *x = *y = *z = GSL_NAN;
+            return;
+        }
+
+        // Fetch data from the binary database file
+        element_count = orbitalElements_fetch(
+                2, index, jd,
+                &orbital_elements_0, &weight_0, &orbital_elements_1, &weight_1);
+    }
+
+    // If we didn't get any orbital elements, abort now
+    if (element_count < 1) {
+        if (DEBUG) {
+            char buffer[LSTR_LENGTH];
+            sprintf(buffer, "No orbital elements returned for object <%d>", body_id);
+            ephem_log(buffer);
+        }
+        *x = *y = *z = GSL_NAN;
+        return;
+    }
+
+    // If we only have one set of orbital elements, pass these to the Kepler equation solver
+    if (element_count == 1) {
+        orbitalElements_computeXYZ_fromElements(&orbital_elements_0, jd, x, y, z);
+        return;
+    }
+
+    // If we are doing linear interpolation, do that now
+    double x0, y0, z0;
+    double x1, y1, z1;
+    orbitalElements_computeXYZ_fromElements(&orbital_elements_0, jd, &x0, &y0, &z0);
+    orbitalElements_computeXYZ_fromElements(&orbital_elements_1, jd, &x1, &y1, &z1);
+
+    *x = weight_0 * x0 + weight_1 * x1;
+    *y = weight_0 * y0 + weight_1 * y1;
+    *z = weight_0 * z0 + weight_1 * z1;
 }
 
 //! orbitalElements_computeEphemeris - Main entry point for estimating the position, brightness, etc of an object at
@@ -1134,7 +2017,7 @@ void orbitalElements_computeEphemeris(int bodyId, const double jd, double *x, do
         // Calculate light travel time
         const double distance = gsl_hypot3(sun_pos_x - earth_pos_x,
                                            sun_pos_y - earth_pos_y,
-                                           sun_pos_z - earth_pos_z);  // AU
+                                           sun_pos_z - earth_pos_z); // AU
         const double light_travel_time = distance * ORBIT_CONST_ASTRONOMICAL_UNIT / ORBIT_CONST_SPEED_OF_LIGHT;
 
         // Look up position of requested object at the time the light left the object
@@ -1178,7 +2061,7 @@ void orbitalElements_computeEphemeris(int bodyId, const double jd, double *x, do
         // Calculate light travel time
         const double distance = gsl_hypot3(x_barycentric_0 - earth_pos_x,
                                            y_barycentric_0 - earth_pos_y,
-                                           z_barycentric_0 - earth_pos_z);  // AU
+                                           z_barycentric_0 - earth_pos_z); // AU
         const double light_travel_time = distance * ORBIT_CONST_ASTRONOMICAL_UNIT / ORBIT_CONST_SPEED_OF_LIGHT;
 
         // Look up position of requested object at the time the light left the object
@@ -1240,4 +2123,97 @@ void orbitalElements_computeEphemeris(int bodyId, const double jd, double *x, do
                       albedo, sunDist, earthDist, sunAngDist, theta_eso, eclipticLongitude, eclipticLatitude,
                       eclipticDistance, ra_dec_epoch, jd,
                       do_topocentric_correction, topocentric_latitude, topocentric_longitude);
+}
+
+void orbitalElements_shutdown() {
+    if (planet_database.object_names != NULL) free(planet_database.object_names);
+    if (asteroid_database.object_names != NULL) free(asteroid_database.object_names);
+    if (comet_database.object_names != NULL) free(comet_database.object_names);
+
+    if (planet_database.binary_file_cache != NULL) free(planet_database.binary_file_cache);
+    if (asteroid_database.binary_file_cache != NULL) free(asteroid_database.binary_file_cache);
+    if (comet_database.binary_file_cache != NULL) free(comet_database.binary_file_cache);
+
+    if (planet_database.binary_data_file != NULL) fclose(planet_database.binary_data_file);
+    if (asteroid_database.binary_data_file != NULL) fclose(asteroid_database.binary_data_file);
+    if (comet_database.binary_data_file != NULL) fclose(comet_database.binary_data_file);
+
+    planet_database.object_names = NULL;
+    asteroid_database.object_names = NULL;
+    comet_database.object_names = NULL;
+
+    planet_database.binary_file_cache = NULL;
+    asteroid_database.binary_file_cache = NULL;
+    comet_database.binary_file_cache = NULL;
+
+    planet_database.binary_data_file = NULL;
+    asteroid_database.binary_data_file = NULL;
+    comet_database.binary_data_file = NULL;
+
+    planet_database.ready = 0;
+    asteroid_database.ready = 0;
+    comet_database.ready = 0;
+}
+
+//! orbitalElements_searchByEphemerisName - Search for an object's integer bodyId from its name
+//! @param name [in] - The name of the object to search for
+//! @return - The bodyId of the matching object, or -1 for no match
+
+int orbitalElements_searchBodyIdByObjectName(const char *name_in) {
+    char name[FNAME_LENGTH];
+
+    // Convert the name into stripped lowercase
+    strncpy(name, name_in, FNAME_LENGTH);
+    name[FNAME_LENGTH - 1] = '\0';
+    str_strip(name, name);
+    str_lower(name, name);
+
+    // Match planets
+    if ((strcmp(name, "mercury") == 0) || (strcmp(name, "pmercury") == 0) || (strcmp(name, "p1") == 0))
+        return 0;
+    if ((strcmp(name, "venus") == 0) || (strcmp(name, "pvenus") == 0) || (strcmp(name, "p2") == 0))
+        return 1;
+    if ((strcmp(name, "earth") == 0) || (strcmp(name, "pearth") == 0) || (strcmp(name, "p3") == 0))
+        return 19;
+    if ((strcmp(name, "mars") == 0) || (strcmp(name, "pmars") == 0) || (strcmp(name, "p4") == 0))
+        return 3;
+    if ((strcmp(name, "jupiter") == 0) || (strcmp(name, "pjupiter") == 0) || (strcmp(name, "p5") == 0))
+        return 4;
+    if ((strcmp(name, "saturn") == 0) || (strcmp(name, "psaturn") == 0) || (strcmp(name, "p6") == 0))
+        return 5;
+    if ((strcmp(name, "uranus") == 0) || (strcmp(name, "puranus") == 0) || (strcmp(name, "p7") == 0))
+        return 6;
+    if ((strcmp(name, "neptune") == 0) || (strcmp(name, "pneptune") == 0) || (strcmp(name, "p8") == 0))
+        return 7;
+    if ((strcmp(name, "pluto") == 0) || (strcmp(name, "ppluto") == 0) || (strcmp(name, "p9") == 0))
+        return 8;
+    if ((strcmp(name, "moon") == 0) || (strcmp(name, "pmoon") == 0) || (strcmp(name, "p301") == 0))
+        return 9;
+    if (strcmp(name, "sun") == 0)
+        return 10;
+    if (((name[0] == 'a') || (name[0] == 'A')) && valid_float(name + 1, NULL)) {
+        // Asteroid, e.g. A1
+        return ASTEROIDS_OFFSET + (int) get_float(name + 1, NULL);
+    }
+    if (((name[0] == 'c') || (name[0] == 'C')) && valid_float(name + 1, NULL)) {
+        // Comet, e.g. C1 (first in datafile)
+        return COMETS_OFFSET + (int) get_float(name + 1, NULL);
+    }
+
+    // Search for comets with matching names
+
+    // Open comet database
+    orbitalElements_comets_init();
+    if (!comet_database.match_by_name) return -1;
+
+    // Loop over comets seeing if names match
+    for (int object_index = 0; object_index < comet_database.object_count; object_index++) {
+        if ((str_cmp_no_case(name, comet_database.object_names[object_index].name) == 0) ||
+            (str_cmp_no_case(name, comet_database.object_names[object_index].name2) == 0)) {
+            return COMETS_OFFSET + object_index;
+        }
+    }
+
+    // No match was found
+    return -1;
 }

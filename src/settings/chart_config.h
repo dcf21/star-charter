@@ -102,9 +102,9 @@
 //! Maximum allowed iteration depth when including configuration files
 #define MAX_INCLUSION_DEPTH 8
 
-//! Define an RGB colour to use to draw a particular item on a chart
+//! Define an RGBA colour to use to draw a particular item on a chart
 typedef struct colour {
-    double red, grn, blu;
+    double red, grn, blu, alpha;
 } colour;
 
 //! A structure defining a point in an ephemeris
@@ -578,6 +578,9 @@ typedef struct chart_config {
     //! Colour to use when drawing grid of RA/Dec lines
     colour grid_col;
 
+    //! Colour to use for the edge of the star chart
+    colour chart_edge_line_col;
+
     //! Colour to use when drawing constellation boundaries
     colour constellation_boundary_col;
 
@@ -589,6 +592,9 @@ typedef struct chart_config {
 
     //! The number of colours in the custom sequence used for drawing ephemerides for solar system objects.
     int ephemeris_col_custom_count;
+
+    //! Line width to use when drawing ephemeris arrows for solar system objects.
+    double ephemeris_arrow_line_width;
 
     //! Colours to use when drawing ephemeris arrows for solar system objects. These colours are used in a cyclic loop.
     colour ephemeris_arrow_col[N_TRACES_MAX];

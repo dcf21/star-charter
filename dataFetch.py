@@ -26,6 +26,7 @@ Automatically download all the required data files from the internet.
 """
 
 import argparse
+import glob
 import os
 import sys
 import logging
@@ -142,16 +143,16 @@ def fetch_required_files(refresh: bool) -> None:
         },
 
         # Definitions of constellation boundaries
-#       {
-#           'url': 'https://cdsarc.u-strasbg.fr/ftp/VI/49/bound_20.dat.gz',
-#           'destination': 'data/constellations/downloads/boundaries.dat',
-#           'force_refresh': refresh
-#       },
-#       {
-#           'url': 'https://cdsarc.u-strasbg.fr/ftp/VI/49/ReadMe',
-#           'destination': 'data/constellations/downloads/ReadMe',
-#           'force_refresh': refresh
-#       },
+        #       {
+        #           'url': 'https://cdsarc.u-strasbg.fr/ftp/VI/49/bound_20.dat.gz',
+        #           'destination': 'data/constellations/downloads/boundaries.dat',
+        #           'force_refresh': refresh
+        #       },
+        #       {
+        #           'url': 'https://cdsarc.u-strasbg.fr/ftp/VI/49/ReadMe',
+        #           'destination': 'data/constellations/downloads/ReadMe',
+        #           'force_refresh': refresh
+        #       },
 
         # Yale Bright Star Catalog (copy for use in making constellation stick figures)
         {
@@ -270,6 +271,29 @@ def fetch_required_files(refresh: bool) -> None:
                    destination=required_file['destination'],
                    force_refresh=required_file['force_refresh']
                    )
+
+    # Create a list of all the files containing orbital elements for planets
+    planet_elements: List[str] = glob.glob("data/planets*.dat")
+    with open("data/list_planet_files.txt", "wt") as f_out:
+        f_out.write("# List of files containing orbital elements for planets\n")
+        for item in sorted(planet_elements):
+            f_out.write("{}\n".format(os.path.abspath(item)))
+
+    # Create a list of all the files containing orbital elements for planets
+    asteroid_elements: List[str] = (["data/astorb.dat"] +
+                                    glob.glob(os.path.expanduser("~/astorb_archive/astorb_*.dat")))
+    with open("data/list_astorb_files.txt", "wt") as f_out:
+        f_out.write("# List of files containing orbital elements for asteroids\n")
+        for item in sorted(asteroid_elements):
+            f_out.write("{}\n".format(os.path.abspath(item)))
+
+    # Create a list of all the files containing orbital elements for planets
+    comet_elements: List[str] = (["data/Soft00Cmt.txt"] +
+                                 glob.glob(os.path.expanduser("~/astorb_archive/Soft00Cmt_*.dat*")))
+    with open("data/list_comet_files.txt", "wt") as f_out:
+        f_out.write("# List of files containing orbital elements for comets\n")
+        for item in sorted(comet_elements):
+            f_out.write("{}\n".format(os.path.abspath(item)))
 
 
 if __name__ == "__main__":

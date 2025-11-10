@@ -59,14 +59,15 @@ void plot_zenith(chart_config *s, cairo_page *page) {
     // Draw zenith marker
     double x_canvas, y_canvas;
     fetch_canvas_coordinates(&x_canvas, &y_canvas, x, y, s);
-    cairo_set_source_rgb(s->cairo_draw, s->horizon_zenith_colour.red,
-                         s->horizon_zenith_colour.grn, s->horizon_zenith_colour.blu);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->horizon_zenith_colour.red, s->horizon_zenith_colour.grn, s->horizon_zenith_colour.blu,
+                          s->horizon_zenith_colour.alpha);
 
     // Draw cross
     const double marker_size = 0.1 * s->horizon_zenith_marker_size * s->dpi;
-    const double marker_line_width = 1.3;
+    const double marker_line_width = 1.5;
 
-    cairo_set_line_width(s->cairo_draw, marker_line_width);
+    cairo_set_line_width(s->cairo_draw, marker_line_width * s->line_width_base);
     cairo_new_path(s->cairo_draw);
     cairo_move_to(s->cairo_draw, x_canvas - marker_size, y_canvas);
     cairo_line_to(s->cairo_draw, x_canvas + marker_size, y_canvas);
@@ -104,14 +105,15 @@ void plot_celestial_poles(chart_config *s, cairo_page *page) {
         // Draw pole marker
         double x_canvas, y_canvas;
         fetch_canvas_coordinates(&x_canvas, &y_canvas, x, y, s);
-        cairo_set_source_rgb(s->cairo_draw, s->horizon_zenith_colour.red,
-                             s->horizon_zenith_colour.grn, s->horizon_zenith_colour.blu);
+        cairo_set_source_rgba(s->cairo_draw,
+                              s->horizon_zenith_colour.red, s->horizon_zenith_colour.grn, s->horizon_zenith_colour.blu,
+                              s->horizon_zenith_colour.alpha);
 
         // Draw cross
         const double marker_size = 0.1 * s->horizon_zenith_marker_size * s->dpi;
-        const double marker_line_width = 1.3;
+        const double marker_line_width = 1.5;
 
-        cairo_set_line_width(s->cairo_draw, marker_line_width);
+        cairo_set_line_width(s->cairo_draw, marker_line_width * s->line_width_base);
         cairo_new_path(s->cairo_draw);
         cairo_move_to(s->cairo_draw, x_canvas - marker_size, y_canvas);
         cairo_line_to(s->cairo_draw, x_canvas + marker_size, y_canvas);

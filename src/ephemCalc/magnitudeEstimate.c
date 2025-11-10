@@ -22,14 +22,12 @@
 #define MAGNITUDEESTIMATE_C 1
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
 
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_const_mksa.h>
 
 #include "coreUtils/errorReport.h"
-#include "listTools/ltMemory.h"
 #include "mathsTools/julianDate.h"
 #include "mathsTools/sphericalTrig.h"
 
@@ -52,8 +50,8 @@ void magnitudeEstimate_init() {
     int i;
 
     // Allocate an array to store the sizes and albedos of the planets
-    albedo_array = (double *) lt_malloc(MAX_BODYID * sizeof(double));
-    phy_size_array = (double *) lt_malloc(MAX_BODYID * sizeof(double));
+    albedo_array = (double *) malloc(MAX_BODYID * sizeof(double));
+    phy_size_array = (double *) malloc(MAX_BODYID * sizeof(double));
     if ((albedo_array == NULL) || (phy_size_array == NULL)) {
         ephem_fatal(__FILE__, __LINE__, "Malloc fail.");
         exit(1);
@@ -106,6 +104,13 @@ void magnitudeEstimate_init() {
     // Sun
     phy_size_array[10] = 1.392e9 / 2;
     albedo_array[10] = 1;
+}
+
+//! magnitudeEstimate_shutdown - Free malloced memory within this module
+
+void magnitudeEstimate_shutdown() {
+    if (albedo_array != NULL) free(albedo_array);
+    if (phy_size_array != NULL) free(phy_size_array);
 }
 
 //! magnitudeEstimate
@@ -187,7 +192,7 @@ void magnitudeEstimate(const int body_id,
     *phase = (1 + cos(theta)) / 2;
 
     // For comets, we always assume full phase when calculating magnitudes
-    if (body_id >= 2e7) *phase = 1;
+    if (body_id >= COMETS_OFFSET) *phase = 1;
 
     // Body is a planet, the Moon or Sun
     if (body_id < MAX_BODYID) {
@@ -232,42 +237,42 @@ void magnitudeEstimate(const int body_id,
             // For all other objects, we use the absolute magnitude of Sun (4.83) plus distance modulus
             *mag = 4.83 + 5 * log10(Dso * Deo / Ro / sqrt(albedo) / sqrt(*phase) / 2062650.);
         }
-    }
-
+    } else if (body_id >= ASTEROIDS_OFFSET) {
         // Routine for estimating the magnitudes of asteroids and comets
-    else if (body_id >= 1e7) {
-        orbitalElements *item;
+        orbitalElements orbital_elements_0 = orbitalElements_nullOrbitalElements();
+        orbitalElements orbital_elements_1 = orbitalElements_nullOrbitalElements();
+        double weight_0 = 0;
+        double weight_1 = 0;
         int fail = 0;
         albedo = GSL_NAN;
         Ro = GSL_NAN;
 
-        if (body_id < 2e7) {
-            // Asteroid
-
-            // Open asteroid database
-            orbitalElements_asteroids_init();
-
-            // Fetch asteroid's record
-            item = orbitalElements_asteroids_fetch(body_id - 10000000);
-            if (item == NULL) fail = 1;
+        if (body_id < COMETS_OFFSET) {
+            // Fetch asteroid record
+            const int object_index = body_id - ASTEROIDS_OFFSET;
+            const int item_count = orbitalElements_fetch(
+                    1, object_index, julian_date,
+                    &orbital_elements_0, &weight_0, &orbital_elements_1, &weight_1);
+            if (item_count < 1) fail = 1;
         } else {
-            // Comet
-
-            // Open comet database
-            orbitalElements_comets_init();
-
-            // Fetch comet's record
-            item = orbitalElements_comets_fetch(body_id - 20000000);
-            if (item == NULL) fail = 1;
+            // Fetch comet record
+            const int object_index = body_id - COMETS_OFFSET;
+            const int item_count = orbitalElements_fetch(
+                    2, object_index, julian_date,
+                    &orbital_elements_0, &weight_0, &orbital_elements_1, &weight_1);
+            if (item_count < 1) fail = 1;
         }
+
+        // Use the set of orbital elements with the greatest weight.
+        orbitalElements *best_elements = (weight_0 > 0) ? (&orbital_elements_0) : (&orbital_elements_1);
 
         if (!fail) {
             // Absolute magnitude of asteroid is expressed at 1 AU
-            *mag = item->absoluteMag + 5 * log10(Deo) +
-                   2.5 * item->slopeParam_n * log10(Dso);
+            *mag = best_elements->absoluteMag + 5 * log10(Deo) +
+                   2.5 * best_elements->slopeParam_n * log10(Dso);
 
-            if (item->slopeParam_G > -100) {
-                const double G = item->slopeParam_G; // See page 231 of Meeus
+            if (best_elements->slopeParam_G > -100) {
+                const double G = best_elements->slopeParam_G; // See page 231 of Meeus
                 const double phi_1 = exp(-3.33 * pow(tan(theta / 2), 0.63));
                 const double phi_2 = exp(-1.87 * pow(tan(theta / 2), 1.22));
                 *mag -= 2.5 * log10((1 - G) * phi_1 + G * phi_2);
@@ -303,7 +308,6 @@ void magnitudeEstimate(const int body_id,
 
     // The Sun is a special case...
     if (body_id == 10) {
-
         *phase = 1;
         *mag = 4.83 + 5 * log10(Deo / 2062650.);
     }

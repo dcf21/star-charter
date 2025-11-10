@@ -230,15 +230,15 @@ static star_definition read_star_definition_from_ascii(const char *line) {
     scan = next_word(scan);
     sd.distance = get_float(scan, NULL);
     scan = next_word(scan);
-    strcpy(sd.name1, copy_name(scan)); // Bayer letter
+    snprintf(sd.name1, sizeof(sd.name1), "%s", copy_name(scan)); // Bayer letter
     scan = next_word(scan);
-    strcpy(sd.name2, copy_name(scan)); // Full Bayer designation
+    snprintf(sd.name2, sizeof(sd.name2), "%s", copy_name(scan)); // Full Bayer designation
     scan = next_word(scan);
-    strcpy(sd.name3, copy_name(scan)); // Name of star
+    snprintf(sd.name3, sizeof(sd.name3), "%s", copy_name(scan)); // Name of star
     scan = next_word(scan);
-    strcpy(sd.name4, copy_name(scan)); // Catalogue designation of star
+    snprintf(sd.name4, sizeof(sd.name4), "%s", copy_name(scan)); // Catalogue designation of star
     scan = next_word(scan);
-    strcpy(sd.name5, copy_name(scan)); // Flamsteed number
+    snprintf(sd.name5, sizeof(sd.name5), "%s", copy_name(scan)); // Flamsteed number
 
     return sd;
 }
@@ -301,7 +301,7 @@ void star_list_to_binary() {
         // Loop over the lines of the text-based input star catalogue
         while ((!feof(in)) && (!ferror(in))) {
             char line[FNAME_LENGTH];
-            file_readline(in, line);
+            file_readline(in, line, sizeof line);
 
             // Read star's information from ASCII text
             star_definition sd = read_star_definition_from_ascii(line);
@@ -354,7 +354,7 @@ void star_list_to_binary() {
         // Loop over the lines of the text-based input star catalogue
         while ((!feof(in)) && (!ferror(in))) {
             char line[FNAME_LENGTH];
-            file_readline(in, line);
+            file_readline(in, line, sizeof line);
 
             // Read star's information from ASCII text
             star_definition sd = read_star_definition_from_ascii(line);

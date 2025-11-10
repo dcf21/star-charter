@@ -317,7 +317,9 @@ void chart_edge_line_path(chart_config *s) {
 
 void draw_chart_edge_line(chart_config *s) {
     // Draw outline of chart
-    cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->chart_edge_line_col.red, s->chart_edge_line_col.grn, s->chart_edge_line_col.blu,
+                          s->chart_edge_line_col.alpha);
     cairo_set_line_width(s->cairo_draw, s->chart_edge_line_width * s->line_width_base);
     cairo_new_path(s->cairo_draw);
     chart_edge_line_path(s);
@@ -355,7 +357,7 @@ void draw_chart_edging(cairo_page *p, chart_config *s) {
         if ((s->projection == SW_PROJECTION_ALTAZ) && (s->cardinals)) {
             const double dh = 1.05, dv = 1.08;
             const double a = s->position_angle * M_PI / 180;
-            const colour black = (colour) {0, 0, 0};
+            const colour black = (colour) {0, 0, 0, 1};
             chart_label(p, s, black, "N",
                         &(label_position)
                                 {-dh * sin(a), -dv * cos(a), 0, 0, 0, 0, -1},
@@ -722,7 +724,9 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
         // If <make_background> is set, we smear the background around the label with a dark colour
         if (make_background && s->plot_galaxy_map) {
             const double offset = 0.2 * s->mm;
-            cairo_set_source_rgb(s->cairo_draw, s->galaxy_col0.red, s->galaxy_col0.grn, s->galaxy_col0.blu);
+            cairo_set_source_rgba(s->cairo_draw,
+                                  s->galaxy_col0.red, s->galaxy_col0.grn, s->galaxy_col0.blu,
+                                  s->galaxy_col0.alpha);
             for (double theta = 0; theta < 359.; theta += 30.) {
                 cairo_move_to(s->cairo_draw,
                               x_alignment_offset + offset * sin(theta * M_PI / 180),
@@ -732,7 +736,7 @@ int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label
         }
 
         // Render the text label itself
-        cairo_set_source_rgb(s->cairo_draw, colour.red, colour.grn, colour.blu);
+        cairo_set_source_rgba(s->cairo_draw, colour.red, colour.grn, colour.blu, colour.alpha);
         cairo_move_to(s->cairo_draw, x_alignment_offset, y_alignment_offset);
         cairo_show_text(s->cairo_draw, label);
 

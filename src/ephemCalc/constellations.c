@@ -134,7 +134,7 @@ void constellations_init() {
     // Loop over lines of constellation boundary data
     while ((!feof(file)) && (!ferror(file))) {
         double ra, dec;
-        file_readline(file, line);
+        file_readline(file, line, sizeof line);
         if ((line[0] == '#') || (strlen(line) < 28)) continue; // Comment line
         scan = line + 0;
         while ((scan[0] > '\0') && (scan[0] <= ' ')) scan++;
@@ -191,7 +191,7 @@ void constellations_init() {
 
         // Lines take the form:
         // short_name  long_name
-        file_readline(file, line);
+        file_readline(file, line, sizeof line);
         if ((line[0] == '#') || (strlen(line) < 4)) continue; // Comment line
 
         // Read short name

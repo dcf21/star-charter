@@ -24,6 +24,7 @@
 
 // Minimise the amount of code modification between StarCharter and EphemerisCompute
 #define ephem_log stch_log
+#define ephem_warning stch_warning
 #define ephem_fatal stch_fatal
 
 #endif

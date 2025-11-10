@@ -156,6 +156,7 @@ void plot_arrow_annotations(chart_config *s) {
         label_colour.grn = get_float(buffer, NULL);
         str_comma_separated_list_scan(&in_scan, buffer);
         label_colour.blu = get_float(buffer, NULL);
+        label_colour.alpha = 1;
 
         // Line width
         str_comma_separated_list_scan(&in_scan, buffer);
@@ -173,8 +174,8 @@ void plot_arrow_annotations(chart_config *s) {
 
         // Draw arrow
         cairo_set_line_width(s->cairo_draw, line_width * s->line_width_base);
-        cairo_set_source_rgb(s->cairo_draw,
-                             label_colour.red, label_colour.grn, label_colour.blu);
+        cairo_set_source_rgba(s->cairo_draw,
+                              label_colour.red, label_colour.grn, label_colour.blu, label_colour.alpha);
         draw_arrow(s, line_width, head_0, head_1, x_cairo_0, y_cairo_0, x_cairo_1, y_cairo_1);
     }
 }
@@ -245,6 +246,7 @@ void plot_text_annotations(chart_config *s, cairo_page *page) {
         label_colour.grn = get_float(buffer, NULL);
         str_comma_separated_list_scan(&in_scan, buffer);
         label_colour.blu = get_float(buffer, NULL);
+        label_colour.alpha = 1;
 
         // Read label text
         const char *label_text = in_scan;

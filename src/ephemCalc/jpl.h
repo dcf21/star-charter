@@ -30,4 +30,6 @@ void jpl_computeEphemeris(int bodyId, double jd, double *x, double *y, double *z
                           double *eclipticLatitude, double *eclipticDistance, double ra_dec_epoch,
                           int do_topocentric_correction, double topocentric_latitude, double topocentric_longitude);
 
+void jpl_shutdown();
+
 #endif

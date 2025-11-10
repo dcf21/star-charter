@@ -41,75 +41,6 @@
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
 
-//! convert_body_name_to_int_id - Convert a string name for an object into an integer ID we can pass to ephemCalc
-//! \param object_name - String name for a solar system body
-//! \return Integer ID
-
-int convert_body_name_to_int_id(const char *object_name) {
-    char name[FNAME_LENGTH];
-    int output_body_id = -1;
-
-    // Convert the name of the requested objects into numeric object IDs
-    strncpy(name, object_name, FNAME_LENGTH);
-    name[FNAME_LENGTH - 1] = '\0';
-    str_strip(name, name);
-    str_lower(name, name);
-    if ((strcmp(name, "mercury") == 0) || (strcmp(name, "pmercury") == 0) || (strcmp(name, "p1") == 0))
-        output_body_id = 0;
-    else if ((strcmp(name, "venus") == 0) || (strcmp(name, "pvenus") == 0) || (strcmp(name, "p2") == 0))
-        output_body_id = 1;
-    else if ((strcmp(name, "earth") == 0) || (strcmp(name, "pearth") == 0) || (strcmp(name, "p3") == 0))
-        output_body_id = 19;
-    else if ((strcmp(name, "mars") == 0) || (strcmp(name, "pmars") == 0) || (strcmp(name, "p4") == 0))
-        output_body_id = 3;
-    else if ((strcmp(name, "jupiter") == 0) || (strcmp(name, "pjupiter") == 0) || (strcmp(name, "p5") == 0))
-        output_body_id = 4;
-    else if ((strcmp(name, "saturn") == 0) || (strcmp(name, "psaturn") == 0) || (strcmp(name, "p6") == 0))
-        output_body_id = 5;
-    else if ((strcmp(name, "uranus") == 0) || (strcmp(name, "puranus") == 0) || (strcmp(name, "p7") == 0))
-        output_body_id = 6;
-    else if ((strcmp(name, "neptune") == 0) || (strcmp(name, "pneptune") == 0) || (strcmp(name, "p8") == 0))
-        output_body_id = 7;
-    else if ((strcmp(name, "pluto") == 0) || (strcmp(name, "ppluto") == 0) || (strcmp(name, "p9") == 0))
-        output_body_id = 8;
-    else if ((strcmp(name, "moon") == 0) || (strcmp(name, "pmoon") == 0) || (strcmp(name, "p301") == 0))
-        output_body_id = 9;
-    else if (strcmp(name, "sun") == 0)
-        output_body_id = 10;
-    else if (((name[0] == 'a') || (name[0] == 'A')) && valid_float(name + 1, NULL)) {
-        // Asteroid, e.g. A1
-        output_body_id = 10000000 + (int) get_float(name + 1, NULL);
-    } else if (((name[0] == 'c') || (name[0] == 'C')) && valid_float(name + 1, NULL)) {
-        // Comet, e.g. C1 (first in datafile)
-        output_body_id = 20000000 + (int) get_float(name + 1, NULL);
-    } else {
-        // Search for comets with matching names
-
-        // Open comet database
-        orbitalElements_comets_init();
-
-        // Loop over comets seeing if names match
-        int index;
-        for (index = 0; index < comet_count; index++) {
-            // Fetch comet information
-            orbitalElements *item = orbitalElements_comets_fetch(index);
-
-            if ((str_cmp_no_case(name, item->name) == 0) || (str_cmp_no_case(name, item->name2) == 0)) {
-                output_body_id = 20000000 + index;
-                break;
-            }
-        }
-    }
-
-    if (output_body_id < 0) {
-        snprintf(temp_err_string, FNAME_LENGTH, "Unrecognised object name <%s>", name);
-        stch_fatal(__FILE__, __LINE__, temp_err_string);
-        exit(1);
-    }
-
-    return output_body_id;
-}
-
 //! ephemerides_fetch - Fetch the ephemeris data for solar system objects to be plotted on a star chart
 //! \param [out] ephemeris_data_out - Output data structure to contain ephemeris data.
 //! \param [in] ephemeris_count - The number of ephemeris tracks to compute
@@ -148,8 +79,16 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
         // Read object name into <object_id>
         str_comma_separated_list_scan(&in_scan, object_id);
         snprintf((*ephemeris_data_out)[i].obj_id, FNAME_LENGTH, "%s", object_id);
-        const int body_id = convert_body_name_to_int_id(object_id);
-        (*ephemeris_data_out)[i].is_comet = (body_id >= 2e7);
+        const int body_id = orbitalElements_searchBodyIdByObjectName(object_id);
+        (*ephemeris_data_out)[i].is_comet = (body_id >= COMETS_OFFSET);
+
+        // Check that object name was recognised
+        if (body_id < 0) {
+            char msg[LSTR_LENGTH];
+            snprintf(msg, FNAME_LENGTH, "Unrecognised object name <%s>", object_id);
+            stch_fatal(__FILE__, __LINE__, msg);
+            exit(1);
+        }
 
         // Read starting Julian day number into (*ephemeris_data_out)[i].jd_start
         str_comma_separated_list_scan(&in_scan, buffer);
@@ -1046,7 +985,8 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
 
         // Set line colour
         ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
-        cairo_set_source_rgb(s->cairo_draw, colour_final.red, colour_final.grn, colour_final.blu);
+        cairo_set_source_rgba(s->cairo_draw,
+                              colour_final.red, colour_final.grn, colour_final.blu, colour_final.alpha);
         ld_label(ld, NULL, 1, 1);
 
         // Loop over the points in the ephemeris, and draw a line across the star chart
@@ -1135,7 +1075,7 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
 
     // Overlay an arrow, if requested
     if (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE_WITH_ARROW) {
-        const double line_width = 3.5;
+        const double line_width = 3.8 * s->ephemeris_arrow_line_width;
 
         // Work out what colour to use for the arrow
         const int ephemeris_arrow_colour_index = trace_num % s->ephemeris_arrow_col_final_count;
@@ -1145,8 +1085,9 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
             // Set drawing style for the arrow
             ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
             cairo_set_line_width(s->cairo_draw, line_width * s->line_width_base);
-            cairo_set_source_rgb(s->cairo_draw, arrow_colour_final.red,
-                                 arrow_colour_final.grn, arrow_colour_final.blu);
+            cairo_set_source_rgba(s->cairo_draw,
+                                  arrow_colour_final.red, arrow_colour_final.grn, arrow_colour_final.blu,
+                                  arrow_colour_final.alpha);
             ld_label(ld, NULL, 1, 1);
 
             // Loop over the points in the ephemeris, and draw a line across the star chart
@@ -1191,12 +1132,13 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
             draw_thick_arrow(s, line_width * 0.45, 0, 1, x, y, theta, e->point_count);
 
             // Fill arrow
-            cairo_set_source_rgb(s->cairo_draw, arrow_colour_final.red,
-                                 arrow_colour_final.grn, arrow_colour_final.blu);
+            cairo_set_source_rgba(s->cairo_draw,
+                                  arrow_colour_final.red, arrow_colour_final.grn, arrow_colour_final.blu,
+                                  arrow_colour_final.alpha);
             cairo_fill_preserve(s->cairo_draw);
 
             // Stroke outline of the arrow
-            cairo_set_line_width(s->cairo_draw, 0.8);
+            cairo_set_line_width(s->cairo_draw, 0.6 * s->line_width_base);
             cairo_set_source_rgb(s->cairo_draw, 0, 0, 0);
             cairo_stroke(s->cairo_draw);
         }

@@ -46,5 +46,4 @@ ecliptic_col=1,1,0.7
 ephemeris_label_col=1,0.9,0.75
 constellations_capitalise=1
 constellations_label_shadow=0
-constellation_sticks_line_width=0.7
 

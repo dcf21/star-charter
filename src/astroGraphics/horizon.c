@@ -91,10 +91,12 @@ void plot_horizon(chart_config *s, line_drawer *ld, cairo_page *page) {
                     &ra_zenith_j2000, &dec_zenith_j2000);
 
     // Set line colour
-    colour horizon_colour = (colour) {0, 0, 0};
+    colour horizon_colour = (colour) {0, 0, 0, 1};
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
-    cairo_set_source_rgb(s->cairo_draw, horizon_colour.red, horizon_colour.grn, horizon_colour.blu);
-    cairo_set_line_width(s->cairo_draw, 4);
+    cairo_set_source_rgba(s->cairo_draw,
+                          horizon_colour.red, horizon_colour.grn, horizon_colour.blu,
+                          horizon_colour.alpha);
+    cairo_set_line_width(s->cairo_draw, 1.46 * s->line_width_base);
 
     // Draw line around the horizon
     plot_great_circle(ra_zenith_j2000 * 180 / M_PI, dec_zenith_j2000 * 180 / M_PI,
@@ -102,9 +104,11 @@ void plot_horizon(chart_config *s, line_drawer *ld, cairo_page *page) {
 
     // Draw cardinal point markers
     if (s->cardinals) {
-        cairo_set_source_rgb(s->cairo_draw, s->horizon_cardinal_points_marker_colour.red,
-                             s->horizon_cardinal_points_marker_colour.grn,
-                             s->horizon_cardinal_points_marker_colour.blu);
+        cairo_set_source_rgba(s->cairo_draw,
+                              s->horizon_cardinal_points_marker_colour.red,
+                              s->horizon_cardinal_points_marker_colour.grn,
+                              s->horizon_cardinal_points_marker_colour.blu,
+                              s->horizon_cardinal_points_marker_colour.alpha);
         for (int cardinal_index = 0; cardinal_index < 16; cardinal_index++) {
             if ((s->horizon_cardinal_points_marker_count < 16) && ((cardinal_index % 2) != 0)) continue;
             if ((s->horizon_cardinal_points_marker_count < 8) && ((cardinal_index % 4) != 0)) continue;
@@ -140,7 +144,7 @@ void plot_horizon(chart_config *s, line_drawer *ld, cairo_page *page) {
             const double my2 = y_centre + marker_half_size * cos(pa) * 1.5;
 
             const double label_rotation = 180 - pa * 180 / M_PI;
-            const double label_offset = marker_half_size * 3;
+            const double label_offset = 0.3 * s->cm + marker_half_size * 1.2;
 
             // Draw triangular marker
             cairo_new_path(s->cairo_draw);

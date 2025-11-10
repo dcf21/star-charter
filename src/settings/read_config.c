@@ -48,8 +48,8 @@
         return 1; \
     }
 
-//! colour_from_string - Convert a string representation of a colour in the form r,g,b into a colour structure.
-//! \param input - String representation of a colour, in the form r,g,b, with each component in range 0-1.
+//! colour_from_string - Convert a string representation of a colour in the form <r,g,b,a> into a colour structure.
+//! \param input - String representation of a colour, in the form <r,g,b,a>, with each component in range 0-1.
 //! \return - A colour structure
 
 colour colour_from_string(const char *input) {
@@ -62,6 +62,14 @@ colour colour_from_string(const char *input) {
     output.grn = get_float(buffer, NULL);
     str_comma_separated_list_scan(&in_scan, buffer);
     output.blu = get_float(buffer, NULL);
+
+    // Alpha component defaults to 1 if not specified
+    str_comma_separated_list_scan(&in_scan, buffer);
+    if (buffer[0] == '\0') {
+        output.alpha = 1;
+    } else {
+        output.alpha = get_float(buffer, NULL);
+    }
 
     return output;
 }
@@ -332,8 +340,8 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! photo_filename - The filename of a PNG image to render behind the star chart. Leave blank to show no
         //! image.
         strcpy(x->photo_filename, key_val);
-        x->star_col = (colour) {0.75, 0.75, 0.25};
-        x->grid_col = (colour) {0.5, 0.5, 0.5};
+        x->star_col = (colour) {0.75, 0.75, 0.25, 1};
+        x->grid_col = (colour) {0.5, 0.5, 0.5, 1};
         if (!x->aspect_is_set) x->aspect = 2. / 3.;
         if (!x->angular_width_is_set) x->angular_width = 46; // degrees
         x->plot_galaxy_map = 0;
@@ -610,6 +618,10 @@ int process_configuration_file_line(char *line, const char *filename, const int 
     } else if (strcmp(key, "constellation_boundary_col") == 0) {
         //! constellation_boundary_col - Colour to use when drawing constellation boundaries
         x->constellation_boundary_col = colour_from_string(key_val);
+        return 0;
+    } else if (strcmp(key, "chart_edge_line_col") == 0) {
+        //! chart_edge_line_col - Colour to use when marking the edge of the chart.
+        x->chart_edge_line_col = colour_from_string(key_val);
         return 0;
     } else if (strcmp(key, "ephemeris_col") == 0) {
         //! ephemeris_col - Colours to use when drawing ephemerides for solar system objects. If this setting is
@@ -1179,6 +1191,11 @@ int process_configuration_file_line(char *line, const char *filename, const int 
             return 1;
         }
         return 0;
+    } else if (strcmp(key, "ephemeris_arrow_line_width") == 0) {
+        //! ephemeris_arrow_line_width - Line width to use when drawing ephemeris arrows for solar system objects.
+        CHECK_VALUE_NUMERIC("ephemeris_arrow_line_width")
+        x->ephemeris_arrow_line_width = key_val_num;
+        return 0;
     } else if (strcmp(key, "ephemeris_arrow_shadow") == 0) {
         //! ephemeris_arrow_shadow - Boolean (0 or 1) indicating whether the ephemeris arrows drawn when
         //! `ephemeris_style` = `side_by_side_with_arrow` should have a shadow to make them more visible.
@@ -1260,7 +1277,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         return 0;
     } else if (strcmp(key, "great_circle_line_width") == 0) {
         //! great_circle_line_width - Line width to use when marking great circles on the sky (e.g. the equator
-        //! and the ecliptic). Default 1.75.
+        //! and the ecliptic). Default 0.64.
         CHECK_VALUE_NUMERIC("great_circle_line_width")
         x->great_circle_line_width = key_val_num;
         return 0;
@@ -1270,7 +1287,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         x->great_circle_dotted = (int) key_val_num;
         return 0;
     } else if (strcmp(key, "grid_line_width") == 0) {
-        //! grid_line_width - Line width to use when drawing grid lines. Default 1.3.
+        //! grid_line_width - Line width to use when drawing grid lines. Default 0.47.
         CHECK_VALUE_NUMERIC("grid_line_width")
         x->coordinate_grid_line_width = key_val_num;
         return 0;
@@ -1293,7 +1310,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         x->constellations_label_shadow = (int) key_val_num;
         return 0;
     } else if (strcmp(key, "constellation_sticks_line_width") == 0) {
-        //! constellation_sticks_line_width - Line width to use when drawing constellation stick figures. Default 1.4.
+        //! constellation_sticks_line_width - Line width to use when drawing constellation stick figures. Default 0.47.
         CHECK_VALUE_NUMERIC("constellation_sticks_line_width")
         x->constellations_sticks_line_width = key_val_num;
         return 0;
@@ -1341,7 +1358,7 @@ int read_configuration_file(const char *filename, const int iteration_depth,
     // Go through command script line by line
     while (!feof(infile)) {
         char line[LSTR_LENGTH];
-        file_readline(infile, line);
+        file_readline(infile, line, sizeof line);
         file_line_number++;
 
         // Process line of configuration file

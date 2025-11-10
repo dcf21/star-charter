@@ -143,7 +143,9 @@ void plot_scale_bars(chart_config *s, cairo_page *page) {
         label_text[FNAME_LENGTH - 1] = '\0';
 
         // Draw arrow
-        cairo_set_source_rgb(s->cairo_draw, s->scale_bar_colour.red, s->scale_bar_colour.grn, s->scale_bar_colour.blu);
+        cairo_set_source_rgba(s->cairo_draw,
+                              s->scale_bar_colour.red, s->scale_bar_colour.grn, s->scale_bar_colour.blu,
+                              s->scale_bar_colour.alpha);
         draw_arrow(s, 2, 1, 1,
                    x_cairo + arrow_half_length * sin(pa), y_cairo - arrow_half_length * cos(pa),
                    x_cairo - arrow_half_length * sin(pa), y_cairo + arrow_half_length * cos(pa));

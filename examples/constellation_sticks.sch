@@ -29,7 +29,6 @@ width=12
 aspect=0.70711
 constellation_boundaries=0
 constellation_sticks=1
-constellation_sticks_line_width=2
 coords=ra_dec
 projection=stereographic
 star_names=1

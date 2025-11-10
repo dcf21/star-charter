@@ -437,7 +437,8 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                     const double size_canvas = size * s->dpi;  // Cairo pixels
                     double x_canvas, y_canvas;
                     fetch_canvas_coordinates(&x_canvas, &y_canvas, x, y, s);
-                    cairo_set_source_rgb(s->cairo_draw, s->star_col.red, s->star_col.grn, s->star_col.blu);
+                    cairo_set_source_rgba(s->cairo_draw, s->star_col.red, s->star_col.grn, s->star_col.blu,
+                                          s->star_col.alpha);
                     cairo_new_path(s->cairo_draw);
                     cairo_arc(s->cairo_draw, x_canvas, y_canvas, size_canvas, 0, 2 * M_PI);
                     cairo_fill(s->cairo_draw);

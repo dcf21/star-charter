@@ -96,8 +96,10 @@ void plot_grid_lines(chart_config *s, line_drawer *ld) {
 
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
-    cairo_set_source_rgb(s->cairo_draw, s->grid_col.red, s->grid_col.grn, s->grid_col.blu);
-    cairo_set_line_width(s->cairo_draw, s->coordinate_grid_line_width);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->grid_col.red, s->grid_col.grn, s->grid_col.blu,
+                          s->grid_col.alpha);
+    cairo_set_line_width(s->cairo_draw, s->coordinate_grid_line_width * s->line_width_base);
 
     // Set dashed line style
     double dash_style[1] = {0.5 * s->mm};

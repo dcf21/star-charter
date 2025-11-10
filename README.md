@@ -99,7 +99,7 @@ docker compose run star-charter
 To make other star charts, open a shell within the Docker container as follows:
 
 ```
-docker run -it star-charter:v8 /bin/bash
+docker run -it star-charter:v9 /bin/bash
 ```
 
 ## Generating your own star charts
@@ -168,62 +168,64 @@ listed below under 'Configuration settings'.
 The following settings can be included in a `StarCharter` configuration file:
 
 * `alt_central` - The local altitude of the centre of the plot; degrees. This setting is only used if `coords=alt_az`.
-* `angular_width` - The angular width of the star chart on the sky; degrees
+* `angular_width` - The angular width of the star chart on the sky; degrees. Default: 25.
 * `arrow` - Overlay a line or arrow over the star chart. Each label should be specified in the format `<coordinates_0>,<xpos_0>,<ypos_0>,<coordinates_1>,<xpos_1>,<ypos_1>,<head_start>,<end_start>,<colour r>,<colour g>,<colour b>,<line width>`, where `coordinates` should be `page` or `ra_dec`. If `page` is selected, then `xpos` and `ypos` are in the range 0-1; if `ra_dec` is selected then `xpos` is RA/hours and `ypos` is Dec/degs. Different coordinate systems can be used for the two ends of the line. `head_start` and `head_end` are booleans indicating whether to draw arrow heads on the two ends of the line. The colour components are in the range 0-1. To overlay multiple arrow, specify this setting multiple times within your configuration file.
-* `aspect` - The aspect ratio of the star chart: i.e. the ratio height/width
-* `axis_label` - Boolean (0 or 1) indicating whether to write "Right ascension" and "Declination" on the vertical/horizontal axes
+* `aspect` - The aspect ratio of the star chart: i.e. the ratio height/width. Default: 1.414.
+* `axis_label` - Boolean (0 or 1) indicating whether to write "Right ascension" and "Declination" on the vertical/horizontal axes. Default: 0.
 * `axis_ticks_value_only` - If 1, axis labels will appear as simply "5h" or "30 deg". If 0, these labels will be preceded by alpha= or delta=
 * `az_central` - The local azimuth of the centre of the plot; degrees clockwise / eastwards from north. This setting is only used if `coords=alt_az`.
-* `cardinals` - Boolean (0 or 1) indicating whether to write the cardinal points around the edge of alt/az star charts
-* `chart_edge_line_width` - Line width to use when marking the edge of the chart. Default 2.5.
-* `constellation_boundaries` - Boolean (0 or 1) indicating whether we draw constellation boundaries
+* `cardinals` - Boolean (0 or 1) indicating whether to write the cardinal points around the edge of alt/az star charts. Default: 1.
+* `chart_edge_line_col` - Colour to use when marking the edge of the chart. Default: `0,0,0`.
+* `chart_edge_line_width` - Line width to use when marking the edge of the chart. Default: 2.5.
+* `constellation_boundaries` - Boolean (0 or 1) indicating whether we draw constellation boundaries. Default: 1.
 * `constellation_boundary_col` - Colour to use when drawing constellation boundaries
 * `constellation_highlight` - Optionally, highlight the boundary of one particular constellation, identified by a three-letter abbreviation.
 * `constellation_label_col` - Colour to use when writing constellation names
-* `constellation_label_size` - Relative font size to use when rendering constellation names. Default 1.
+* `constellation_label_size` - Relative font size to use when rendering constellation names. Default: 1.
 * `constellation_names` - Boolean (0 or 1) indicating whether we label the names of constellations
-* `constellation_show_below_horizon` - Boolean (0 or 1) indicating whether to show constellation stick-figures beneath the horizon. Default 0.
+* `constellation_show_below_horizon` - Boolean (0 or 1) indicating whether to show constellation stick-figures beneath the horizon. Default: 0.
 * `constellation_stick_col` - Colour to use when drawing constellation stick figures
 * `constellation_stick_design` - Select which design of constellation stick figures we should draw. Set to either `iau` (default), `rey` or `simplified`. See <https://github.com/dcf21/constellation-stick-figures> for more information.
-* `constellation_sticks_line_width` - Line width to use when drawing constellation stick figures. Default 1.4.
-* `constellation_sticks` - Boolean (0 or 1) indicating whether we draw constellation stick figures
-* `constellations_capitalise` - Boolean (0 or 1) indicating whether we capitalise the names of constellations.
-* `constellations_label_shadow` - Boolean (0 or 1) indicating whether to draw a shadow behind the names of the constellations.
+* `constellation_sticks_line_width` - Line width to use when drawing constellation stick figures. Default: 1.6.
+* `constellation_sticks` - Boolean (0 or 1) indicating whether we draw constellation stick figures. Default: 1.
+* `constellations_capitalise` - Boolean (0 or 1) indicating whether we capitalise the names of constellations. Default: 0.
+* `constellations_label_shadow` - Boolean (0 or 1) indicating whether to draw a shadow behind the names of the constellations. Default: 1.
 * `coords` - Select which celestial coordinate system to use when specifying the centre of the plot. Set to `ra_dec`, `galactic` or `alt_az`.
-* `copyright_gap_2` - Spacing of the copyright text beneath the plot
-* `copyright_gap` - Spacing of the copyright text beneath the plot
+* `copyright_gap_2` - Spacing of the copyright text beneath the plot. Default: 0.
+* `copyright_gap` - Spacing of the copyright text beneath the plot. Default: 0.
 * `copyright` - The copyright string to write under the star chart
 * `dec_central` - The declination of the centre of the plot; degrees. This setting is only used if `coords=ra_dec`.
 * `draw_ephemeris` - Definitions of ephemerides to draw. Each definition should take the form of: `<bodyId>,<jdMin>,<jdMax>` (see above). To draw multiple ephemerides, specify this setting multiple times within your configuration file.
 * `dso_catalogue_file` - Source file from which we get DSO catalogue. By default, a catalogue of Messier, NGC and IC objects is used. Only change this setting if you want to show custom deep-sky objects.
-* `dso_cluster_col` - Colour to use when drawing star clusters
-* `dso_display_style` - Select which style to use for deep sky objects. Set to either `coloured` or `fuzzy`. Default is `coloured`.
-* `dso_galaxy_col` - Colour to use when drawing galaxies
-* `dso_label_col` - Colour to use when writing the labels for deep sky objects
-* `dso_label_mag_min` - Do not label stars fainter than this magnitude limit (default: unlimited)
-* `dso_mag_min` - Only show deep-sky objects down to this faintest magnitude
-* `dso_mags` - Boolean (0 or 1) indicating whether we label the magnitudes of deep-sky objects
-* `dso_names` - Boolean (0 or 1) indicating whether we label the names of deep-sky objects
-* `dso_nebula_col` - Colour to use when drawing nebulae
-* `dso_outline_col` - Colour to use when drawing the outline of deep-sky objects
-* `dso_point_size_scaling` - Size scaling of deep-sky object symbols. Default 1.
-* `dso_symbol_key` - Boolean (0 or 1) indicating whether we include a key to the symbols used to represent deep-sky objects
-* `ecliptic_col` - Colour to use when drawing a line along the ecliptic
+* `dso_cluster_col` - Colour to use when drawing star clusters. Default: `0.8,0.8,0.25`.
+* `dso_display_style` - Select which style to use for deep sky objects. Set to either `coloured` or `fuzzy`. Default: `coloured`.
+* `dso_galaxy_col` - Colour to use when drawing galaxies. Default: `0.75,0.15,0.15`
+* `dso_label_col` - Colour to use when writing the labels for deep sky objects. Default: `0,0,0`.
+* `dso_label_mag_min` - Do not label stars fainter than this magnitude limit. Default: unlimited.
+* `dso_mag_min` - Only show deep-sky objects down to this faintest magnitude. Default: 14.
+* `dso_mags` - Boolean (0 or 1) indicating whether we label the magnitudes of deep-sky objects. Default: 0.
+* `dso_names` - Boolean (0 or 1) indicating whether we label the names of deep-sky objects. Default: 1.
+* `dso_nebula_col` - Colour to use when drawing nebulae. Default: `0.25,0.75,0.25`.
+* `dso_outline_col` - Colour to use when drawing the outline of deep-sky objects. Default: `0.25,0.25,0.25`.
+* `dso_point_size_scaling` - Size scaling of deep-sky object symbols. Default: 1.
+* `dso_symbol_key` - Boolean (0 or 1) indicating whether we include a key to the symbols used to represent deep-sky objects. Default: 1.
+* `ecliptic_col` - Colour to use when drawing a line along the ecliptic. Default `0.8,0.65,0`.
 * `ephemeris_arrow_col` - Colours to use when drawing ephemeris arrows drawn when `ephemeris_style` = `side_by_side_with_arrow`. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
+* `ephemeris_arrow_line_width` - Line width to use when drawing ephemerides for solar system objects. Default: 1.
 * `ephemeris_arrow_shadow` - Boolean (0 or 1) indicating whether the ephemeris arrows drawn when `ephemeris_style` = `side_by_side_with_arrow` should have a shadow to make them more visible.
 * `ephemeris_autoscale` - Boolean (0 or 1) indicating whether to auto-scale the star chart to contain the requested ephemerides. This overrides settings for `ra_central`, `dec_central`, `angular_width`, as well as other parameters. Run the code in debugging mode to see a list of the values assigned to all these automatically-set parameters.
 * `ephemeris_col` - Colours to use when drawing ephemerides for solar system objects. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
-* `ephemeris_coords` - The coordinate system to use when drawing the tracks of planets - either `ra_dec` or `solar`. Default `ra_dec`. If `solar` is selected, the positions of planets are shown relative to the moving Sun, whose static position is drawn at epoch `julian_date`. This is useful for showing the paths of planets close to the horizon at sunset on a range of evenings, but will give nonsense results otherwise.
+* `ephemeris_coords` - The coordinate system to use when drawing the tracks of planets - either `ra_dec` or `solar`. Default: `ra_dec`. If `solar` is selected, the positions of planets are shown relative to the moving Sun, whose static position is drawn at epoch `julian_date`. This is useful for showing the paths of planets close to the horizon at sunset on a range of evenings, but will give nonsense results otherwise.
 * `ephemeris_epochs` - List of JD time epochs for which we should create points along each solar system ephemeris. If empty, then points are either placed at intervals specified by `ephemeris_label_interval`, or else created automatically. This list must have the same length as <ephemeris_epoch_labels>. To draw multiple epochs, specify this setting multiple times within your configuration file.
 * `ephemeris_epoch_labels` - List of text labels for the points we create along each solar system ephemeris. If empty, then points are created automatically. This list must have the same length as `<ephemeris_epochs>`. To draw multiple epochs, specify this setting multiple times within your configuration file.
 * `ephemeris_label_col` - Colours to use when labelling ephemerides for solar system objects. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
 * `ephemeris_label_interval` - List of the JD time step (in days) between labels along each solar system ephemeris. If this setting is supplied multiple times, then the list of supplied intervals are used in a cyclic loop for all the solar system ephemerides to be drawn. This setting is ignored if any explicit `ephemeris_epoch` values are supplied. If neither `ephemeris_epoch` nor `ephemeris_label_interval` values are supplied then labels are placed automatically.
 * `ephemeris_minimum_size` - When showing the track of solar system objects, the minimum size of the markers, which normally increase in size with brightness. Supplied in units of magnitude. Default: 3.0.
-* `ephemeris_resolution` - The time resolution of ephemeris tracks, in days. Default 0.5 days. This is the spacing of the points sampled along the planet's track, not the spacing of the labels placed along it.
+* `ephemeris_resolution` - The time resolution of ephemeris tracks, in days. Default: 0.5 days. This is the spacing of the points sampled along the planet's track, not the spacing of the labels placed along it.
 * `ephemeris_style` - Select the style to use when showing the tracks of solar system objects. Set to `track`, `side_by_side`, `side_by_side_with_track` or `side_by_side_with_arrow`.
-* `equator_col` - Colour to use when drawing a line along the equator
-* `font_family` - The font family to use when rendering all text labels.
-* `font_size` - A normalisation factor to apply to the font size of all text (default 1.0)
+* `equator_col` - Colour to use when drawing a line along the equator. Default: `0.65,0,0.65`.
+* `font_family` - The font family to use when rendering all text labels. Default `Ubuntu`.
+* `font_size` - A normalisation factor to apply to the font size of all text. Default: 1.0.
 * `galactic_b_central` - The galactic latitude of the centre of the plot; degrees. This setting is only used if `coords=galactic`.
 * `galactic_l_central` - The galactic longitude of the centre of the plot; degrees. This setting is only used if `coords=galactic`.
 * `galactic_plane_col` - Colour to use when drawing a line along the galactic plane
@@ -231,65 +233,65 @@ The following settings can be included in a `StarCharter` configuration file:
 * `galaxy_col` - The colour to use to shade the bright parts of the map of the Milky Way
 * `galaxy_map_filename` - The binary file from which to read the shaded map of the Milky Way
 * `galaxy_map_width_pixels` - The number of horizontal pixels across the shaded map of the Milky Way
-* `great_circle_key` - Boolean (0 or 1) indicating whether to draw a key to the great circles under the star chart
-* `great_circle_line_width` - Line width to use when marking great circles on the sky (e.g. the equator and the ecliptic). Default 1.75.
-* `great_circle_dotted` - Boolean (0 or 1)  indicating whether to use a dotted line when tracing great circles
-* `grid_col` - Colour to use when drawing grid of RA/Dec (or Alt/Az, or galactic coordinate) lines
+* `great_circle_key` - Boolean (0 or 1) indicating whether to draw a key to the great circles under the star chart. Default: 1.
+* `great_circle_line_width` - Line width to use when marking great circles on the sky (e.g. the equator and the ecliptic). Default: 2.
+* `great_circle_dotted` - Boolean (0 or 1)  indicating whether to use a dotted line when tracing great circles: Default: 0.
+* `grid_col` - Colour to use when drawing grid of RA/Dec (or Alt/Az, or galactic coordinate) lines. Default: `0.7,0.7,0.7`.
 * `grid_coords` - Select which celestial coordinate system to trace with grid lines. Set to `ra_dec`, `galactic` or `alt_az`.
-* `grid_line_density` - Multiplicative factor controlling how many grid lines we draw. Default 1.
-* `grid_line_width` - Line width to use when drawing grid lines. Default 1.3.
+* `grid_line_density` - Multiplicative factor controlling how many grid lines we draw. Default: 1.
+* `grid_line_width` - Line width to use when drawing grid lines. Default: 1.5.
 * `horizon_cardinal_points_labels_col` - Colour to use when drawing cardinal-point labels along the horizon.
 * `horizon_cardinal_points_marker_col` - Colour to use when drawing cardinal-point markers along the horizon.
-* `horizon_cardinal_points_marker_count` - Number of cardinal-point markers to place along the horizon. Sensible values are 4, 8, 16. Default 8.
+* `horizon_cardinal_points_marker_count` - Number of cardinal-point markers to place along the horizon. Sensible values are 4, 8, 16. Default: 8.
 * `horizon_cardinal_points_marker_elevate` - Boolean flag (0 or 1) indicating whether to elevate cardinal point markers to the bottom of the field of view if they fall off the bottom of the chart.
-* `horizon_cardinal_points_marker_size` - Size scaling of the cardinal-point markers along the horizon. Default 1.
+* `horizon_cardinal_points_marker_size` - Size scaling of the cardinal-point markers along the horizon. Default: 1.
 * `horizon_latitude` - Terrestrial latitude for which to show the local horizon; degrees
 * `horizon_longitude` - Terrestrial longitude for which to show the local horizon; degrees
-* `horizon_zenith_marker_size` - Scaling factor to apply to the size of the marker used at the zenith. Default 1.
-* `horizon_zenith_col` - Colour to use for the marker at the zenith.
+* `horizon_zenith_marker_size` - Scaling factor to apply to the size of the marker used at the zenith. Default: 1.
+* `horizon_zenith_col` - Colour to use for the marker at the zenith. Default: `1,1,1`.
 * `julian_date` - Julian date for which to show local horizon, with which to measure alt/az, and for which to show the positions of solar system bodies.
-* `label_ecliptic` - Boolean (0 or 1) indicating whether to label the months along the ecliptic, showing the Sun's annual progress
-* `label_font_size_scaling` - Scaling factor to be applied to the font size of all star and DSO labels (default 1.0)
-* `language` - The language used for the constellation names. Either `english` or `french`.
-* `mag_alpha` - The multiplicative scaling factor to apply to the radii of stars differing in magnitude by one `mag_step`
-* `mag_max` - Used to regulate the size of stars. A star of this magnitude is drawn with size mag_size_norm. Also, this is the brightest magnitude of star which is shown in the magnitude key below the chart.
-* `mag_min` - The faintest magnitude of star which we draw
-* `magnitude_key` - Boolean (0 or 1) indicating whether to draw a key to the magnitudes of stars under the star chart
-* `mag_size_maximum_permitted` - The maximum permitted radius of a star, mm. If this is exceeded, all stars are made smaller.
-* `mag_size_norm` - The radius of a star of magnitude `mag_max` (default 1.0)
-* `mag_step` - The magnitude interval between the samples shown on the magnitude key under the chart
-* `maximum_dso_count` - The maximum number of deep-sky objects to draw. If this is exceeded, only the brightest objects are shown.
-* `maximum_dso_label_count` - The maximum number of deep-sky objects which may be labelled
-* `maximum_star_count` - The maximum number of stars to draw. If this is exceeded, only the brightest stars are shown.
-* `maximum_star_label_count` - The maximum number of stars which may be labelled
-* `messier_only` - Boolean (0 or 1) indicating whether we plot only Messier objects, and no other deep-sky objects
+* `label_ecliptic` - Boolean (0 or 1) indicating whether to label the months along the ecliptic, showing the Sun's annual progress. Default: 0.
+* `label_font_size_scaling` - Scaling factor to be applied to the font size of all star and DSO labels. Default: 1.0.
+* `language` - The language used for the constellation names. Either `english` or `french`. Default: `english`.
+* `mag_alpha` - The multiplicative scaling factor to apply to the radii of stars differing in magnitude by one `mag_step`. Default: 1.1727932.
+* `mag_max` - Used to regulate the size of stars. A star of this magnitude is drawn with size mag_size_norm. Also, this is the brightest magnitude of star which is shown in the magnitude key below the chart. Default: 0.
+* `mag_min` - The faintest magnitude of star which we draw. Default: 6.
+* `magnitude_key` - Boolean (0 or 1) indicating whether to draw a key to the magnitudes of stars under the star chart. Default: 1.
+* `mag_size_maximum_permitted` - The maximum permitted radius of a star, mm. If this is exceeded, all stars are made smaller. Default: unlimited.
+* `mag_size_norm` - The radius of a star of magnitude `mag_max`. Default: 1.0.
+* `mag_step` - The magnitude interval between the samples shown on the magnitude key under the chart. Default: 0.5.
+* `maximum_dso_count` - The maximum number of deep-sky objects to draw. If this is exceeded, only the brightest objects are shown. Default: 500.
+* `maximum_dso_label_count` - The maximum number of deep-sky objects which may be labelled. Default: 100.
+* `maximum_star_count` - The maximum number of stars to draw. If this is exceeded, only the brightest stars are shown. Default: 1693.
+* `maximum_star_label_count` - The maximum number of stars which may be labelled. Default: 1000.
+* `messier_only` - Boolean (0 or 1) indicating whether we plot only Messier objects, and no other deep-sky objects. Default: 0.
 * `meteor_radiant` - Specify that the radiant of a meteor shower should be marked. This should be set to a string of the form `<shower_label>,<ra_radiant/deg>,<dec_radiant/deg>`. To mark multiple shower radiants, supply this setting multiple times.
-* `meteor_radiant_marker_size` - Scaling factor to apply to the size of the markers at the radiants of meteor showers. Default 1.
+* `meteor_radiant_marker_size` - Scaling factor to apply to the size of the markers at the radiants of meteor showers. Default: 1.
 * `meteor_radiant_colour` - Colour to use for the markers at the radiants of meteor showers.
 * `must_label_all_dsos` - Boolean (0 or 1) indicating whether we must show all DSO text labels, even if they collide with other text.
 * `must_show_all_ephemeris_labels` - Boolean (0 or 1) indicating whether we show all ephemeris text labels, even if they collide with other text.
-* `output_dpi` - The DPI resolution of the output file. Default 200 DPI for PNG files; 72 DPI for vector graphics.
+* `output_dpi` - The DPI resolution of the output file. Default: 200 DPI for PNG files; 72 DPI for vector graphics.
 * `output_filename` - The target filename for the star chart. The file type (`svg`, `png`, `eps` or `pdf`) is inferred from the file extension.
 * `photo_filename` - The filename of a PNG image to render behind the star chart. Leave blank to show no image.
-* `plot_dso` - Boolean (0 or 1) indicating whether we plot any deep-sky objects
-* `plot_ecliptic` - Boolean (0 or 1) indicating whether to draw a line along the ecliptic
-* `plot_equator` - Boolean (0 or 1) indicating whether to draw a line along the equator
-* `plot_galactic_plane` - Boolean (0 or 1) indicating whether to draw a line along the galactic plane
-* `plot_galaxy_map` - Boolean (0 or 1) indicating whether to draw a shaded map of the Milky Way behind the star chart
-* `plot_stars` - Boolean (0 or 1) indicating whether we plot any stars
+* `plot_dso` - Boolean (0 or 1) indicating whether we plot any deep-sky objects. Default: 1.
+* `plot_ecliptic` - Boolean (0 or 1) indicating whether to draw a line along the ecliptic. Default: 1.
+* `plot_equator` - Boolean (0 or 1) indicating whether to draw a line along the equator. Default: 1.
+* `plot_galactic_plane` - Boolean (0 or 1) indicating whether to draw a line along the galactic plane. Default: 1.
+* `plot_galaxy_map` - Boolean (0 or 1) indicating whether to draw a shaded map of the Milky Way behind the star chart. Default: 1.
+* `plot_stars` - Boolean (0 or 1) indicating whether we plot any stars. Default: 1.
 * `position_angle` - The position angle of the plot - i.e. the tilt of north in degrees, counter-clockwise from up, at the centre of the plot
 * `projection` - Select projection to use. Set to `stereographic` (default; maximum width 360 degrees), `flat` (a rectangular map of RA/Dec), `peters` (a rectangular map in a Peters projection), `gnomonic` (maximum width 180 degrees), `sphere` (a celestial globe viewed from the outside), `multilatitude`, or `alt_az` (a hemisphere of a sky above a location, viewed from the output).
 * `ra_central` - The right ascension of the centre of the plot; hours, J2000.0.  This setting is only used if `coords=ra_dec`.
 * `scale_bar` - List of scale bars we should super-impose over the star chart. Each should be specified as: `<x_pos>,<y_pos>,<position_angle>,<degrees>` where <x_pos> and <y_pos> are 0-1, the position angle is a clockwise rotation in degrees, and degrees is the length of the scale bar on the sky. To draw multiple scale bars, specify this setting multiple times within your configuration file.
-* `scale_bar_col` - Colour to use for scale bars.
-* `shade_twilight` - Boolean (0 or 1) indicating whether to shade the sky according to the altitude in the local sky at `julian_date`.
-* `shade_near_sun` - Boolean (0 or 1) indicating whether to shade the region of sky that is close to the Sun at `julian_date`.
-* `shade_not_observable` - Boolean (0 or 1) indicating whether to shade the region of sky that is not observable at any time of day at `julian_date`.
-* `show_grid_lines` - Boolean (0 or 1) indicating whether we draw a grid of RA/Dec lines in background of star chart
-* `show_horizon` - Boolean (0 or 1) indicating whether we show the local horizon and clip objects below the horizon at `julian_date`
-* `show_poles` - Boolean (0 or 1) indicating whether we mark the north and south celestial poles
-* `show_solar_system` - Boolean (0 or 1) indicating whether we show the positions of solar system bodies at `julian_date`
-* `show_zenith` - Boolean (0 or 1) indicating whether we mark the local zenith at `julian_date`
+* `scale_bar_col` - Colour to use for scale bars. Default: `0,0,0`.
+* `shade_twilight` - Boolean (0 or 1) indicating whether to shade the sky according to the altitude in the local sky at `julian_date`. Default: 0.
+* `shade_near_sun` - Boolean (0 or 1) indicating whether to shade the region of sky that is close to the Sun at `julian_date`. Default: 0.
+* `shade_not_observable` - Boolean (0 or 1) indicating whether to shade the region of sky that is not observable at any time of day at `julian_date`. Default: 0.
+* `show_grid_lines` - Boolean (0 or 1) indicating whether we draw a grid of RA/Dec lines in background of star chart. Default: 1.
+* `show_horizon` - Boolean (0 or 1) indicating whether we show the local horizon and clip objects below the horizon at `julian_date`. Default: 0.
+* `show_poles` - Boolean (0 or 1) indicating whether we mark the north and south celestial poles. Default: 0.
+* `show_solar_system` - Boolean (0 or 1) indicating whether we show the positions of solar system bodies at `julian_date`. Default: 0.
+* `show_zenith` - Boolean (0 or 1) indicating whether we mark the local zenith at `julian_date`. Default: 0.
 * `solar_system_col` - The colour to use when drawing solar-system objects. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
 * `solar_system_ids` - The list of the ID strings of the solar system bodies to show (e.g. `P1` for Mercury). If multiple solar system bodies are to be displayed/labelled, then specify this setting multiple times, once for each body. The number of values of <solar_system_ids> must equal the number of values of <solar_system_labels>.
 * `solar_system_label_col` - The colour to use when labelling solar-system objects. If this setting is supplied multiple times, then the list of supplied colours are used in a cyclic loop for all the solar system objects to be drawn.
@@ -302,25 +304,29 @@ The following settings can be included in a `StarCharter` configuration file:
 * `solar_system_sun_actual_size_scaling` - Scaling factor to apply to the actual size on the Sun and Moon when drawing them at actual size and phase. Default: 1.
 * `solar_system_sun_col` - The colour to use when drawing the Sun's actual size (when `solar_system_sun_actual_size` is turned on).
 * `solar_system_topocentric_correction` - Boolean flag (0 or 1) indicating whether to apply topocentric correction to the positions of solar system objects, based on `horizon_latitude` and `horizon_longitude`.
-* `star_allow_multiple_labels` - Boolean (0 or 1) indicating whether we allow multiple labels next to a single star. If false, we only include the highest-priority label for each object.
-* `star_bayer_labels` - Boolean (0 or 1) indicating whether we label the Bayer numbers of stars
-* `star_catalogue_numbers` - Boolean (0 or 1) indicating whether we label the catalogue numbers of stars
-* `star_catalogue` - Select the star catalogue to use when showing the catalogue numbers of stars. Set to `hipparcos`, `ybsc` or `hd`.
+* `star_allow_multiple_labels` - Boolean (0 or 1) indicating whether we allow multiple labels next to a single star. If false, we only include the highest-priority label for each object. Default: 0.
+* `star_bayer_labels` - Boolean (0 or 1) indicating whether we label the Bayer numbers of stars. Default: 0.
+* `star_catalogue_numbers` - Boolean (0 or 1) indicating whether we label the catalogue numbers of stars. Default: 0.
+* `star_catalogue` - Select the star catalogue to use when showing the catalogue numbers of stars. Set to `hipparcos`, `ybsc` or `hd`. Default: `hipparcos`.
 * `star_clip_outline` - Boolean (0 or 1) indicating whether we clip a thin line around the edges of stars. This makes star clusters like M45 stand out better. Default: 0.
-* `star_col` - Colour to use when drawing stars
-* `star_flamsteed_labels` - Boolean (0 or 1) indicating whether we label the Flamsteed designations of stars
-* `star_label_mag_min` - Do not label stars fainter than this magnitude limit (default: unlimited)
+* `star_col` - Colour to use when drawing stars. Default: `0,0,0`.
+* `star_flamsteed_labels` - Boolean (0 or 1) indicating whether we label the Flamsteed designations of stars. Default: 0.
+* `star_label_mag_min` - Do not label stars fainter than this magnitude limit. Default: unlimited.
 * `star_mag_labels` - Switch indicating how the magnitudes of stars are labelled. Options are `off` (no labels), `on` (display magnitudes), `aavso` (magnitude labels in the format used by the AAVSO: in 1/10th mag increments with no decimal points; only shown for stars with -0.2 < B-V < +0.7). Default: `off`.
-* `star_names` - Boolean (0 or 1) indicating whether we label the English names of stars
-* `star_variable_labels` - Boolean (0 or 1) indicating whether we label the variable-star designations of stars, e.g. V337_Car
+* `star_names` - Boolean (0 or 1) indicating whether we label the English names of stars. Default: 1.
+* `star_variable_labels` - Boolean (0 or 1) indicating whether we label the variable-star designations of stars, e.g. V337_Car. Default: 0.
 * `text` - Overlay a custom text label on the star chart. Each label should be specified in the format `<coordinates>,<xpos>,<ypos>,<xalign>,<yalign>,<font_size>,<font_bold>,<font_italic>,<colour r>,<colour g>,<colour b>,<label string>`, where `coordinates` should be `page` or `ra_dec`. If `page` is selected, then `xpos` and `ypos` are in the range 0-1; if `ra_dec` is selected then `xpos` is RA/hours and `ypos` is Dec/degs. `xalign` and `yalign` are in the range -1 (left) to 1 (right), and colour components are in the range 0-1. To overlay multiple text labels, specify this setting multiple times within your configuration file. 
 * `title` - The heading to write at the top of the star chart
-* `twilight_zenith_col` - The colour to use to shade twilight at the zenith
-* `twilight_horizon_col` - The colour to use to shade twilight at the horizon
-* `width` - The width of the star chart, in cm
-* `x_label_slant` - A slant to apply to all labels on the horizontal axes
-* `y_label_slant` - A slant to apply to all labels on the vertical axes
-* `zodiacal_only` - Boolean (0 or 1) indicating whether we plot only the zodiacal constellations
+* `twilight_horizon_col` - The colour to use to shade twilight at the horizon. Default: `0.506,0.765,0.929`.
+* `twilight_zenith_col` - The colour to use to shade twilight at the zenith. Default: `0.337,0.547,0.820`.
+* `width` - The width of the star chart, in cm. Default: 16.5.
+* `x_label_slant` - A slant to apply to all labels on the horizontal axes. Default: 0.
+* `y_label_slant` - A slant to apply to all labels on the vertical axes. Default: 0.
+* `zodiacal_only` - Boolean (0 or 1) indicating whether we plot only the zodiacal constellations. Default: 0.
+
+## Specifying colours
+
+Wherever colours are specified in the settings above, they should take the form of 3 or 4 comma-separated RGBA components, each in the range 0-1. The alpha component is optional, and defaults to 1 if not specified.
 
 ## Paths of solar system objects
 
@@ -352,14 +358,40 @@ Recognised object names include any of the following:
 * `1P/Halley`. Comets may be referred to by their names in this format
 * `0001P`. Periodic comets may be referred to by their names in the format %4dP
 * `CJ95O010`. Comets may be referred to by their Minor Planet Center designations
-* `C<n>`: Comer number `n`. `n` is the line number within the file [Soft00Cmt.txt](https://www.minorplanetcenter.net/iau/Ephemerides/Comets/Soft00Cmt.txt), downloaded from the Minor Planet Center.
+* `C<n>`: Comer number `n`. `n` is the line number within the file [Soft00Cmt.txt](https://www.minorplanetcenter.net/iau/Ephemerides/Comets/Soft00Cmt.txt), downloaded from the Minor Planet Center (MPC).
 
 Note also the setting `ephemeris_autoscale`, which overrides the specified
 celestial coordinates for the centre of the star chart, and the specified
 angular width, and scales the star chart to automatically show the requested
 ephemerides.
 
+## Ephemeris files
+
+When the software is installed, data files containing the orbital elements of asteroids and comets are downloaded from
+the following sources:
+
+* Asteroids, from the [Lowell Observatory](https://asteroid.lowell.edu/astorb/) website.
+* Comets, from the [Minor Planet Center](https://www.minorplanetcenter.net/data) (MPC) website
+
+The orbital elements published on these websites are typically accurate for a few years either side of the epoch when
+they were downloaded, but will give erroneous positions outside this time range due to orbital perturbations. The exact
+timescale for orbital perturbation is unique to each object, depending on its proximity to sources of perturbation -
+in particular, Jupiter.
+
+If a high degree of accuracy is required over a longer time span, the software supports the use of multiple orbital
+element files downloaded at different epochs. These should be placed in a directory `~/astorb_archive/` in the user's
+home directory; they should match the following wildcards:
+
+* `~/astorb_archive/astorb_*.dat`
+* `~/astorb_archive/Soft00Cmt_*.dat*`
+
+The software automatically reads the epoch specified within each data file and for each query will choose the two data
+files that are closest before and after the requested epoch. The predicted positions from the two data files are
+linearly interpolated to ensure that the output ephemerides are always continuous and differentiable.
+
 ## Change history
+
+**Version 9.0** (10 Nov 2025) - Allow colours to have alpha components. Support using multiple files of asteroid / comet orbital elements at different epochs.
 
 **Version 8.0** (23 Feb 2025) - Improve examples and documentation.
 

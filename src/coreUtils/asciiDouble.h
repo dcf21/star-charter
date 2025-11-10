@@ -34,7 +34,7 @@ char *numeric_display(double in, int N, int sig_fig, int latex);
 
 unsigned char double_equal(double a, double b);
 
-void file_readline(FILE *file, char *output);
+void file_readline(FILE *file, char *output, int max_length);
 
 void get_word(char *out, const char *in, int max);
 

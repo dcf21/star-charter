@@ -70,18 +70,19 @@ static unsigned char *JPL_EphemData_items_loaded = NULL; // Record of which ephe
 static double JPL_AU = 0.0; // astronomical unit, measured in km
 
 
-//! JPL_ReadBinaryData - restore DE430 from a binary dump of the data in <data/dcfbinary.430>, to save parsing
+//! jpl_readBinaryData - restore DE430 from a binary dump of the data in <data/binary_de430.bin>, to save parsing
 //! original files every time we are run.
 
-int JPL_ReadBinaryData() {
+int jpl_readBinaryData() {
     char fname[FNAME_LENGTH];
 
     // Work out the filename of the binary file that we are to open
-    snprintf(fname, FNAME_LENGTH, "%s/../data/dcfbinary.%d", SRCDIR, JPL_EphemNumber);
+    snprintf(fname, FNAME_LENGTH, "%s/../data/binary_de%d.bin", SRCDIR, JPL_EphemNumber);
     snprintf(jpl_ephem_filename, FNAME_LENGTH, "%s", fname);
     if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "Trying to fetch binary data from file <%s>.", fname);
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        snprintf(msg, FNAME_LENGTH, "Fetching binary data from file <%s>.", fname);
+        ephem_log(msg);
     }
 
     // Open binary data
@@ -91,36 +92,42 @@ int JPL_ReadBinaryData() {
     // Read headers to binary file
     dcf_fread((void *) &JPL_EphemStart, sizeof(double), 1, JPL_EphemFile, fname, __FILE__, __LINE__);
     if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "JPL_EphemStart        = %10f", JPL_EphemStart);
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        snprintf(msg, FNAME_LENGTH, "JPL_EphemStart        = %10f", JPL_EphemStart);
+        ephem_log(msg);
     }
     dcf_fread((void *) &JPL_EphemEnd, sizeof(double), 1, JPL_EphemFile, fname, __FILE__, __LINE__);
     if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "JPL_EphemEnd          = %10f", JPL_EphemEnd);
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        snprintf(msg, FNAME_LENGTH, "JPL_EphemEnd          = %10f", JPL_EphemEnd);
+        ephem_log(msg);
     }
     dcf_fread((void *) &JPL_EphemStep, sizeof(double), 1, JPL_EphemFile, fname, __FILE__, __LINE__);
     if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "JPL_EphemStep         = %10f", JPL_EphemStep);
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        snprintf(msg, FNAME_LENGTH, "JPL_EphemStep         = %10f", JPL_EphemStep);
+        ephem_log(msg);
     }
     dcf_fread((void *) &JPL_AU, sizeof(double), 1, JPL_EphemFile, fname, __FILE__, __LINE__);
     if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "JPL_AU                = %10f", JPL_AU);
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        snprintf(msg, FNAME_LENGTH, "JPL_AU                = %10f", JPL_AU);
+        ephem_log(msg);
     }
     dcf_fread((void *) &JPL_EphemArrayLen, sizeof(int), 1, JPL_EphemFile, fname, __FILE__, __LINE__);
     if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "JPL_EphemArrayLen     = %10d", JPL_EphemArrayLen);
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        snprintf(msg, FNAME_LENGTH, "JPL_EphemArrayLen     = %10d", JPL_EphemArrayLen);
+        ephem_log(msg);
     }
     dcf_fread((void *) &JPL_EphemArrayRecords, sizeof(int), 1, JPL_EphemFile, fname, __FILE__, __LINE__);
     if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "JPL_EphemArrayRecords = %10d", JPL_EphemArrayRecords);
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        snprintf(msg, FNAME_LENGTH, "JPL_EphemArrayRecords = %10d", JPL_EphemArrayRecords);
+        ephem_log(msg);
     }
 
-    JPL_ShapeData = (int *) lt_malloc(13 * 3 * sizeof(int));
+    JPL_ShapeData = (int *) malloc(13 * 3 * sizeof(int));
     if (JPL_ShapeData == NULL) {
         ephem_fatal(__FILE__, __LINE__, "Malloc fail.");
         exit(1);
@@ -134,32 +141,34 @@ int JPL_ReadBinaryData() {
     JPL_EphemData_offset = (int) ftell(JPL_EphemFile);
 
     // Allocate memory to use to store ephemeris, as we load it
-    JPL_EphemData = (double *) lt_malloc(JPL_EphemArrayLen * JPL_EphemArrayRecords * sizeof(double));
+    JPL_EphemData = (double *) malloc(JPL_EphemArrayLen * JPL_EphemArrayRecords * sizeof(double));
 
     // Allocate array to record which blocks we have already loaded from disk
-    JPL_EphemData_items_loaded = (unsigned char *) lt_malloc(JPL_EphemArrayRecords * sizeof(unsigned char));
+    JPL_EphemData_items_loaded = (unsigned char *) malloc(JPL_EphemArrayRecords * sizeof(unsigned char));
     memset(JPL_EphemData_items_loaded, 0, JPL_EphemArrayRecords);
 
     if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "Data file successfully opened.");
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        snprintf(msg, FNAME_LENGTH, "Data file successfully opened.");
+        ephem_log(msg);
     }
 
     // Success
     return 0;
 }
 
-//! JPL_DumpBinaryData - dump contents of DE430 to a binary dump in <data/dcfbinary.430>, to save parsing
+//! jpl_dumpBinaryData - dump contents of DE430 to a binary dump in <data/binary_de430.bin>, to save parsing
 //! original files every time we are run.
 
-void JPL_DumpBinaryData() {
+void jpl_dumpBinaryData() {
     FILE *output;
     char fname[FNAME_LENGTH];
 
-    snprintf(fname, FNAME_LENGTH, "%s/../data/dcfbinary.%d", SRCDIR, JPL_EphemNumber);
+    snprintf(fname, FNAME_LENGTH, "%s/../data/binary_de%d.bin", SRCDIR, JPL_EphemNumber);
     if (DEBUG) {
-        sprintf(temp_err_string, "Dumping binary data to file <%s>.", fname);
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        sprintf(msg, "Dumping binary data to file <%s>.", fname);
+        ephem_log(msg);
     }
     output = fopen(fname, "w");
     if (output == NULL) return; // FAIL
@@ -173,8 +182,9 @@ void JPL_DumpBinaryData() {
     fwrite((void *) JPL_EphemData, sizeof(double), JPL_EphemArrayLen * JPL_EphemArrayRecords, output);
     fclose(output);
     if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "Data successfully dumped.");
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        snprintf(msg, FNAME_LENGTH, "Data successfully dumped.");
+        ephem_log(msg);
     }
 }
 
@@ -200,12 +210,13 @@ void jpl_readAsciiData() {
 
     // Try and read the ephemeris from binary files. Only proceed with parsing the original files if binary files
     // don't exist.
-    if (JPL_ReadBinaryData() == 0) return;
+    if (jpl_readBinaryData() == 0) return;
 
     // Logging message to report that we are parsing the DE430 files
     if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "Beginning to read JPL ephemeris DE%d.", JPL_EphemNumber);
-        ephem_log(temp_err_string);
+        char msg[LSTR_LENGTH];
+        snprintf(msg, FNAME_LENGTH, "Beginning to read JPL ephemeris DE%d.", JPL_EphemNumber);
+        ephem_log(msg);
     }
 
     // The header file, <data/header.430>, contains global information about the ephemeris
@@ -226,8 +237,9 @@ void jpl_readAsciiData() {
 
             // Log message that we are opening a new ephemeris file
             if (DEBUG) {
-                snprintf(temp_err_string, FNAME_LENGTH, "Opening file <%s>", fname);
-                ephem_log(temp_err_string);
+                char msg[LSTR_LENGTH];
+                snprintf(msg, FNAME_LENGTH, "Opening file <%s>", fname);
+                ephem_log(msg);
             }
 
             // Open the file -- first time around the header files; subsequently, the ephemeris itself
@@ -243,7 +255,7 @@ void jpl_readAsciiData() {
         }
 
         // Read a line of data from the ephemeris file
-        file_readline(input, line);
+        file_readline(input, line, sizeof line);
         str_strip(line, line);
 
         // Ignore blank lines
@@ -259,8 +271,9 @@ void jpl_readAsciiData() {
             line_ptr = next_word(line_ptr);
             JPL_EphemArrayLen = (int) get_float(line_ptr, NULL) + 2; // Two extra floats are JD limits of time step
             if (DEBUG) {
-                snprintf(temp_err_string, FNAME_LENGTH, "Each record of length %d floats.", JPL_EphemArrayLen);
-                ephem_log(temp_err_string);
+                char msg[LSTR_LENGTH];
+                snprintf(msg, FNAME_LENGTH, "Each record of length %d floats.", JPL_EphemArrayLen);
+                ephem_log(msg);
             }
             continue;
         }
@@ -273,8 +286,9 @@ void jpl_readAsciiData() {
             line_ptr = next_word(line);
             state = (int) get_float(line_ptr, NULL);  // Set state to the new GROUP number
             if (DEBUG) {
-                snprintf(temp_err_string, FNAME_LENGTH, "Entering GROUP %d.", state);
-                ephem_log(temp_err_string);
+                char msg[LSTR_LENGTH];
+                snprintf(msg, FNAME_LENGTH, "Entering GROUP %d.", state);
+                ephem_log(msg);
             }
 
             if (state == 1040) {
@@ -288,7 +302,7 @@ void jpl_readAsciiData() {
             } else if (state == 1050) {
                 // Entering group 1050, which defines the shape array
                 // Before we start we need to allocate storage for the 13x3 shape array
-                JPL_ShapeData = (int *) lt_malloc(13 * 3 * sizeof(int));
+                JPL_ShapeData = (int *) malloc(13 * 3 * sizeof(int));
                 if (JPL_ShapeData == NULL) {
                     ephem_fatal(__FILE__, __LINE__, "Malloc fail.");
                     exit(1);
@@ -302,8 +316,9 @@ void jpl_readAsciiData() {
                 dictLookup(JPL_EphemVars, "AU", NULL, (void *) &dptr); // astronomical unit, measured in km
                 JPL_AU = *dptr;
                 if (DEBUG) {
-                    snprintf(temp_err_string, FNAME_LENGTH, "Astronomical unit = %.1f km.", JPL_AU);
-                    ephem_log(temp_err_string);
+                    char msg[LSTR_LENGTH];
+                    snprintf(msg, FNAME_LENGTH, "Astronomical unit = %.1f km.", JPL_AU);
+                    ephem_log(msg);
                 }
 
                 // Work out the number of records that the ephemeris will contain
@@ -334,9 +349,10 @@ void jpl_readAsciiData() {
             line_ptr = next_word(line_ptr);
             JPL_EphemStep = get_float(line_ptr, NULL);
             if (DEBUG) {
-                snprintf(temp_err_string, FNAME_LENGTH, "Ephemeris spans from %.1f to %.1f; stepsize %.1f.",
+                char msg[LSTR_LENGTH];
+                snprintf(msg, FNAME_LENGTH, "Ephemeris spans from %.1f to %.1f; stepsize %.1f.",
                          JPL_EphemStart, JPL_EphemEnd, JPL_EphemStep);
-                ephem_log(temp_err_string);
+                ephem_log(msg);
             }
         } else if (state == 1040) {
             // Group 1040 has a list of variables which are set within the header
@@ -351,8 +367,9 @@ void jpl_readAsciiData() {
                     exit(1);
                 }
                 if (DEBUG) {
-                    sprintf(temp_err_string, "Variable dictionary has %d entries.", var_dict_len);
-                    ephem_log(temp_err_string);
+                    char msg[LSTR_LENGTH];
+                    sprintf(msg, "Variable dictionary has %d entries.", var_dict_len);
+                    ephem_log(msg);
                 }
                 continue;
             }
@@ -446,9 +463,10 @@ void jpl_readAsciiData() {
                     // Logging message if we have decided to ignore a block of data
                     if (DEBUG) {
                         if (ignore) {
-                            snprintf(temp_err_string, FNAME_LENGTH, "Repeat record detected at %.1f (expecting %.1f).",
+                            char msg[LSTR_LENGTH];
+                            snprintf(msg, FNAME_LENGTH, "Repeat record detected at %.1f (expecting %.1f).",
                                      JPL_EphemData[pos - 2], jd_min);
-                            ephem_log(temp_err_string);
+                            ephem_log(msg);
                         }
                     }
 
@@ -472,9 +490,9 @@ void jpl_readAsciiData() {
 
                 // if (DEBUG) {
                 //  if ((pos % JPL_EphemArrayLen) == 2) {
-                //   snprintf(temp_err_string, FNAME_LENGTH "Record spans from %.1f to %.1f.",
+                //   snprintf(msg, FNAME_LENGTH "Record spans from %.1f to %.1f.",
                 //            JPL_EphemData[pos-2], JPL_EphemData[pos-1]);
-                //   ephem_log(temp_err_string);
+                //   ephem_log(msg);
                 //   }
                 //  }
 
@@ -488,27 +506,26 @@ void jpl_readAsciiData() {
     }
 
     if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "Read %d items into a data array of length %d.", pos,
+        char msg[LSTR_LENGTH];
+        snprintf(msg, FNAME_LENGTH, "Read %d items into a data array of length %d.", pos,
                  malloced_data_len);
-        ephem_log(temp_err_string);
-    }
-    if (DEBUG) {
-        snprintf(temp_err_string, FNAME_LENGTH, "Finished reading JPL epemeris DE%d.", JPL_EphemNumber);
-        ephem_log(temp_err_string);
+        ephem_log(msg);
+        snprintf(msg, FNAME_LENGTH, "Finished reading JPL epemeris DE%d.", JPL_EphemNumber);
+        ephem_log(msg);
     }
 
     // Now that we've parsed the text-based DE430 files that we downloaded, we dump the data in binary format
-    JPL_DumpBinaryData();
+    jpl_dumpBinaryData();
 
     // Make table indicating that we have loaded all of the ephemeris data
-    JPL_EphemData_items_loaded = (unsigned char *) lt_malloc(JPL_EphemArrayRecords * sizeof(unsigned char));
+    JPL_EphemData_items_loaded = (unsigned char *) malloc(JPL_EphemArrayRecords * sizeof(unsigned char));
     memset(JPL_EphemData_items_loaded, 1, JPL_EphemArrayRecords);
 
     // Free storage for local copy
     free(JPL_EphemData);
 
     // Open file pointer to version on disk
-    JPL_ReadBinaryData();
+    jpl_readBinaryData();
 }
 
 //! chebyshev - Evaluate a Chebyshev polynomial
@@ -622,10 +639,10 @@ void jpl_computeXYZ(int body_id, double jd, double *x, double *y, double *z) {
 
     // For diagnostics, it may be useful to print internal state
     // if (DEBUG) {
-    //   snprintf(temp_err_string, FNAME_LENGTH,
+    //   snprintf(msg, FNAME_LENGTH,
     //            "t0 = %.1f ; t1 = %.1f ; JD = %.1f ; C = %d ; N = %d ; G = %d ; dt = %.1f ; Tc = %.1f ; "
     //            "x = %.1f ; y = %.1f ; z = %.1f", t0,t1,JD,C,N,G,dt,Tc,*x,*y,*z);
-    //   ephem_log(temp_err_string);
+    //   ephem_log(msg);
     // }
 }
 
@@ -700,7 +717,7 @@ void jpl_computeEphemeris(int bodyId, const double jd, double *x, double *y, dou
     }
 
     // We give asteroids body numbers which start at 1e7 + 1 (Ceres). These aren't in DE430, so use orbital elements.
-    if (bodyId > 10000000) {
+    if (bodyId > ASTEROIDS_OFFSET) {
         orbitalElements_computeEphemeris(bodyId, jd, x, y, z, ra, dec, mag, phase, angSize, phySize, albedo, sunDist,
                                          earthDist, sunAngDist, theta_ESO, eclipticLongitude, eclipticLatitude,
                                          eclipticDistance, ra_dec_epoch,
@@ -828,4 +845,12 @@ void jpl_computeEphemeris(int bodyId, const double jd, double *x, double *y, dou
                       albedo, sunDist, earthDist, sunAngDist, theta_ESO, eclipticLongitude, eclipticLatitude,
                       eclipticDistance, ra_dec_epoch, jd,
                       do_topocentric_correction, topocentric_latitude, topocentric_longitude);
+}
+
+//! jpl_shutdown - Free malloced memory within this module
+
+void jpl_shutdown() {
+    if (JPL_ShapeData != NULL) free(JPL_ShapeData);
+    if (JPL_EphemData != NULL) free(JPL_EphemData);
+    if (JPL_EphemData_items_loaded != NULL) free(JPL_EphemData_items_loaded);
 }

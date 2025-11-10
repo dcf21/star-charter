@@ -29,6 +29,8 @@ extern double *phy_size_array;
 
 void magnitudeEstimate_init();
 
+void magnitudeEstimate_shutdown();
+
 void magnitudeEstimate(int body_id, double xo, double yo, double zo, double xe, double ye, double ze, double xs,
                        double ys, double zs, double *ra, double *dec, double *mag, double *phase, double *angSize,
                        double *phySize, double *albedoOut, double *sunDist, double *earthDist, double *sunAngDist,

@@ -198,19 +198,23 @@ unsigned char double_equal(double a, double b) {
 }
 
 //! file_readline - Read a line from a file into a character buffer, up until the next newline character. A maximum
-//! of MaxLength characters are read. The output character buffer is always null-terminated. The file handle is
-//! fast-forwarded to the next newline, or by MaxLength characters, whichever happens sooner.
+//! of <max_length> characters are read. The output character buffer is always null-terminated. The file handle is
+//! fast-forwarded to the next new-line, or by <max_length> characters, whichever happens sooner.
 //! \param file The file handle to read from
 //! \param output The character buffer into which to write the characters read
+//! \param max_length The maximum number of characters to write to output, including null termination
 
-void file_readline(FILE *file, char *output) {
+void file_readline(FILE *file, char *output, int max_length) {
     char c = '\x07';
-    char *outputscan = output;
+    char *output_scan = output;
+    int i = 0;
 
     while (((int) c != '\n') && (!feof(file)) && (!ferror(file)))
-        if ((fscanf(file, "%c", &c) >= 0) && ((((int) c) > 31) || (((int) c) < 0) || (((int) c) == 9)))
-            *(outputscan++) = c;
-    *outputscan = '\0';
+        if ((fscanf(file, "%c", &c) >= 0) && ((((int) c) > 31) || (((int) c) < 0)) && (i < max_length - 2)) {
+            i++;
+            *(output_scan++) = c;
+        }
+    *output_scan = '\0';
 }
 
 //! get_word - Returns the first word from <in>, terminated by any whitespace. Returns a maximum of <max> characters.

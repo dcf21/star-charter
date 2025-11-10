@@ -97,7 +97,7 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
 
     while ((!feof(file)) && (!ferror(file))) {
         double ra, dec, x, y;
-        file_readline(file, line);
+        file_readline(file, line, sizeof line);
         if ((line[0] == '#') || (strlen(line) < 28)) continue; // Comment line
         scan = line + 0;
         while ((scan[0] > '\0') && (scan[0] <= ' ')) scan++;
@@ -138,15 +138,18 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
 
             // Set the line colour and width for the boundary of this constellation
             if (strncmp(constellation, s->constellation_highlight, 3) == 0) {
-                cairo_set_source_rgb(s->cairo_draw, s->star_col.red, s->star_col.grn,
-                                     s->star_col.blu);
-                cairo_set_line_width(s->cairo_draw, 2);
+                cairo_set_source_rgba(s->cairo_draw,
+                                      s->star_col.red, s->star_col.grn, s->star_col.blu,
+                                      s->star_col.alpha);
+                cairo_set_line_width(s->cairo_draw, 2 * s->line_width_base);
                 was_highlighted = 1;
             } else if (was_highlighted) {
-                cairo_set_source_rgb(s->cairo_draw, s->constellation_boundary_col.red,
-                                     s->constellation_boundary_col.grn,
-                                     s->constellation_boundary_col.blu);
-                cairo_set_line_width(s->cairo_draw, 0.8);
+                cairo_set_source_rgba(s->cairo_draw,
+                                      s->constellation_boundary_col.red,
+                                      s->constellation_boundary_col.grn,
+                                      s->constellation_boundary_col.blu,
+                                      s->constellation_boundary_col.alpha);
+                cairo_set_line_width(s->cairo_draw, 0.8 * s->line_width_base);
                 was_highlighted = 0;
             }
         }
@@ -172,9 +175,11 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
 
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
-    cairo_set_source_rgb(s->cairo_draw, s->constellation_stick_col.red,
-                         s->constellation_stick_col.grn, s->constellation_stick_col.blu);
-    cairo_set_line_width(s->cairo_draw, s->constellations_sticks_line_width);
+    cairo_set_source_rgba(
+            s->cairo_draw,
+            s->constellation_stick_col.red, s->constellation_stick_col.grn, s->constellation_stick_col.blu,
+            s->constellation_stick_col.alpha);
+    cairo_set_line_width(s->cairo_draw, s->constellations_sticks_line_width * s->line_width_base);
 
     // Select which catalogue of constellation stick figures to plot
     const char *stick_definitions = "constellation_lines_simplified_by_RA_Dec.dat";
@@ -194,7 +199,7 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
     // Loop over all the lines on the stick figures
     while ((!feof(file)) && (!ferror(file))) {
         double ra0, dec0, ra1, dec1, x0, y0, x1, y1;
-        file_readline(file, line);
+        file_readline(file, line, sizeof line);
 
         // Ignore comment lines
         if (line[0] == '#') continue;
@@ -253,7 +258,7 @@ void plot_constellation_names(chart_config *s, cairo_page *page) {
     if (file == NULL) stch_fatal(__FILE__, __LINE__, "Could not open constellation name data");
 
     while ((!feof(file)) && (!ferror(file))) {
-        file_readline(file, line);
+        file_readline(file, line, sizeof line);
         if (line[0] == '#') continue; // Comment line
         const char *scan = line;
         while ((scan[0] > '\0') && (scan[0] <= ' ')) scan++;

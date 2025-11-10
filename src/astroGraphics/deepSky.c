@@ -41,25 +41,33 @@
 //! \param radius - The radius of the DSO, in Cairo coordinates
 
 void draw_open_cluster_coloured(chart_config *s, const double x_canvas, const double y_canvas, const double radius) {
-    cairo_set_line_width(s->cairo_draw, 1);
+    cairo_set_line_width(s->cairo_draw, 1.0 * s->line_width_base);
     cairo_new_path(s->cairo_draw);
     cairo_arc(s->cairo_draw, x_canvas, y_canvas, radius, 0, 2 * M_PI);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_cluster_col.red, s->dso_cluster_col.grn, s->dso_cluster_col.blu);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_cluster_col.red, s->dso_cluster_col.grn, s->dso_cluster_col.blu,
+                          s->dso_cluster_col.alpha);
     cairo_fill_preserve(s->cairo_draw);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu,
+                          s->dso_outline_col.alpha);
     cairo_stroke(s->cairo_draw);
 }
 
 void draw_globular_cluster_coloured(chart_config *s, const double x_canvas, const double y_canvas,
                                     const double radius) {
-    cairo_set_line_width(s->cairo_draw, 1);
+    cairo_set_line_width(s->cairo_draw, 1.0 * s->line_width_base);
     cairo_new_path(s->cairo_draw);
     cairo_arc(s->cairo_draw, x_canvas, y_canvas, radius, 0, 2 * M_PI);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_cluster_col.red, s->dso_cluster_col.grn, s->dso_cluster_col.blu);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_cluster_col.red, s->dso_cluster_col.grn, s->dso_cluster_col.blu,
+                          s->dso_cluster_col.alpha);
     cairo_fill_preserve(s->cairo_draw);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu,
+                          s->dso_outline_col.alpha);
     cairo_stroke(s->cairo_draw);
-    cairo_set_line_width(s->cairo_draw, 0.5);
+    cairo_set_line_width(s->cairo_draw, 0.5 * s->line_width_base);
     cairo_new_path(s->cairo_draw);
     cairo_move_to(s->cairo_draw, x_canvas - radius, y_canvas);
     cairo_line_to(s->cairo_draw, x_canvas + radius, y_canvas);
@@ -73,12 +81,16 @@ void draw_planetary_nebula_coloured(chart_config *s, const double x_canvas, cons
     const double r0 = point_size * 0.75;
     const double r1 = point_size * 1.5;
 
-    cairo_set_line_width(s->cairo_draw, 1);
+    cairo_set_line_width(s->cairo_draw, 1.0 * s->line_width_base);
     cairo_new_path(s->cairo_draw);
     cairo_arc(s->cairo_draw, x_canvas, y_canvas, r0, 0, 2 * M_PI);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_nebula_col.red, s->dso_nebula_col.grn, s->dso_nebula_col.blu);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_nebula_col.red, s->dso_nebula_col.grn, s->dso_nebula_col.blu,
+                          s->dso_nebula_col.alpha);
     cairo_fill_preserve(s->cairo_draw);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu,
+                          s->dso_outline_col.alpha);
     cairo_stroke(s->cairo_draw);
 
     for (int i = 0; i < 4; i++) {
@@ -103,8 +115,10 @@ void draw_ellipsoid_coloured(chart_config *s, const double axis_pa, const double
     cairo_restore(s->cairo_draw);
     cairo_set_source_rgba(s->cairo_draw, colour_r, colour_g, colour_b, opacity);
     cairo_fill_preserve(s->cairo_draw);
-    cairo_set_line_width(s->cairo_draw, 0.5);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
+    cairo_set_line_width(s->cairo_draw, 0.5 * s->line_width_base);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu,
+                          s->dso_outline_col.alpha);
     cairo_stroke(s->cairo_draw);
 }
 
@@ -112,7 +126,8 @@ void draw_galaxy_coloured(chart_config *s, const double axis_pa, const double x_
                           const double radius_major, const double radius_minor) {
     draw_ellipsoid_coloured(
             s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
-            1, s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
+            s->dso_galaxy_col.alpha,
+            s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
 }
 
 void draw_dark_nebula_coloured(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
@@ -148,8 +163,10 @@ void draw_galaxy_cluster_coloured(chart_config *s, const double axis_pa, const d
         cairo_line_to(s->cairo_draw, 0, radius_major);
     }
     cairo_restore(s->cairo_draw);
-    cairo_set_line_width(s->cairo_draw, 1);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
+    cairo_set_line_width(s->cairo_draw, 1.0 * s->line_width_base);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu,
+                          s->dso_outline_col.alpha);
     cairo_stroke(s->cairo_draw);
 
     // Unset dashed line style
@@ -158,16 +175,20 @@ void draw_galaxy_cluster_coloured(chart_config *s, const double axis_pa, const d
 
 void draw_generic_nebula_coloured(chart_config *s, const double x_canvas, const double y_canvas,
                                   const double point_size) {
-    cairo_set_line_width(s->cairo_draw, 0.5);
+    cairo_set_line_width(s->cairo_draw, 0.5 * s->line_width_base);
     cairo_new_path(s->cairo_draw);
     cairo_move_to(s->cairo_draw, x_canvas - point_size, y_canvas - point_size);
     cairo_line_to(s->cairo_draw, x_canvas + point_size, y_canvas - point_size);
     cairo_line_to(s->cairo_draw, x_canvas + point_size, y_canvas + point_size);
     cairo_line_to(s->cairo_draw, x_canvas - point_size, y_canvas + point_size);
     cairo_close_path(s->cairo_draw);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_nebula_col.red, s->dso_nebula_col.grn, s->dso_nebula_col.blu);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_nebula_col.red, s->dso_nebula_col.grn, s->dso_nebula_col.blu,
+                          s->dso_nebula_col.alpha);
     cairo_fill_preserve(s->cairo_draw);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_outline_col.red, s->dso_outline_col.grn, s->dso_outline_col.blu,
+                          s->dso_outline_col.alpha);
     cairo_stroke(s->cairo_draw);
 }
 
@@ -219,10 +240,12 @@ void draw_planetary_nebula_fuzzy(chart_config *s, const double x_canvas, const d
     const double r0 = point_size * 0.75;
     const double r1 = point_size * 1.5;
 
-    cairo_set_line_width(s->cairo_draw, 2);
+    cairo_set_line_width(s->cairo_draw, 1.5 * s->line_width_base);
     cairo_new_path(s->cairo_draw);
     cairo_arc(s->cairo_draw, x_canvas, y_canvas, r0, 0, 2 * M_PI);
-    cairo_set_source_rgb(s->cairo_draw, s->dso_nebula_col.red, s->dso_nebula_col.grn, s->dso_nebula_col.blu);
+    cairo_set_source_rgba(s->cairo_draw,
+                          s->dso_nebula_col.red, s->dso_nebula_col.grn, s->dso_nebula_col.blu,
+                          s->dso_nebula_col.alpha);
     cairo_stroke(s->cairo_draw);
 
     for (int i = 0; i < 4; i++) {
@@ -259,7 +282,8 @@ void draw_galaxy_fuzzy(chart_config *s, const double axis_pa, const double x_can
                        const double radius_major, const double radius_minor) {
     draw_ellipsoid_fuzzy(
             s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
-            0.75, s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
+            0.75 * s->dso_galaxy_col.alpha,
+            s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
 }
 
 void draw_dark_nebula_fuzzy(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
@@ -276,7 +300,8 @@ void draw_galaxy_cluster_fuzzy(chart_config *s, const double axis_pa, const doub
                                const double radius_major, const double radius_minor) {
     draw_ellipsoid_fuzzy(
             s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
-            0.75, s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
+            0.75 * s->dso_galaxy_col.alpha,
+            s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
 }
 
 void draw_generic_nebula_fuzzy(chart_config *s, const double x_canvas, const double y_canvas, const double point_size) {
@@ -539,7 +564,7 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
         char line[FNAME_LENGTH];
         const char *line_ptr = line;
 
-        file_readline(dso_data_file, line);
+        file_readline(dso_data_file, line, sizeof line);
 
         // Ignore comment lines
         if ((line[0] == '#') || (line[0] == '\n') || (line[0] == '\0')) continue;

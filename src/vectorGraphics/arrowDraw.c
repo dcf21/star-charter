@@ -31,7 +31,7 @@
 
 //! draw_arrow - Draw an arrow on the Cairo context.
 //! \param [in] s - A <chart_config> structure defining the properties of the star chart to be drawn.
-//! \param [in] lw - The line width to use when stroking the arrow stalk.
+//! \param [in] lw - The line width to use when stroking the arrow stalk. In units of line_width_base.
 //! \param [in] head_start - Boolean (0 or 1) indicating whether to put an arrow head at (x0, y0)
 //! \param [in] head_end - Boolean (0 or 1) indicating whether to put an arrow head at (x1, y1)
 //! \param [in] x0 - X coordinate of start of arrow (Cairo pixels)
@@ -43,8 +43,11 @@ void draw_arrow(chart_config *s, const double lw, const int head_start, const in
                 const double x0, const double y0, const double x1, const double y1) {
     double x_start, y_start, x_end, y_end, direction;
 
+    // Convert line width to pixels
+    const double lw_norm = lw * s->line_width_base;
+
     // Set line width
-    cairo_set_line_width(s->cairo_draw, lw);
+    cairo_set_line_width(s->cairo_draw, lw * s->line_width_base);
 
     // Work out direction of arrow
     if (hypot(x1 - x0, y1 - y0) < 1e-200) direction = 0.0;
@@ -53,17 +56,17 @@ void draw_arrow(chart_config *s, const double lw, const int head_start, const in
     // Draw arrowhead on beginning of arrow if desired
     if (head_start) {
         // Pointy back of arrowhead on one side
-        const double x3 = x0 - CONST_ARROW_HEADSIZE * lw * sin((direction + M_PI) - CONST_ARROW_ANGLE / 2);
-        const double y3 = y0 - CONST_ARROW_HEADSIZE * lw * cos((direction + M_PI) - CONST_ARROW_ANGLE / 2);
+        const double x3 = x0 - CONST_ARROW_HEADSIZE * lw_norm * sin((direction + M_PI) - CONST_ARROW_ANGLE / 2);
+        const double y3 = y0 - CONST_ARROW_HEADSIZE * lw_norm * cos((direction + M_PI) - CONST_ARROW_ANGLE / 2);
 
         // Pointy back of arrowhead on other side
-        const double x5 = x0 - CONST_ARROW_HEADSIZE * lw * sin((direction + M_PI) + CONST_ARROW_ANGLE / 2);
-        const double y5 = y0 - CONST_ARROW_HEADSIZE * lw * cos((direction + M_PI) + CONST_ARROW_ANGLE / 2);
+        const double x5 = x0 - CONST_ARROW_HEADSIZE * lw_norm * sin((direction + M_PI) + CONST_ARROW_ANGLE / 2);
+        const double y5 = y0 - CONST_ARROW_HEADSIZE * lw_norm * cos((direction + M_PI) + CONST_ARROW_ANGLE / 2);
 
         // Point where back of arrowhead crosses stalk
-        const double x4 = x0 - CONST_ARROW_HEADSIZE * lw * sin(direction + M_PI) * (1.0 - CONST_ARROW_CONSTRICT) *
+        const double x4 = x0 - CONST_ARROW_HEADSIZE * lw_norm * sin(direction + M_PI) * (1.0 - CONST_ARROW_CONSTRICT) *
                                cos(CONST_ARROW_ANGLE / 2);
-        const double y4 = y0 - CONST_ARROW_HEADSIZE * lw * cos(direction + M_PI) * (1.0 - CONST_ARROW_CONSTRICT) *
+        const double y4 = y0 - CONST_ARROW_HEADSIZE * lw_norm * cos(direction + M_PI) * (1.0 - CONST_ARROW_CONSTRICT) *
                                cos(CONST_ARROW_ANGLE / 2);
 
         // Draw arrow head
@@ -87,17 +90,17 @@ void draw_arrow(chart_config *s, const double lw, const int head_start, const in
     // Draw arrowhead on end of arrow if desired
     if (head_end) {
         // Pointy back of arrowhead on one side
-        const double x3 = x1 - CONST_ARROW_HEADSIZE * lw * sin(direction - CONST_ARROW_ANGLE / 2);
-        const double y3 = y1 - CONST_ARROW_HEADSIZE * lw * cos(direction - CONST_ARROW_ANGLE / 2);
+        const double x3 = x1 - CONST_ARROW_HEADSIZE * lw_norm * sin(direction - CONST_ARROW_ANGLE / 2);
+        const double y3 = y1 - CONST_ARROW_HEADSIZE * lw_norm * cos(direction - CONST_ARROW_ANGLE / 2);
 
         // Pointy back of arrowhead on other side
-        const double x5 = x1 - CONST_ARROW_HEADSIZE * lw * sin(direction + CONST_ARROW_ANGLE / 2);
-        const double y5 = y1 - CONST_ARROW_HEADSIZE * lw * cos(direction + CONST_ARROW_ANGLE / 2);
+        const double x5 = x1 - CONST_ARROW_HEADSIZE * lw_norm * sin(direction + CONST_ARROW_ANGLE / 2);
+        const double y5 = y1 - CONST_ARROW_HEADSIZE * lw_norm * cos(direction + CONST_ARROW_ANGLE / 2);
 
         // Point where back of arrowhead crosses stalk
-        const double x4 = x1 - CONST_ARROW_HEADSIZE * lw * sin(direction) * (1.0 - CONST_ARROW_CONSTRICT) *
+        const double x4 = x1 - CONST_ARROW_HEADSIZE * lw_norm * sin(direction) * (1.0 - CONST_ARROW_CONSTRICT) *
                                cos(CONST_ARROW_ANGLE / 2);
-        const double y4 = y1 - CONST_ARROW_HEADSIZE * lw * cos(direction) * (1.0 - CONST_ARROW_CONSTRICT) *
+        const double y4 = y1 - CONST_ARROW_HEADSIZE * lw_norm * cos(direction) * (1.0 - CONST_ARROW_CONSTRICT) *
                                cos(CONST_ARROW_ANGLE / 2);
 
         // Draw arrow head
@@ -127,7 +130,7 @@ void draw_arrow(chart_config *s, const double lw, const int head_start, const in
 
 //! draw_thick_arrow_segment - Draw a thick arrow on the Cairo context, whose outline can be stroked around.
 //! \param [in] s - A <chart_config> structure defining the properties of the star chart to be drawn.
-//! \param [in] lw - The line width to use when stroking the arrow stalk.
+//! \param [in] lw - The line width to use when stroking the arrow stalk. In units of line_width_base.
 //! \param [in] head_start - Boolean (0 or 1) indicating whether to put an arrow head at (x0, y0)
 //! \param [in] head_end - Boolean (0 or 1) indicating whether to put an arrow head at (x1, y1)
 //! \param [in] x_list - List of X coordinates of points along the arrow
@@ -140,17 +143,21 @@ void draw_thick_arrow_segment(
         chart_config *s, const double lw, const int head_start, const int head_end,
         const double *x_pixels, const double *y_pixels, const double *theta,
         const int index_start, const int index_end) {
+
+    // Convert line width to pixels
+    const double lw_norm = lw * s->line_width_base;
+
     // We cannot draw segments with fewer than two points
     if (index_end < index_start + 1) return;
 
     // Arrow head geometry
     const double arrow_angle = CONST_ARROW_ANGLE_THICK;
-    const double arrow_head_hypotenuse = CONST_ARROW_HEADSIZE_THICK * lw;
+    const double arrow_head_hypotenuse = CONST_ARROW_HEADSIZE_THICK * lw_norm;
     const double arrow_head_back_half_height = arrow_head_hypotenuse * sin(arrow_angle / 2);
     const double arrow_head_total_length = arrow_head_hypotenuse * cos(arrow_angle / 2);
     const double arrow_head_back_x_ingress = arrow_head_total_length * CONST_ARROW_CONSTRICT;
     //const double arrow_head_back_angle = atan2(arrow_head_back_half_height, arrow_head_back_x_ingress);
-    const double arrow_head_back_fraction_hidden_by_line = lw / arrow_head_back_half_height;
+    const double arrow_head_back_fraction_hidden_by_line = lw_norm / arrow_head_back_half_height;
     const double arrow_head_back_x_ingress_unobscured = arrow_head_back_x_ingress *
                                                         (1 - arrow_head_back_fraction_hidden_by_line);
     const double arrow_head_distance_x0_to_tip = arrow_head_total_length - arrow_head_back_x_ingress_unobscured;
@@ -178,8 +185,8 @@ void draw_thick_arrow_segment(
         const double x0 = x_pixels[index_start];
         const double y0 = y_pixels[index_start];
         const double direction = theta[index_start];
-        cairo_move_to(s->cairo_draw, x0 + lw * cos(direction + M_PI / 2),
-                      y0 + lw * sin(direction + M_PI / 2));
+        cairo_move_to(s->cairo_draw, x0 + lw_norm * cos(direction + M_PI / 2),
+                      y0 + lw_norm * sin(direction + M_PI / 2));
     }
 
     // Stroke along top edge of the arrow
@@ -187,8 +194,8 @@ void draw_thick_arrow_segment(
         const double x0 = x_pixels[i];
         const double y0 = y_pixels[i];
         const double direction = theta[i];
-        cairo_line_to(s->cairo_draw, x0 + lw * cos(direction + M_PI / 2),
-                      y0 + lw * sin(direction + M_PI / 2));
+        cairo_line_to(s->cairo_draw, x0 + lw_norm * cos(direction + M_PI / 2),
+                      y0 + lw_norm * sin(direction + M_PI / 2));
 
     }
 
@@ -217,8 +224,8 @@ void draw_thick_arrow_segment(
         const double x0 = x_pixels[i];
         const double y0 = y_pixels[i];
         const double direction = theta[i];
-        cairo_line_to(s->cairo_draw, x0 + lw * cos(direction - M_PI / 2),
-                      y0 + lw * sin(direction - M_PI / 2));
+        cairo_line_to(s->cairo_draw, x0 + lw_norm * cos(direction - M_PI / 2),
+                      y0 + lw_norm * sin(direction - M_PI / 2));
     }
 
     // Close the path
@@ -245,6 +252,11 @@ void arrow_path_extend(int *path_len, double *x_list, double *y_list, double *th
     // Fetch the coordinates of a point some way back, in case planet turns direction at the very end of the arrow
     int i0 = i_last;
     arrow_path_retract(&i0, x_list, y_list, theta_list, distance / 2);
+    if ((i0 >= i_last) && (i_last >= 1)) {
+        // Catch the case where the arrow was short, and couldn't be retracted.
+        // In this case, retract by at least one data point, otherwise we get atan2(0,0)
+        i0 = i_last - 1;
+    }
     const double theta0 = atan2(y_last - y_list[i0], x_last - x_list[i0]);
 
     // Select which direction vector to use
@@ -311,7 +323,7 @@ void arrow_path_retract(int *path_len, const double *x_list, const double *y_lis
 
 //! draw_thick_arrow - Draw a thick arrow on the Cairo context, whose outline can be stroked around.
 //! \param [in] s - A <chart_config> structure defining the properties of the star chart to be drawn.
-//! \param [in] lw - The line width to use when stroking the arrow stalk.
+//! \param [in] lw - The line width to use when stroking the arrow stalk. In units of line_width_base.
 //! \param [in] head_start - Boolean (0 or 1) indicating whether to put an arrow head at (x0, y0)
 //! \param [in] head_end - Boolean (0 or 1) indicating whether to put an arrow head at (x1, y1)
 //! \param [in] x_list - List of X coordinates of points along the arrow
@@ -321,6 +333,9 @@ void arrow_path_retract(int *path_len, const double *x_list, const double *y_lis
 
 void draw_thick_arrow(chart_config *s, const double lw, const int head_start, const int head_end,
                       const double *x_list, const double *y_list, const double *theta, const int point_count) {
+    // Convert line width to pixels
+    const double lw_norm = lw * s->line_width_base;
+
     // Start path
     cairo_new_path(s->cairo_draw);
 
@@ -348,7 +363,8 @@ void draw_thick_arrow(chart_config *s, const double lw, const int head_start, co
         if ((!gsl_finite(x)) || (!gsl_finite(y))) {
             // If we have recorded a path prior to going off-side, then retract the arrow head so it's on the canvas
             if (start_i < i_out - 1) {
-                arrow_path_retract(&i_out, x_pixels, y_pixels, theta_pixels, lw * 6);
+                const double distance = lw_norm * 6;
+                arrow_path_retract(&i_out, x_pixels, y_pixels, theta_pixels, distance);
             }
 
             // Start recording the next path once we re-enter the canvas
@@ -365,7 +381,8 @@ void draw_thick_arrow(chart_config *s, const double lw, const int head_start, co
 
             if (((x_fraction > 0.8) && (x_fraction_last < 0.2)) || ((x_fraction_last > 0.8) && (x_fraction < 0.2))) {
                 if (start_i < i_out - 1) {
-                    arrow_path_retract(&i_out, x_pixels, y_pixels, theta_pixels, lw * 6);
+                    const double distance = lw_norm * 6;
+                    arrow_path_retract(&i_out, x_pixels, y_pixels, theta_pixels, distance);
                 }
 
                 x_pixels[i_out] = GSL_NAN;
@@ -384,7 +401,10 @@ void draw_thick_arrow(chart_config *s, const double lw, const int head_start, co
     }
 
     // Extend the end of the arrow beyond the last data point
-    arrow_path_extend(&x_pixels_length, x_pixels, y_pixels, theta_pixels, lw * 8);
+    {
+        const double distance = lw_norm * 8;
+        arrow_path_extend(&x_pixels_length, x_pixels, y_pixels, theta_pixels, distance);
+    }
 
     // Loop along arrow path looking for segments that are separated by NaN segments
     for (int i = 0, start_i = 0; i <= x_pixels_length; i++) {

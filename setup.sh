@@ -32,7 +32,7 @@ cd ${cwd} || exit
 # Delete old binary ephemeris files
 echo "[`date`] Cleaning old binary files"
 cd ${cwd} || exit
-rm -f data/dcfbinary*
+rm -f data/binary_*.bin
 
 # Convert the constellation stick figures, defined by the HIP numbers of stars, into RA/Dec
 echo "[`date`] Creating constellation stick figures"
@@ -78,4 +78,8 @@ cd ${cwd} || exit
 echo "[`date`] Generating a test chart"
 cd ${cwd} || exit
 cd examples
-../bin/starchart.bin jupiter_ephemeris.sch
+../bin/starchart.bin ephemerides.sch
+
+# Finished
+cd ${cwd} || exit
+echo "[`date`] Finishing DoAll script"

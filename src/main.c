@@ -29,6 +29,10 @@
 #include "coreUtils/strConstants.h"
 #include "coreUtils/errorReport.h"
 
+#include "ephemCalc/jpl.h"
+#include "ephemCalc/magnitudeEstimate.h"
+#include "ephemCalc/orbitalElements.h"
+
 #include "listTools/ltMemory.h"
 
 #include "settings/chart_config.h"
@@ -139,6 +143,9 @@ int main(int argc, char **argv) {
     // Clean up and exit
     free(this_chart_config);
     free(chart_defaults);
+    jpl_shutdown();
+    magnitudeEstimate_shutdown();
+    orbitalElements_shutdown();
     lt_freeAll(0);
     lt_memoryStop();
     if (DEBUG) stch_log("Terminating normally.");
