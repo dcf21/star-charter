@@ -1,7 +1,7 @@
 // render_chart.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -93,6 +93,20 @@ void render_chart(chart_config *s) {
 
     // Create a cairo surface object to render the star chart onto
     cairo_init(&page, s);
+
+    // If we're drawing a bleed margin guideline, draw that now
+    if (s->bleed_margin > 0) {
+        // Draw outline of chart
+        cairo_set_source_rgba(s->cairo_draw,
+                              s->chart_edge_line_col.red, s->chart_edge_line_col.grn, s->chart_edge_line_col.blu,
+                              s->chart_edge_line_col.alpha);
+        cairo_set_line_width(s->cairo_draw, s->chart_edge_line_width * s->line_width_base);
+        cairo_new_path(s->cairo_draw);
+        chart_edge_line_path(s, s->bleed_margin);
+        cairo_stroke(s->cairo_draw);
+
+        if (s->output_multiple_pages) move_to_next_page(s);
+    }
 
     // If we're shading the Milky Way behind the star chart, do that first
     if (s->plot_galaxy_map || s->shade_twilight || s->shade_near_sun || s->shade_not_observable) {

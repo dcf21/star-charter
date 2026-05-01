@@ -1,7 +1,7 @@
 // settings.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -60,11 +60,13 @@ void default_config(chart_config *i) {
     i->show_horizon = 0;
     i->horizon_latitude = 0;
     i->horizon_longitude = 0;
+    i->horizon_colour = (colour) {0, 0, 0, 1};
     i->horizon_cardinal_points_marker_colour = (colour) {0, 0, 0, 1};
     i->horizon_cardinal_points_labels_colour = (colour) {0, 0, 0, 1};
     i->horizon_cardinal_points_marker_size = 1;
     i->horizon_cardinal_points_marker_count = 8;
     i->horizon_cardinal_points_marker_elevate = 0;
+    i->horizon_graphics_count = 0;
     i->julian_date = 2451544.5;
     i->show_solar_system = 0;
     strcpy(i->solar_system_labels[0], "Mercury");
@@ -138,9 +140,13 @@ void default_config(chart_config *i) {
     i->dso_mags = 0;
     i->dso_mag_min = 14;
     i->must_label_all_dsos = 0;
+    i->must_label_brighter_than = -10;
+    i->must_label_objects_length = 0;
+    i->must_not_label_objects_length = 0;
     i->angular_width = 25.0;
     i->width = 16.5;
     i->aspect = 1.41421356;
+    i->bleed_margin = 0;
     i->dpi = 0; // automatic
     i->ephemeris_default_count = 0;
     i->ephemeris_custom_count = 0;
@@ -217,8 +223,8 @@ void default_config(chart_config *i) {
     i->label_font_size_scaling = 1;
     i->output_multiple_pages = 0;
     strcpy(i->constellation_highlight, "---");
-    strcpy(i->dso_catalogue_file, SRCDIR "../data/deepSky/ngcDistances/output/ngc_merged.txt");
-    strcpy(i->galaxy_map_filename, SRCDIR "../data/milkyWay/process/output/galaxymap.dat");
+    strcpy(i->dso_catalogue_file, SRCDIR "../data_generated/deep_sky_merged_catalogue/ngc_merged.txt");
+    strcpy(i->galaxy_map_filename, SRCDIR "../data_generated/milky_way_map/galaxymap.dat");
     strcpy(i->photo_filename, "");
     strcpy(i->output_filename, "starchart.png");
     strcpy(i->copyright, "Produced with StarCharter. https://github.com/dcf21/star-charter");
@@ -248,6 +254,7 @@ void default_config(chart_config *i) {
 
     // Boolean flags indicating which settings have been manually overridden
     i->mag_min_is_set = 0;
+    i->mag_max_is_set = 0;
     i->dso_mag_min_is_set = 0;
     i->minimum_star_count_is_set = 0;  // not exposed
     i->ra0_is_set = 0;
@@ -513,7 +520,6 @@ void config_init_pointing(chart_config *i) {
 
     // Tweak magnitude limits to restrict maximum number of stars visible
     tweak_magnitude_limits(i);
-    i->mag_highest = i->mag_max;
 }
 
 //! config_close - Free up a chart configuration data structure

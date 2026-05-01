@@ -1,7 +1,7 @@
 // stars.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -40,8 +40,8 @@
 const int binary_format_version = 3;
 
 // Filenames
-const char *ascii_star_catalogue = SRCDIR "../data/stars/starCataloguesMerge/output/star_charter_stars.dat.gz";
-const char *binary_star_catalogue = SRCDIR "../data/stars/starCataloguesMerge/output/star_charter_stars.bin";
+const char *ascii_star_catalogue = SRCDIR "../data_generated/star_catalogue_merged/star_charter_stars.dat.gz";
+const char *binary_star_catalogue = SRCDIR "../data_generated/star_catalogue_merged/star_charter_stars.bin";
 
 // Define tiling pattern
 tiling_level_definition object_tilings[] = {{6.5,  1,  1},

@@ -3,7 +3,7 @@
 # merge.py
 #
 # -------------------------------------------------
-# Copyright 2015-2025 Dominic Ford
+# Copyright 2015-2026 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -31,6 +31,11 @@ import sys
 
 from math import pi, cos, sin, sqrt, asin
 from typing import Any, Dict, Final, List, Optional, Sequence
+
+# File path of this script, used to locate input and output paths
+our_path: Final[str] = os.path.split(os.path.abspath(__file__))[0]
+input_path: Final[str] = os.path.join(our_path, "../../data/deepSky")
+output_path: Final[str] = os.path.join(our_path, "../../data_generated/deep_sky_merged_catalogue")
 
 # Conversion of object types used in the Messier catalogue data file into the form we use in final file
 object_type_conversion_messier: Final[Dict[str, str]] = {
@@ -137,7 +142,8 @@ def read_english_names(ic_names: Dict[int, List[str]], ic_to_messier: Dict[int, 
         None
     """
     # Open the list of English popular names for NGC and IC objects
-    with open("../ngc/names.dat") as f:
+    ngc_path: Final[str] = os.path.join(input_path, "ngc/names.dat")
+    with open(ngc_path, "rt") as f:
         for line in f:
             # Ignore blank lines
             if line.strip() == '':
@@ -296,7 +302,8 @@ def read_messier_catalogue(obj_list: List[Dict[str, Any]], messier_ptr: Dict[int
     """
     # Import V-band magnitudes from Messier catalogue
     cat_num: int = 0
-    with open("../messier/messier.dat") as f:
+    messier_path: Final[str] = os.path.join(input_path, "messier/messier.dat")
+    with open(messier_path, "rt") as f:
         for line in f:
             # Ignore blank lines
             if line.strip() == '':
@@ -392,7 +399,7 @@ def read_messier_catalogue(obj_list: List[Dict[str, Any]], messier_ptr: Dict[int
 def read_redshift_independent_distances(obj_list: List[Dict[str, Any]],
                                         ic_ptr: Dict[int, int], ngc_ptr: Dict[int, int]) -> None:
     """
-    Read redshift-independent distance measures for NGC and IC objects, from the data file <output/NED_distances.dat>.
+    Read redshift-independent distance measures for NGC and IC objects, from the data file <NED_distances.dat>.
 
     :param obj_list:
         A list of dictionaries describing objects.
@@ -404,7 +411,8 @@ def read_redshift_independent_distances(obj_list: List[Dict[str, Any]],
         None
     """
     # Gather redshift-independent distances
-    with open("output/NED_distances.dat") as f:
+    ned_distances_path: Final[str] = os.path.join(output_path, "NED_distances.dat")
+    with open(ned_distances_path, "rt") as f:
         for line in f:
             # Ignore blank lines and comment lines
             if (len(line) < 8) or (line[0] == '#'):
@@ -458,7 +466,8 @@ def read_ngc_2000(obj_list: List[Dict[str, Any]], ic_ptr: Dict[int, int], ngc_pt
         None
     """
     # Import data from NGC2000 catalogue
-    with open("../ngc/ngc2000.dat") as f:
+    ngc2000_path: Final[str] = os.path.join(input_path, "ngc/ngc2000.dat")
+    with open(ngc2000_path, "rt") as f:
         for line in f:
             # Ignore blank lines and comment lines
             if len(line) < 20:
@@ -526,7 +535,8 @@ def read_open_ngc(obj_list: List[Dict[str, Any]], ic_ptr: Dict[int, int], ngc_pt
     """
     # Import data from OpenNGC catalogue
     columns: Optional[List[str]] = None  # Read column headings from first line of CSV file
-    with open("../ngc/open_ngc.csv") as f:
+    open_ngc_path: Final[str] = os.path.join(input_path, "ngc/open_ngc.csv")
+    with open(open_ngc_path, "rt") as f:
         for line in f:
             # First line contains column headings
             if columns is None:
@@ -648,7 +658,8 @@ def read_open_cluster_catalogue(obj_list: List[Dict[str, Any]]) -> None:
         None
     """
     # Import data from catalogue of open clusters
-    with open("../openClusters/clusters.txt") as f:
+    open_clusters_path: Final[str] = os.path.join(input_path, "openClusters/clusters.txt")
+    with open(open_clusters_path, "rt") as f:
         for line in f:
             # Ignore blank lines and comment lines
             if len(line.strip()) == 0:
@@ -712,7 +723,8 @@ def read_globular_cluster_catalogue(obj_list: List[Dict[str, Any]]) -> None:
         None
     """
     # Import data from catalogue of globular clusters
-    with open("../globularClusters/catalogue.dat") as f:
+    globular_clusters_path: Final[str] = os.path.join(input_path, "globularClusters/catalogue.dat")
+    with open(globular_clusters_path, "rt") as f:
         for line in f:
             # Ignore blank lines and comment lines
             if len(line.strip()) == 0:
@@ -844,7 +856,8 @@ def write_output(obj_list: List[Dict[str, Any]]) -> None:
         None
     """
     # Write output as an enormous JSON file
-    with open("output/ngc_merged.dat", "w") as f:
+    output_dat_path: Final[str] = os.path.join(output_path, "ngc_merged.dat")
+    with open(output_dat_path, "wt") as f:
         catalogue_str: str = json.dumps(obj_list)
         f.write(catalogue_str)
 
@@ -861,7 +874,8 @@ def write_output(obj_list: List[Dict[str, Any]]) -> None:
     obj_list.sort(key=operator.itemgetter('reference_magnitude'))
 
     # Write output as an enormous text file
-    with open("output/ngc_merged.txt", "w") as f:
+    output_txt_path: Final[str] = os.path.join(output_path, "ngc_merged.txt")
+    with open(output_txt_path, "wt") as f:
         f.write(
             "# {:4s} {:6s} {:8s} {:17s} {:17s} {:17s} {:17s} {:17s} {:17s} {:5s}\n"
             .format("M", "NGC", "IC", "RA", "Dec", "Mag", "Axis major", "Axis minor", "Axis PA", "Type"))
@@ -944,7 +958,7 @@ def merge_deep_sky_catalogues() -> None:
 # Do it right away if we're run as a script
 if __name__ == "__main__":
     # Create output log listing the cross-matching between various NGC catalogues
-    log_file_path = "output/merge.log"
+    log_file_path: Final[str] = os.path.join(output_path, "merge.log")
     os.system("rm -f {}".format(log_file_path))
 
 
@@ -967,7 +981,6 @@ if __name__ == "__main__":
                             logging.FileHandler(log_file_path),
                             h1, h2
                         ])
-    logger = logging.getLogger(__name__)
 
     # Merge deep sky catalogues
     merge_deep_sky_catalogues()

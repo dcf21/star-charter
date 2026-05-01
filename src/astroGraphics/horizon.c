@@ -1,7 +1,7 @@
 // horizon.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -39,8 +39,8 @@
 
 // Cardinal point label texts
 static const char cardinal_label[16][6] = {
-        "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-        "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
+    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
 };
 
 //! project_alt_az_to_xy - Project an (alt, az) pair into a position within the tangent plane.
@@ -91,7 +91,7 @@ void plot_horizon(chart_config *s, line_drawer *ld, cairo_page *page) {
                     &ra_zenith_j2000, &dec_zenith_j2000);
 
     // Set line colour
-    colour horizon_colour = (colour) {0, 0, 0, 1};
+    colour horizon_colour = s->horizon_colour;
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgba(s->cairo_draw,
                           horizon_colour.red, horizon_colour.grn, horizon_colour.blu,
@@ -144,7 +144,10 @@ void plot_horizon(chart_config *s, line_drawer *ld, cairo_page *page) {
             const double my2 = y_centre + marker_half_size * cos(pa) * 1.5;
 
             const double label_rotation = 180 - pa * 180 / M_PI;
-            const double label_offset = 0.3 * s->cm + marker_half_size * 1.2;
+            const double label_offset = (
+                0.2 * s->horizon_cardinal_points_marker_size * s->cm +
+                0.2 * s->label_font_size_scaling * s->horizon_cardinal_points_marker_size * s->font_size * s->cm +
+                marker_half_size * 1.2);
 
             // Draw triangular marker
             cairo_new_path(s->cairo_draw);
@@ -156,12 +159,15 @@ void plot_horizon(chart_config *s, line_drawer *ld, cairo_page *page) {
 
             // Write label above marker
             chart_label_buffer(page, s, s->horizon_cardinal_points_labels_colour, cardinal_label[cardinal_index],
-                               (label_position[1]) {
-                                       {x_centre_tangent, y_centre_tangent, label_rotation,
-                                        label_offset * sin(pa), label_offset * cos(pa),
-                                        0, 0}
+                               (label_position[1]){
+                                   {
+                                       x_centre_tangent, y_centre_tangent, label_rotation,
+                                       label_offset * sin(pa), label_offset * cos(pa),
+                                       0, 0
+                                   }
                                }, 1,
-                               0, 0, 2.5 * s->label_font_size_scaling,
+                               0, 0,
+                               2.5 * s->label_font_size_scaling * s->horizon_cardinal_points_marker_size,
                                0, 0, 0, -10);
         }
     }

@@ -1,7 +1,7 @@
 // scaleBars.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -104,16 +104,16 @@ void plot_scale_bars(chart_config *s, cairo_page *page) {
 
         // Read <x_pos>
         str_comma_separated_list_scan(&in_scan, buffer);
-        const double x_pos = get_float(buffer, NULL);  // 0-1
+        const double x_pos = get_float(buffer, NULL); // 0-1
         // Read <y_pos>
         str_comma_separated_list_scan(&in_scan, buffer);
-        const double y_pos = get_float(buffer, NULL);  // 0-1
+        const double y_pos = get_float(buffer, NULL); // 0-1
         // Read <position_angle>
         str_comma_separated_list_scan(&in_scan, buffer);
-        const double position_angle = get_float(buffer, NULL);  // degrees
+        const double position_angle = get_float(buffer, NULL); // degrees
         // Read length in degrees
         str_comma_separated_list_scan(&in_scan, buffer);
-        const double scale_degrees = get_float(buffer, NULL);  // degrees on sky
+        const double scale_degrees = get_float(buffer, NULL); // degrees on sky
 
         // Convert central coordinates of scale bar to tangent-plane coordinates
         double x_cairo, y_cairo, x_tangent, y_tangent;
@@ -132,7 +132,7 @@ void plot_scale_bars(chart_config *s, cairo_page *page) {
         }
 
         // Marker size
-        const double marker_size = 0.4 * s->cm;
+        const double marker_margin = (0.12 + 0.25 * s->label_font_size_scaling * s->font_size) * s->cm;
 
         // Rotation angle of arrow
         const double pa = position_angle * M_PI / 180;
@@ -152,9 +152,9 @@ void plot_scale_bars(chart_config *s, cairo_page *page) {
 
         // Write label
         chart_label_buffer(page, s, s->scale_bar_colour, label_text,
-                           (label_position[2]) {
-                                   {x_tangent, y_tangent, 0, marker_size * cos(pa),  marker_size * sin(pa),  0, 0},
-                                   {x_tangent, y_tangent, 0, -marker_size * cos(pa), -marker_size * sin(pa), 0, 0}
+                           (label_position[2]){
+                               {x_tangent, y_tangent, 0, marker_margin * cos(pa), marker_margin * sin(pa), 0, 0},
+                               {x_tangent, y_tangent, 0, -marker_margin * cos(pa), -marker_margin * sin(pa), 0, 0}
                            }, 2,
                            0, 0, 1.6 * s->label_font_size_scaling,
                            0, 0, 0, -10);

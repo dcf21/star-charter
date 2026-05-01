@@ -1,7 +1,7 @@
 // magnitudeEstimate.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -391,13 +391,13 @@ void magnitudeEstimate(const int body_id,
 
 /**
  * earthTopocentricPositionICRF - Return the 3D position of a point on the Earth's surface, in ICRF coordinates,
- * relative to the solar system barycentre (the origin and coordinate system used by DE430).
+ * relative to the solar system barycentre (the origin and coordinate system used by DE4xx).
  * @param out [out] - A three-component Cartesian vector.
  * @param lat [in] - Latitude, degrees
  * @param lng [in] - Longitude, degrees
  * @param radius_in_earth_radii [in] - The radial position, in Earth radii, of the location to query. Set to 1 for
  * Earth's surface.
- * @param pos_earth [in] - The 3D position of the centre of the Earth at the epoch, as quoted by DE430
+ * @param pos_earth [in] - The 3D position of the centre of the Earth at the epoch, as quoted by DE4xx
  * @param epoch [in] - The Julian Day number when the calculation is to be performed
  * @param sidereal_time [in] - Sidereal time in degrees
  */

@@ -8,9 +8,9 @@ Many configuration options are available to allow the charts to be fully
 customised.
 
 `StarCharter` can depict the positions of solar system objects - planets,
-asteroids and comets - retrieving their positions from NASA's DE430 ephemeris.
-The paths of these objects across the sky can also be shown over a specified
-time period.
+asteroids and comets - retrieving their positions from NASA's DE4xx series of
+ephemerides.  The paths of these objects across the sky can also be shown over
+a specified time period.
 
 Charts can be generated in either PNG (bitmap graphics) format for quick
 viewing and use online, or in PDF/SVG/EPS (vector graphics) formats for
@@ -30,7 +30,7 @@ You can find a selection of varied examples of the output of `StarCharter`
 ### License
 
 This code is distributed under the Gnu General Public License Version 3. It is
-© Dominic Ford 2015 - 2025.
+© Dominic Ford 2015 - 2026.
 
 ### Supported operating systems
 
@@ -57,7 +57,7 @@ git clone https://github.com/dcf21/star-charter.git
 If you wish to run `StarCharter` locally (not within a Docker container), then
 you must run the shell script `setup.sh` to download the required astronomical
 catalogs from online sources and to compile the software.  The downloaded data
-includes the DE430 solar system ephemeris, star catalogues, deep sky
+includes the DE440 solar system ephemeris, star catalogues, deep sky
 catalogues, and an image of the Milky Way used to shade the background of star
 charts.
 
@@ -99,7 +99,7 @@ docker compose run star-charter
 To make other star charts, open a shell within the Docker container as follows:
 
 ```
-docker run -it star-charter:v9 /bin/bash
+docker run -it star-charter:v10 /bin/bash
 ```
 
 ## Generating your own star charts
@@ -174,6 +174,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `axis_label` - Boolean (0 or 1) indicating whether to write "Right ascension" and "Declination" on the vertical/horizontal axes. Default: 0.
 * `axis_ticks_value_only` - If 1, axis labels will appear as simply "5h" or "30 deg". If 0, these labels will be preceded by alpha= or delta=
 * `az_central` - The local azimuth of the centre of the plot; degrees clockwise / eastwards from north. This setting is only used if `coords=alt_az`.
+* `bleed_margin` - The bleed margin around the star chart, in cm. A guide line is drawn marking the bleed margin. Default: 0.
 * `cardinals` - Boolean (0 or 1) indicating whether to write the cardinal points around the edge of alt/az star charts. Default: 1.
 * `chart_edge_line_col` - Colour to use when marking the edge of the chart. Default: `0,0,0`.
 * `chart_edge_line_width` - Line width to use when marking the edge of the chart. Default: 2.5.
@@ -228,11 +229,11 @@ The following settings can be included in a `StarCharter` configuration file:
 * `font_size` - A normalisation factor to apply to the font size of all text. Default: 1.0.
 * `galactic_b_central` - The galactic latitude of the centre of the plot; degrees. This setting is only used if `coords=galactic`.
 * `galactic_l_central` - The galactic longitude of the centre of the plot; degrees. This setting is only used if `coords=galactic`.
-* `galactic_plane_col` - Colour to use when drawing a line along the galactic plane
-* `galaxy_col0` - The colour to use to shade the dark parts of the map of the Milky Way
-* `galaxy_col` - The colour to use to shade the bright parts of the map of the Milky Way
-* `galaxy_map_filename` - The binary file from which to read the shaded map of the Milky Way
-* `galaxy_map_width_pixels` - The number of horizontal pixels across the shaded map of the Milky Way
+* `galactic_plane_col` - Colour to use when drawing a line along the galactic plane.
+* `galaxy_col0` - The colour to use to shade the dark parts of the map of the Milky Way.
+* `galaxy_col` - The colour to use to shade the bright parts of the map of the Milky Way.
+* `galaxy_map_filename` - The binary file from which to read the shaded map of the Milky Way.
+* `galaxy_map_width_pixels` - The number of horizontal pixels across the shaded map of the Milky Way. Default: 2048.
 * `great_circle_key` - Boolean (0 or 1) indicating whether to draw a key to the great circles under the star chart. Default: 1.
 * `great_circle_line_width` - Line width to use when marking great circles on the sky (e.g. the equator and the ecliptic). Default: 2.
 * `great_circle_dotted` - Boolean (0 or 1)  indicating whether to use a dotted line when tracing great circles: Default: 0.
@@ -240,11 +241,13 @@ The following settings can be included in a `StarCharter` configuration file:
 * `grid_coords` - Select which celestial coordinate system to trace with grid lines. Set to `ra_dec`, `galactic` or `alt_az`.
 * `grid_line_density` - Multiplicative factor controlling how many grid lines we draw. Default: 1.
 * `grid_line_width` - Line width to use when drawing grid lines. Default: 1.5.
-* `horizon_cardinal_points_labels_col` - Colour to use when drawing cardinal-point labels along the horizon.
-* `horizon_cardinal_points_marker_col` - Colour to use when drawing cardinal-point markers along the horizon.
+* `horizon_cardinal_points_labels_col` - Colour to use when drawing cardinal-point labels along the horizon. Default: `0,0,0`.
+* `horizon_cardinal_points_marker_col` - Colour to use when drawing cardinal-point markers along the horizon. Default: `0,0,0`.
 * `horizon_cardinal_points_marker_count` - Number of cardinal-point markers to place along the horizon. Sensible values are 4, 8, 16. Default: 8.
 * `horizon_cardinal_points_marker_elevate` - Boolean flag (0 or 1) indicating whether to elevate cardinal point markers to the bottom of the field of view if they fall off the bottom of the chart.
 * `horizon_cardinal_points_marker_size` - Size scaling of the cardinal-point markers along the horizon. Default: 1.
+* `horizon_col` - Colour to use when drawing a line around the horizon. Default: `0,0,0`.
+* `horizon_graphic` - String specifying a PNG graphic that we should use for the horizon. The string should have the following comma-separated components, with defaults as shown: filename, azimuth_central=0, angular_width=360, y_position_horizon=height/2, angular_height. Only the filename is compulsory.
 * `horizon_latitude` - Terrestrial latitude for which to show the local horizon; degrees
 * `horizon_longitude` - Terrestrial longitude for which to show the local horizon; degrees
 * `horizon_zenith_marker_size` - Scaling factor to apply to the size of the marker used at the zenith. Default: 1.
@@ -269,6 +272,9 @@ The following settings can be included in a `StarCharter` configuration file:
 * `meteor_radiant_marker_size` - Scaling factor to apply to the size of the markers at the radiants of meteor showers. Default: 1.
 * `meteor_radiant_colour` - Colour to use for the markers at the radiants of meteor showers.
 * `must_label_all_dsos` - Boolean (0 or 1) indicating whether we must show all DSO text labels, even if they collide with other text.
+* `must_label_brighter_than` - We must label all objects brighter than this magnitude threshold, even if there's no space on the chart. Default -10.
+* `must_label_objects` - Comma-separated list of names of objects that we must label even if there's no space on the chart.
+* `must_not_label_objects` - Comma-separated list of names of objects that we must not label.
 * `must_show_all_ephemeris_labels` - Boolean (0 or 1) indicating whether we show all ephemeris text labels, even if they collide with other text.
 * `output_dpi` - The DPI resolution of the output file. Default: 200 DPI for PNG files; 72 DPI for vector graphics.
 * `output_filename` - The target filename for the star chart. The file type (`svg`, `png`, `eps` or `pdf`) is inferred from the file extension.
@@ -390,6 +396,8 @@ files that are closest before and after the requested epoch. The predicted posit
 linearly interpolated to ensure that the output ephemerides are always continuous and differentiable.
 
 ## Change history
+
+**Version 10.0** (1 May 2026) - Switched default ephemeris from DE430 to DE440.
 
 **Version 9.0** (10 Nov 2025) - Allow colours to have alpha components. Support using multiple files of asteroid / comet orbital elements at different epochs.
 

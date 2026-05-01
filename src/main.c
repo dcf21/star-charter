@@ -1,7 +1,7 @@
 // main.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -25,7 +25,8 @@
 
 #include <gsl/gsl_errno.h>
 
-#include "coreUtils/asciiDouble.h"
+#include "argparse/argparse.h"
+
 #include "coreUtils/strConstants.h"
 #include "coreUtils/errorReport.h"
 
@@ -39,6 +40,12 @@
 #include "settings/read_config.h"
 #include "settings/render_chart.h"
 
+static const char *const usage[] = {
+    "starchart.bin [options] [[--] args] <filename>",
+    "starchart.bin [options] <filename>",
+    NULL,
+};
+
 
 //! Main entry point for rendering a single star chart, or a sequence of star charts, as described in a configuration
 //! file. On the command line, the user should either supply a single filename for a configuration file to read, or
@@ -47,12 +54,12 @@
 //! \param argv - Command line arguments
 //! \return - Exit status
 
-int main(int argc, char **argv) {
-    char help_string[LSTR_LENGTH], version_string[FNAME_LENGTH], version_string_underline[FNAME_LENGTH];
-    char *filename = NULL;
+int main(int argc, const char **argv) {
+    const char *filename = NULL;
     int have_filename = 0;
     chart_config *settings_destination = NULL;
     int got_chart = 0;
+    int use_de_number = 440;
 
     // Initialise sub-modules
     if (DEBUG) stch_log("Initialising StarCharter");
@@ -61,18 +68,27 @@ int main(int argc, char **argv) {
     // Turn off GSL's automatic error handler
     gsl_set_error_handler_off();
 
-    // Make help and version strings
-    snprintf(version_string, FNAME_LENGTH, "StarCharter %s", DCFVERSION);
+    // Scan commandline options for any switches
+    struct argparse_option options[] = {
+        OPT_HELP(),
+        OPT_GROUP("Basic options"),
+        OPT_INTEGER('d', "use_de", &use_de_number,
+                    "Select which NASA JPL DE4xx ephemeris to use for calculating the positions of solar system objects (e.g. 440 for DE440; default)"),
+        OPT_END(),
+    };
 
-    snprintf(help_string, FNAME_LENGTH, "StarCharter %s\n"
-                                        "%s\n\n"
-                                        "Usage: starchart.bin <filename>\n"
-                                        "-h, --help:       Display this help.\n"
-                                        "-v, --version:    Display version number.",
-             DCFVERSION, str_underline(version_string, version_string_underline));
+    struct argparse argparse;
+    argparse_init(&argparse, options, usage, 0);
+    argparse_describe(&argparse,
+                      "\nTool for rendering charts of the night sky",
+                      "\n");
+    argc = argparse_parse(&argparse, argc, argv);
 
-    // Scan command line options for any switches
-    for (int i = 1; i < argc; i++) {
+    // Configure which DE4xx ephemeris to use to calculate the positions of solar system objects
+    jpl_setEphemerisNumber(use_de_number);
+
+    // Scan command line arguments for a filename of a script to process
+    for (int i = 0; i < argc; i++) {
         // Ignore empty arguments
         if (strlen(argv[i]) == 0) continue;
 
@@ -83,24 +99,13 @@ int main(int argc, char **argv) {
             continue;
         }
 
-        if ((strcmp(argv[i], "-v") == 0) || (strcmp(argv[i], "-version") == 0) || (strcmp(argv[i], "--version") == 0)) {
-            // Switches -v and --version cause the version number to be printed
-            stch_report(version_string);
-            return 0;
-        } else if ((strcmp(argv[i], "-h") == 0) || (strcmp(argv[i], "-help") == 0) ||
-                   (strcmp(argv[i], "--help") == 0)) {
-            // Switches -h and --help cause the usage string to be displayed
-            stch_report(help_string);
-            return 0;
-        } else {
-            // Return an error if an unknown switch is received
-            snprintf(temp_err_string, FNAME_LENGTH,
-                     "Received switch '%s' which was not recognised.\nType 'starchart.bin -help' for a list of "
-                     "available commandline options.",
-                     argv[i]);
-            stch_error(temp_err_string);
-            return 1;
-        }
+        // Return an error if an unknown switch is received
+        snprintf(temp_err_string, FNAME_LENGTH,
+                 "Received switch '%s' which was not recognised.\nType 'starchart.bin -help' for a list of "
+                 "available commandline options.",
+                 argv[i]);
+        stch_error(temp_err_string);
+        return 1;
     }
 
     // Check that we have been provided with no more than one filename on the command line

@@ -1,7 +1,7 @@
 // ephemeris.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -116,7 +116,7 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
 
         // Allocate data to hold the ephemeris
         (*ephemeris_data_out)[i].data = (ephemeris_point *) malloc(
-                (*ephemeris_data_out)[i].point_count * sizeof(ephemeris_point)
+            (*ephemeris_data_out)[i].point_count * sizeof(ephemeris_point)
         );
 
         // Loop over points in the ephemeris
@@ -155,14 +155,14 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
             sun_pos(jd, &ra_sun_epoch_hr, &dec_sun_epoch_deg);
             sun_pos(jd_central, &ra_sun_0_hr, &dec_sun_0_deg);
             const double pa_from_sun = position_angle(
-                    ra_sun_epoch_hr * M_PI / 12, dec_sun_epoch_deg * M_PI / 180, ra, dec);
+                ra_sun_epoch_hr * M_PI / 12, dec_sun_epoch_deg * M_PI / 180, ra, dec);
             const double pa_to_sun = position_angle(
-                    ra, dec, ra_sun_epoch_hr * M_PI / 12, dec_sun_epoch_deg * M_PI / 180);
+                ra, dec, ra_sun_epoch_hr * M_PI / 12, dec_sun_epoch_deg * M_PI / 180);
 
             // If requested, re-project the object's position
             if (output_coordinates == SW_COORDS_EPHEMERIS_SOLAR) {
                 const double solar_separation = angDist_RADec(
-                        ra_sun_epoch_hr * M_PI / 12, dec_sun_epoch_deg * M_PI / 180, ra, dec);
+                    ra_sun_epoch_hr * M_PI / 12, dec_sun_epoch_deg * M_PI / 180, ra, dec);
 
                 double ra_new, dec_new;
                 inv_position_angle(ra_sun_0_hr * M_PI / 12, dec_sun_0_deg * M_PI / 180,
@@ -173,12 +173,12 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
 
             // Store this data point into (*ephemeris_data_out)
             (*ephemeris_data_out)[i].data[line_counter].jd = jd;
-            (*ephemeris_data_out)[i].data[line_counter].ra = fmod(ra + 20 * M_PI, 2 * M_PI);  // radians
-            (*ephemeris_data_out)[i].data[line_counter].dec = dec;  // radians
-            (*ephemeris_data_out)[i].data[line_counter].mag = magnitude;  // 0-1
+            (*ephemeris_data_out)[i].data[line_counter].ra = fmod(ra + 20 * M_PI, 2 * M_PI); // radians
+            (*ephemeris_data_out)[i].data[line_counter].dec = dec; // radians
+            (*ephemeris_data_out)[i].data[line_counter].mag = magnitude; // 0-1
             (*ephemeris_data_out)[i].data[line_counter].phase = phase;
-            (*ephemeris_data_out)[i].data[line_counter].angular_size = angular_size;  // diameter; arcseconds
-            (*ephemeris_data_out)[i].data[line_counter].sun_pa = pa_to_sun;  // radians
+            (*ephemeris_data_out)[i].data[line_counter].angular_size = angular_size; // diameter; arcseconds
+            (*ephemeris_data_out)[i].data[line_counter].sun_pa = pa_to_sun; // radians
             (*ephemeris_data_out)[i].data[line_counter].text_label = NULL;
             (*ephemeris_data_out)[i].data[line_counter].sub_month_label = 0;
 
@@ -188,13 +188,12 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
             }
 
             if (phase < (*ephemeris_data_out)[i].minimum_phase) {
-                (*ephemeris_data_out)[i].minimum_phase = phase;  // 0-1
+                (*ephemeris_data_out)[i].minimum_phase = phase; // 0-1
             }
 
             if (angular_size > (*ephemeris_data_out)[i].maximum_angular_size) {
-                (*ephemeris_data_out)[i].maximum_angular_size = angular_size;  // diameter; arcseconds
+                (*ephemeris_data_out)[i].maximum_angular_size = angular_size; // diameter; arcseconds
             }
-
         }
 
         // Keep tally of the sum total number of points in all ephemerides
@@ -278,6 +277,7 @@ dec_central=%.6f  # %s\n\
 angular_width=%.6f  # %s\n\
 aspect=%.6f  # %s\n\
 mag_min=%.6f  # %s\n\
+mag_max=%.6f  # %s\n\
 dso_mag_min=%.6f  # %s\n\
 dso_names=%d  # %s\n\
 minimum_star_count=%d  # %s\n\
@@ -294,6 +294,7 @@ maximum_star_label_count=%d  # %s\n\
              s->angular_width, (s->angular_width_is_set) ? "Manually set" : "Automatic",
              s->aspect, (s->aspect_is_set) ? "Manually set" : "Automatic",
              s->mag_min, (s->mag_min_is_set) ? "Manually set" : "Automatic",
+             s->mag_max, (s->mag_max_is_set) ? "Manually set" : "Automatic",
              s->dso_mag_min, (s->dso_mag_min_is_set) ? "Manually set" : "Automatic",
              s->dso_names, (s->dso_names_is_set) ? "Manually set" : "Automatic",
              s->minimum_star_count, (s->minimum_star_count_is_set) ? "Manually set" : "Automatic",
@@ -459,8 +460,8 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
     // We have now fully determined the maximum limits of all the ephemerides, north, south, east and west.
 
     // Convert RA and Dec of the bounding box of the star chart from bin numbers back into angles
-    double ra_min = ra_bin_min * 24. / ra_bins;  // hours
-    double ra_max = (ra_bin_max + 1) * 24. / ra_bins;  // hours ; ra_bin_max points to the last occupied bin
+    double ra_min = ra_bin_min * 24. / ra_bins; // hours
+    double ra_max = (ra_bin_max + 1) * 24. / ra_bins; // hours ; ra_bin_max points to the last occupied bin
     double dec_min = dec_bin_min * 180. / dec_bins - 90; // degrees
     double dec_max = (dec_bin_max + 1) * 180. / dec_bins - 90; // degrees
 
@@ -496,9 +497,9 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
             // Limiting magnitude for stars
             if (!s->mag_min_is_set) {
                 s->mag_min = gsl_max(
-                        s->mag_min,
-                        ceil((s->ephemeris_data[i].brightest_magnitude + magnitude_margin) / s->mag_step) *
-                        s->mag_step
+                    s->mag_min,
+                    ceil((s->ephemeris_data[i].brightest_magnitude + magnitude_margin) / s->mag_step) *
+                    s->mag_step
                 );
             }
 
@@ -580,7 +581,6 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
                 s->dec0 = gsl_max(s->dec0, -89 + ang_height / 2);
                 s->dec0 = gsl_min(s->dec0, 89 - ang_height / 2);
             }
-
         } else {
             // Charts which cover less than 110 degrees should use a stereographic projection
             if (!s->projection_is_set) s->projection = SW_PROJECTION_STEREOGRAPHIC;
@@ -601,7 +601,7 @@ void ephemerides_autoscale_plot(chart_config *s, const int total_ephemeris_point
         }
     }
 
-    clean_up:
+clean_up:
     // Free up storage
     if (ra_list != NULL) free(ra_list);
     if (dec_list != NULL) free(dec_list);
@@ -760,7 +760,7 @@ void ephemerides_add_automatic_text_labels(chart_config *s) {
                                               s->ephemeris_data[i].data[line_counter - 1].dec,
                                               s->ephemeris_data[i].data[line_counter].ra,
                                               s->ephemeris_data[i].data[line_counter].dec
-                ) / s->ephemeris_data[i].jd_step;
+                                ) / s->ephemeris_data[i].jd_step;
             }
 
             // Convert from radians/day to cm/day
@@ -901,10 +901,10 @@ void ephemeris_label_possible_positions(const chart_config *s, const ephemeris *
     }
 
     // Make list of possible label positions
-    possible_positions[0] = (label_position) {xp_a, yp_a, 0, 0, 0, h_align, v_align};
-    possible_positions[1] = (label_position) {xp_b, yp_b, 0, 0, 0, -h_align, -v_align};
-    possible_positions[2] = (label_position) {xp_c, yp_c, 0, 0, 0, h_align, v_align};
-    possible_positions[3] = (label_position) {xp_d, yp_d, 0, 0, 0, -h_align, -v_align};
+    possible_positions[0] = (label_position){xp_a, yp_a, 0, 0, 0, h_align, v_align};
+    possible_positions[1] = (label_position){xp_b, yp_b, 0, 0, 0, -h_align, -v_align};
+    possible_positions[2] = (label_position){xp_c, yp_c, 0, 0, 0, h_align, v_align};
+    possible_positions[3] = (label_position){xp_d, yp_d, 0, 0, 0, -h_align, -v_align};
 }
 
 //! plot_ephemeris - Plot an ephemeris for a solar system object.
@@ -931,9 +931,9 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
     const int is_sun = (str_cmp_no_case(e->obj_id, "sun") == 0);
 
     // Arrays to hold the pixel coordinates of each ephemeris point
-    double *x = (double *) malloc(e->point_count * sizeof(double));  // tangent plane coordinates; radians
-    double *y = (double *) malloc(e->point_count * sizeof(double));  // tangent plane coordinates; radians
-    double *theta = (double *) malloc(e->point_count * sizeof(double));  // position angle; radians
+    double *x = (double *) malloc(e->point_count * sizeof(double)); // tangent plane coordinates; radians
+    double *y = (double *) malloc(e->point_count * sizeof(double)); // tangent plane coordinates; radians
+    double *theta = (double *) malloc(e->point_count * sizeof(double)); // position angle; radians
 
     if ((x == NULL) || (y == NULL) || (theta == NULL)) {
         stch_fatal(__FILE__, __LINE__, "Malloc fail.");
@@ -1146,10 +1146,10 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
 
     // Draw multiple object images side-by-side, if needed
     if (
-            (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE) ||
-            (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE_WITH_TRACK) ||
-            (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE_WITH_ARROW)
-            ) {
+        (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE) ||
+        (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE_WITH_TRACK) ||
+        (s->ephemeris_style == SW_EPHEMERIS_SIDE_BY_SIDE_WITH_ARROW)
+    ) {
         int is_first_label = 1;
 
         // Loop over the points in the ephemeris, and draw a line across the star chart

@@ -1,7 +1,7 @@
 // cairo_page.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -294,21 +294,26 @@ void move_to_next_page(chart_config *s) {
 
 //! draw_chart_edge_line - Draw the line around the edge of the star chart.
 //! \param s - Settings for the star chart we are drawing
+//! \param bleed_margin - Step inside the edge of the chart by this amount of bleed margin, in cm
 
-void chart_edge_line_path(chart_config *s) {
+void chart_edge_line_path(chart_config *s, const double bleed_margin) {
     // Create path outlining the chart
     if ((s->projection == SW_PROJECTION_SPHERICAL) || (s->projection == SW_PROJECTION_ALTAZ)) {
         // On alt/az charts, the chart has a circular shape
         cairo_arc(s->cairo_draw,
                   (s->canvas_offset_x + s->width / 2) * s->cm,
                   (s->canvas_offset_y + s->width / 2 * s->aspect) * s->cm,
-                  s->width * s->cm / s->wlin,
-                  0, 2 * M_PI);
+                  (s->width / s->wlin - bleed_margin) * s->cm,
+                  0, 2 * M_PI
+        );
     } else {
         // On all other projections, the chart is rectangular
         cairo_rectangle(s->cairo_draw,
-                        s->canvas_offset_x * s->cm, s->canvas_offset_y * s->cm,
-                        s->width * s->cm, s->width * s->aspect * s->cm);
+                        (s->canvas_offset_x + bleed_margin) * s->cm,
+                        (s->canvas_offset_y + bleed_margin) * s->cm,
+                        (s->width - 2 * bleed_margin) * s->cm,
+                        (s->width * s->aspect - bleed_margin) * s->cm
+        );
     }
 }
 
@@ -322,7 +327,7 @@ void draw_chart_edge_line(chart_config *s) {
                           s->chart_edge_line_col.alpha);
     cairo_set_line_width(s->cairo_draw, s->chart_edge_line_width * s->line_width_base);
     cairo_new_path(s->cairo_draw);
-    chart_edge_line_path(s);
+    chart_edge_line_path(s, 0);
     cairo_stroke(s->cairo_draw);
 }
 

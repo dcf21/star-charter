@@ -11,34 +11,22 @@ eggs/
 # /
 /bin
 /obj
-/.idea
+.idea
 /cmake-build-debug
 /examples/output
 /examples/starchart.log
 
-# Input data files
+# Downloaded and generated data files
+/data/astorb.dat
 /data/Soft00Cmt.txt
 /data/Soft00Cmt_*.txt
-/data/ascp1550.430
-/data/ascp1650.430
-/data/ascp1750.430
-/data/ascp1850.430
-/data/ascp1950.430
-/data/ascp2050.430
-/data/ascp2150.430
-/data/ascp2250.430
-/data/ascp2350.430
-/data/ascp2450.430
-/data/ascp2550.430
-/data/astorb.dat
-/data/header.430
-
+/data/de4*
 /data/binary_*.bin
 /data/list_*.txt
 
+# Downloaded data files
 /data/constellations/downloads/hip_main.dat.gz
 /data/constellations/downloads/ybsc.gz
-/data/constellations/process_stick_figures/output/
 /data/milkyWay/mwpan2_Merc_2000x1200.jpg
 /data/stars/bayerAndFlamsteed/ReadMe
 /data/stars/bayerAndFlamsteed/catalog.dat
@@ -55,20 +43,28 @@ eggs/
 /data/stars/tycho2/ReadMe
 /data/stars/gaiaEDR3/*.gz
 
-# /data/milkyWay/process/
-/data/milkyWay/process/bin
-/data/milkyWay/process/obj
-/data/milkyWay/process/.idea
-/data/milkyWay/process/cmake-build-debug
-/data/milkyWay/process/galaxymap.log
-/data/milkyWay/process/output
+# /data/constellations/process_stick_figures/output/
+/data/constellations/process_stick_figures/output/
 
-# /data/stars/starCataloguesMerge/
-/data/stars/starCataloguesMerge/output
+# /data_processing/milky_way_map
+/data_processing/milky_way_map/bin
+/data_processing/milky_way_map/obj
+/data_processing/milky_way_map/.idea
+/data_processing/milky_way_map/cmake-build-debug
+/data_processing/milky_way_map/galaxymap.log
+/data_processing/milky_way_map/output
 
-# /data/deepSky/ngcDistances/
-/data/deepSky/ngcDistances/output
+# /data_generated/milky_way_map
+/data_generated/milky_way_map/galaxymap.*
+/data_generated/milky_way_map/mellinger.png
 
-# /data/constellations/process/
-/data/constellations/process/output
+# /data_generated/star_catalogue_merged
+/data_generated/star_catalogue_merged/all_stars.json.gz
+/data_generated/star_catalogue_merged/star_charter_stars.bin
+/data_generated/star_catalogue_merged/star_charter_stars.dat.gz
+
+# /data_generated/deep_sky_merged_catalogue
+/data_generated/deep_sky_merged_catalogue/*.log
+/data_generated/deep_sky_merged_catalogue/*.dat
+/data_generated/deep_sky_merged_catalogue/*.txt
 

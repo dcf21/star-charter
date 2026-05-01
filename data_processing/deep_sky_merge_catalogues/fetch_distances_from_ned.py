@@ -3,7 +3,7 @@
 # query_ned.py
 #
 # -------------------------------------------------
-# Copyright 2015-2025 Dominic Ford
+# Copyright 2015-2026 Dominic Ford
 #
 # This file is part of StarCharter.
 #
@@ -30,7 +30,11 @@ import re
 import logging
 from urllib.request import urlopen
 
-from typing import Dict, Sequence
+from typing import Dict, Final, Sequence
+
+# File path of this script, used to locate input and output paths
+our_path: Final[str] = os.path.split(os.path.abspath(__file__))[0]
+output_path: Final[str] = os.path.join(our_path, "../../data_generated/deep_sky_merged_catalogue")
 
 
 def fetch_redshift(ned_data: str) -> Dict[str, str]:
@@ -89,18 +93,18 @@ def fetch_distance(ned_data: str) -> Dict[str, str]:
     if line_count > len(lines) - 7:
         return null_result
 
-    test = re.search("by NED from (.*) Distance\(s\)", lines[line_count + 1])
+    test = re.search(r"by NED from (.*) Distance\(s\)", lines[line_count + 1])
 
-    test2 = re.search("Metric Distance<br>\((.*)\)", lines[line_count + 3])
+    test2 = re.search(r"Metric Distance<br>\((.*)\)", lines[line_count + 3])
 
     test3 = re.match(
-        "<tr><td>Mean</td> <td>.*</td> <td>(.*)</td></tr> <tr><td>Std\. Dev\.</td> <td>.*</td> <td>(.*)</td></tr>",
+        r"<tr><td>Mean</td> <td>.*</td> <td>(.*)</td></tr> <tr><td>Std\. Dev\.</td> <td>.*</td> <td>(.*)</td></tr>",
         lines[line_count + 4])
     test4 = re.match(
-        "<tr><td>Min\.</td> <td>.*</td> <td>(.*)</td></tr> <tr><td>Max\.</td> <td>.*</td> <td>(.*)</td></tr>",
+        r"<tr><td>Min\.</td> <td>.*</td> <td>(.*)</td></tr> <tr><td>Max\.</td> <td>.*</td> <td>(.*)</td></tr>",
         lines[line_count + 5])
     test5 = re.match(
-        "<tr><td>Median</td> <td>(.*)</td> <td>(.*)</td></tr>", lines[line_count + 6])
+        r"<tr><td>Median</td> <td>(.*)</td> <td>(.*)</td></tr>", lines[line_count + 6])
 
     if test is None or test2 is None or test3 is None or test4 is None or test5 is None:
         return null_result
@@ -141,10 +145,11 @@ column_headings: Dict[str, str] = {
 }
 
 # Create output directory
-os.system("mkdir -p output")
+os.system("mkdir -p '{}'".format(output_path))
 
 # Create output file and write the column headings
-with open("output/NED_distances.{}.dat".format(run_id), "w") as output:
+output_filename: Final[str] = os.path.join(output_path, "NED_distances.{}.dat".format(run_id))
+with open(output_filename, "wt") as output:
     # Write column headings at the top of the file
     output.write(line_format.format(**column_headings))
 
@@ -178,7 +183,7 @@ http://nedwww.ipac.caltech.edu/cgi-bin/objsearch?search_type=Obj_id&objid={}&img
 """.format(obj_id_int).strip()
 
             with urlopen(url=object_url) as object_page:
-                query_page_str: str = object_page.read().decode('utf-8')
+                query_page_str: str = object_page.read().decode('utf-8', errors='ignore')
 
             # Parse the HTML contents of the page to extract a distance and a redshift
             object_properties: Dict[str, str] = {**fetch_distance(ned_data=query_page_str),

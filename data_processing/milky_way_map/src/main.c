@@ -1,7 +1,7 @@
 // main.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -77,7 +77,9 @@ int main() {
     // Median smooth image input JPEG photograph of the whole sky
     char command[1024];
     sprintf(command,
-            "convert " SRCDIR "../../mwpan2_Merc_2000x1200.jpg -scale 8000 -median %d /tmp/mellinger.png",
+            "convert "
+            SRCDIR "../../../data/milkyWay/mwpan2_Merc_2000x1200.jpg -scale 8000 -median %d "
+            SRCDIR "../../../data_generated/milky_way_map/mellinger.png",
             SMOOTH);
     if (system(command)) galmap_fatal(__FILE__, __LINE__, "ImageMagick fail");
 
@@ -85,7 +87,7 @@ int main() {
     image_ptr InputImage;
 
     // Read image into an image_ptr structure
-    InputImage = image_get("/tmp/mellinger.png");
+    InputImage = image_get(SRCDIR "../../../data_generated/milky_way_map/mellinger.png");
     if (InputImage.data_red == NULL) galmap_fatal(__FILE__, __LINE__, "Could not read input image file");
 
     // Allocate memory for the processed output version of the image
@@ -144,8 +146,10 @@ int main() {
     }
 
     // Output galaxy map data as a big binary file
-    if (system("mkdir -p " SRCDIR "../output")) galmap_fatal(__FILE__, __LINE__, "Directory creation fail");
-    out = fopen(SRCDIR "../output/galaxymap.dat", "w");
+    if (system("mkdir -p " SRCDIR "../../../data_generated/milky_way_map")) {
+        galmap_fatal(__FILE__, __LINE__, "Directory creation fail");
+    }
+    out = fopen(SRCDIR "../../../data_generated/milky_way_map/galaxymap.dat", "w");
     i = H_SIZE_MAP1;
     fwrite(&i, sizeof(int), 1, out);
     i = V_SIZE_MAP1;
@@ -199,7 +203,7 @@ int main() {
         }
 
     // Output galaxy map as a PNG file
-    image_put(SRCDIR "../output/galaxymap.png", OutputImage, 1);
+    image_put(SRCDIR "../../../data_generated/milky_way_map/galaxymap.png", OutputImage, 1);
 
     // Finish
     free(d1);

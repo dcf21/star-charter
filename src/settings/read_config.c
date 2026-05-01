@@ -1,7 +1,7 @@
 // read_config.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -91,7 +91,6 @@ colour colour_from_string(const char *input) {
 int process_configuration_file_line(char *line, const char *filename, const int iteration_depth, int file_line_number,
                                     int *got_chart, chart_config *chart_defaults,
                                     chart_config *this_chart_config, chart_config **settings_destination) {
-
     // Check for NULL pointers
     if (line == NULL) {
         stch_fatal(__FILE__, __LINE__, "Received NULL value for <line>.");
@@ -340,8 +339,8 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! photo_filename - The filename of a PNG image to render behind the star chart. Leave blank to show no
         //! image.
         strcpy(x->photo_filename, key_val);
-        x->star_col = (colour) {0.75, 0.75, 0.25, 1};
-        x->grid_col = (colour) {0.5, 0.5, 0.5, 1};
+        x->star_col = (colour){0.75, 0.75, 0.25, 1};
+        x->grid_col = (colour){0.5, 0.5, 0.5, 1};
         if (!x->aspect_is_set) x->aspect = 2. / 3.;
         if (!x->angular_width_is_set) x->angular_width = 46; // degrees
         x->plot_galaxy_map = 0;
@@ -407,6 +406,10 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("horizon_longitude")
         x->horizon_longitude = key_val_num;
         return 0;
+    } else if (strcmp(key, "horizon_col") == 0) {
+        //! horizon_col - Colour to use when drawing a line around the horizon.
+        x->horizon_colour = colour_from_string(key_val);
+        return 0;
     } else if (strcmp(key, "horizon_cardinal_points_marker_col") == 0) {
         //! horizon_cardinal_points_marker_col - Colour to use when drawing cardinal-point markers along the horizon.
         x->horizon_cardinal_points_marker_colour = colour_from_string(key_val);
@@ -432,6 +435,19 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("horizon_cardinal_points_marker_elevate")
         x->horizon_cardinal_points_marker_elevate = (int) key_val_num;
         return 0;
+    } else if (strcmp(key, "horizon_graphic") == 0) {
+        //! horizon_graphic - String specifying a PNG graphic that we should use for the horizon. The string should
+        //! have the following comma-separated components, with defaults as shown: filename, azimuth_central=0,
+        //! angular_width=360, y_position_horizon=height/2, angular_height. Only the filename is compulsory.
+        if (x->horizon_graphics_count > MAX_HORIZON_GRAPHICS) {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. Too many entries for <horizon_graphic>.");
+            stch_error(temp_err_string);
+            return 1;
+        }
+        snprintf(x->horizon_graphics[x->horizon_graphics_count], LSTR_LENGTH, "%s", key_val);
+        x->horizon_graphics_count++;
+        return 0;
     } else if (strcmp(key, "julian_date") == 0) {
         //! julian_date - Julian date for which to show local horizon, with which to measure alt/az, and for which
         //! to show the positions of solar system bodies.
@@ -448,7 +464,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
             stch_error(temp_err_string);
             return 1;
         }
-        strcpy(x->meteor_radiants[x->meteor_radiants_custom_count], key_val);
+        snprintf(x->meteor_radiants[x->meteor_radiants_custom_count], FNAME_LENGTH, "%s", key_val);
         x->meteor_radiants_custom_count++;
         return 0;
     } else if (strcmp(key, "meteor_radiant_marker_size") == 0) {
@@ -766,6 +782,11 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         x->aspect = key_val_num;
         x->aspect_is_set = 1;
         return 0;
+    } else if (strcmp(key, "bleed_margin") == 0) {
+        //! bleed_margin - The bleed margin around the star chart, in cm. A guide line is drawn marking the bleed margin.
+        CHECK_VALUE_NUMERIC("bleed_margin")
+        x->bleed_margin = key_val_num;
+        return 0;
     } else if (strcmp(key, "show_grid_lines") == 0) {
         //! show_grid_lines - Boolean (0 or 1) indicating whether we draw grid lines in the background of
         //! the star chart. The grid lines are either RA/Dec, galactic coordinates, or alt/az, depending on the
@@ -816,7 +837,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
             x->constellation_stick_design = SW_STICKS_IAU;
         } else {
             snprintf(temp_err_string, FNAME_LENGTH, "Bad input file. "
-                                                    "constellation_stick_design should equal 'iau', 'rey' or 'simplified'.");
+                     "constellation_stick_design should equal 'iau', 'rey' or 'simplified'.");
             stch_error(temp_err_string);
             return 1;
         }
@@ -940,7 +961,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
             x->dso_style = SW_DSO_STYLE_FUZZY;
         } else {
             snprintf(temp_err_string, FNAME_LENGTH, "Bad input file. "
-                                                    "dso_display_style should equal 'coloured' or 'fuzzy'.");
+                     "dso_display_style should equal 'coloured' or 'fuzzy'.");
             stch_error(temp_err_string);
             return 1;
         }
@@ -978,6 +999,7 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! Also, this is the brightest magnitude of star which is shown in the magnitude key below the chart.
         CHECK_VALUE_NUMERIC("mag_max")
         x->mag_max = key_val_num;
+        x->mag_max_is_set = 1;
         return 0;
     } else if (strcmp(key, "mag_step") == 0) {
         //! mag_step - The magnitude interval between the samples shown on the magnitude key under the chart
@@ -1028,6 +1050,12 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         //! with other text.
         CHECK_VALUE_NUMERIC("must_label_all_dsos")
         x->must_label_all_dsos = (int) key_val_num;
+        return 0;
+    } else if (strcmp(key, "must_label_brighter_than") == 0) {
+        //! must_label_brighter_than - We must label all objects brighter than this magnitude threshold, even if
+        //! there's no space on the chart. Default -10.
+        CHECK_VALUE_NUMERIC("must_label_brighter_than")
+        x->must_label_brighter_than = (int) key_val_num;
         return 0;
     } else if (strcmp(key, "plot_ecliptic") == 0) {
         //! plot_ecliptic - Boolean (0 or 1) indicating whether to draw a line along the ecliptic

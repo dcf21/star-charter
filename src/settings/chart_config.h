@@ -1,7 +1,7 @@
 // settings.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -99,6 +99,12 @@
 //! The maximum number of custom labels we're allowed to put on a chart
 #define N_CUSTOM_LABELS_MAX 128
 
+//! The maximum length of object names that we must / must not label
+#define OBJECT_LABEL_LENGTH 128
+
+//! The maximum number of horizon graphics which can be overlaid
+#define MAX_HORIZON_GRAPHICS 8
+
 //! Maximum allowed iteration depth when including configuration files
 #define MAX_INCLUSION_DEPTH 8
 
@@ -110,21 +116,21 @@ typedef struct colour {
 //! A structure defining a point in an ephemeris
 typedef struct ephemeris_point {
     double jd;
-    double ra, dec;  // radians, J2000
+    double ra, dec; // radians, J2000
     double mag;
-    double phase;  // 0-1
-    double angular_size;  // diameter; arcseconds
-    double sun_pa;  // radians; J2000
+    double phase; // 0-1
+    double angular_size; // diameter; arcseconds
+    double sun_pa; // radians; J2000
     char *text_label;
     int sub_month_label;
 } ephemeris_point;
 
 //! A structure defining an ephemeris of a solar system object
 typedef struct ephemeris {
-    double jd_start, jd_end, jd_step;  // Julian day numbers
-    char obj_id[FNAME_LENGTH];  // DE450 ID for the object
-    double maximum_angular_size;  // diameter; arcseconds
-    double minimum_phase;  // 0-1
+    double jd_start, jd_end, jd_step; // Julian day numbers
+    char obj_id[FNAME_LENGTH]; // DE450 ID for the object
+    double maximum_angular_size; // diameter; arcseconds
+    double minimum_phase; // 0-1
     double brightest_magnitude;
     int point_count, is_comet;
     ephemeris_point *data;
@@ -207,6 +213,9 @@ typedef struct chart_config {
     //! Julian date for which to show local horizon, with which to measure alt/az, and for which to show the positions
     //! of solar system bodies.
     double julian_date;
+
+    //! Colour to use when drawing a line around the horizon
+    colour horizon_colour;
 
     //! Colour to use when drawing cardinal point markers on the horizon
     colour horizon_cardinal_points_marker_colour;
@@ -315,6 +324,10 @@ typedef struct chart_config {
     //! Scaling factor to apply to the size of the marker used at the zenith. Default 1.
     double horizon_zenith_marker_size;
 
+    //! Horizon graphics
+    int horizon_graphics_count;
+    char horizon_graphics[MAX_HORIZON_GRAPHICS][LSTR_LENGTH];
+
     //! If true, axis labels appear as "5h" or "30 deg". If false, preceded by alpha= or delta=
     int axis_ticks_value_only;
 
@@ -421,6 +434,9 @@ typedef struct chart_config {
     //! The aspect ratio of the star chart: i.e. the ratio height/width
     double aspect;
 
+    //! The bleed margin around the star chart, in cm. A guide line is drawn marking the bleed margin.
+    double bleed_margin;
+
     //! The maximum number of stars to draw. If this is exceeded, only the brightest stars are shown.
     int maximum_star_count;
 
@@ -464,7 +480,7 @@ typedef struct chart_config {
     double star_label_mag_min;
 
     //! Boolean (0 or 1) indicating whether we clip a thin line around the edges of stars. This makes star clusters
-    //! like M45 stand out better. Default: 1.
+    //! like M45 stand out better, but is quite slow to render. Default: 0.
     int star_clip_outline;
 
     //! Do not label DSOs fainter than this magnitude limit
@@ -472,6 +488,17 @@ typedef struct chart_config {
 
     //! Boolean indicating whether we must show all DSO text labels, even if they collide with other text
     int must_label_all_dsos;
+
+    //! We must label all objects brighter than this magnitude limit
+    double must_label_brighter_than;
+
+    //! List of objects that we must label
+    int must_label_objects_length;
+    char must_label_objects[N_CUSTOM_LABELS_MAX][OBJECT_LABEL_LENGTH];
+
+    //! List of objects that we must not label
+    int must_not_label_objects_length;
+    char must_not_label_objects[N_CUSTOM_LABELS_MAX][OBJECT_LABEL_LENGTH];
 
     //! Computed quantity: the number of rows of star magnitudes we can fit under the chart
     int magnitude_key_rows;
@@ -737,6 +764,7 @@ typedef struct chart_config {
     //! Boolean flags indicating which settings have been manually overridden
     //! (so that automatic scaling does not overwrite them).
     int mag_min_is_set;
+    int mag_max_is_set;
     int dso_mag_min_is_set;
     int minimum_star_count_is_set;
     int ra0_is_set;
@@ -834,7 +862,6 @@ typedef struct chart_config {
 
     //! Cairo drawing context
     cairo_t *cairo_draw;
-
 } chart_config;
 
 void default_config(chart_config *i);

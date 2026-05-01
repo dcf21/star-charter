@@ -1,7 +1,7 @@
 // solarSystem.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -88,6 +88,9 @@ void draw_solar_system_object(chart_config *s, cairo_page *page, const colour ob
     // Calculate the radius of this object on tha canvas
     const double size_cairo = size * s->dpi;
 
+    // Convert <sun_pa> from equatorial coordinates to page coordinates
+    const double sun_pa_page = s->position_angle * M_PI / 180 + sun_pa;
+
     // Draw a tail if this is a comet
     if (is_comet) {
         const double fw = 15. * M_PI / 180; // half-width of comet's tail; radians
@@ -114,17 +117,17 @@ void draw_solar_system_object(chart_config *s, cairo_page *page, const colour ob
         cairo_set_source(s->cairo_draw, p);
         cairo_new_path(s->cairo_draw);
         cairo_move_to(s->cairo_draw,
-                      sin(sun_pa + M_PI / 2),
-                      cos(sun_pa + M_PI / 2));
+                      sin(sun_pa_page + M_PI / 2),
+                      cos(sun_pa_page + M_PI / 2));
         cairo_line_to(s->cairo_draw,
-                      sin(sun_pa - M_PI / 2),
-                      cos(sun_pa - M_PI / 2));
+                      sin(sun_pa_page - M_PI / 2),
+                      cos(sun_pa_page - M_PI / 2));
         cairo_line_to(s->cairo_draw,
-                      tail_length * sin(sun_pa - fw),
-                      tail_length * cos(sun_pa - fw));
+                      tail_length * sin(sun_pa_page - fw),
+                      tail_length * cos(sun_pa_page - fw));
         cairo_line_to(s->cairo_draw,
-                      tail_length * sin(sun_pa + fw),
-                      tail_length * cos(sun_pa + fw));
+                      tail_length * sin(sun_pa_page + fw),
+                      tail_length * cos(sun_pa_page + fw));
         cairo_close_path(s->cairo_draw);
         cairo_fill(s->cairo_draw);
 
@@ -149,7 +152,7 @@ void draw_solar_system_object(chart_config *s, cairo_page *page, const colour ob
         cairo_set_line_width(s->cairo_draw, 0.36 * s->line_width_base);
         cairo_new_path(s->cairo_draw);
         cairo_arc(s->cairo_draw, x_canvas, y_canvas, size_cairo,
-                  M_PI - sun_pa, -sun_pa);
+                  M_PI - sun_pa_page, -sun_pa_page);
         cairo_stroke(s->cairo_draw);
     }
 

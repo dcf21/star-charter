@@ -1,7 +1,7 @@
 // jpl.h
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -21,6 +21,8 @@
 
 #ifndef JPL_H
 #define JPL_H 1
+
+void jpl_setEphemerisNumber(int de_number);
 
 void jpl_computeXYZ(int body_id, double jd, double *x, double *y, double *z);
 

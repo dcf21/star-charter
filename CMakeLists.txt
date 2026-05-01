@@ -1,9 +1,11 @@
 cmake_minimum_required(VERSION 3.6)
 project(starcharter)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wall -fopenmp -std=c99 -I${CMAKE_SOURCE_DIR}/src -D SRCDIR='\"${CMAKE_SOURCE_DIR}/src\"' -D DCFVERSION='\"9.0\"' -D DEBUG=1 -D MEMDEBUG1=0 -D MEMDEBUG2=0")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wall -fopenmp -std=c99 -I${CMAKE_SOURCE_DIR}/src -D SRCDIR='\"${CMAKE_SOURCE_DIR}/src\"' -D DCFVERSION='\"10.0\"' -D DEBUG=1 -D MEMDEBUG1=0 -D MEMDEBUG2=0")
 
 set(SOURCE_FILES
+        src/argparse/argparse.c
+        src/argparse/argparse.h
         src/astroGraphics/constellations.c
         src/astroGraphics/constellations.h
         src/astroGraphics/deepSky.c

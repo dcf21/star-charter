@@ -1,7 +1,7 @@
 // orbitalElements.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2025 Dominic Ford
+// Copyright 2015-2026 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -2053,7 +2053,7 @@ void orbitalElements_computeEphemeris(int bodyId, const double jd, double *x, do
         // Calculate position of requested object at specified time (relative to Sun)
         orbitalElements_computeXYZ(bodyId, jd, &x_from_sun, &y_from_sun, &z_from_sun);
 
-        // Convert to barycentric coordinates (to match DE430's coordinate system)
+        // Convert to barycentric coordinates (to match DE4xx's coordinate system)
         const double x_barycentric_0 = x_from_sun + sun_pos_x;
         const double y_barycentric_0 = y_from_sun + sun_pos_y;
         const double z_barycentric_0 = z_from_sun + sun_pos_z;

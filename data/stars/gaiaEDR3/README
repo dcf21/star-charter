@@ -1,0 +1,27 @@
+These files were fetched from <https://gea.esac.esa.int/archive/>
+
+ ----- New query, 4 Feb 2022, based on Gaia EDR3
+
+SELECT TOP 3000000
+source_id,ra,ra_error,dec,dec_error,parallax,parallax_error,parallax_over_error,
+pmra,pmra_error,pmdec,pmdec_error,phot_g_mean_mag,phot_bp_mean_mag,phot_rp_mean_mag,
+dr2_radial_velocity,dr2_radial_velocity_error,
+hipp.original_ext_source_id AS hipparcos,
+tyc.original_ext_source_id AS tycho
+FROM gaiaedr3.gaia_source AS x
+LEFT OUTER JOIN gaiaedr3.hipparcos2_best_neighbour hipp USING (source_id)
+LEFT OUTER JOIN gaiaedr3.tycho2tdsc_merge_best_neighbour tyc USING (source_id)
+WHERE phot_g_mean_mag<=11.5
+ORDER BY phot_g_mean_mag
+
+WHERE phot_g_mean_mag>11.5 AND phot_g_mean_mag<=12.5  (b)
+WHERE phot_g_mean_mag>12.5 AND phot_g_mean_mag<=13  (c)
+WHERE phot_g_mean_mag>13 AND phot_g_mean_mag<=13.25  (d)
+WHERE phot_g_mean_mag>13.25 AND phot_g_mean_mag<=13.5  (e)
+
+WHERE phot_g_mean_mag>13.5 AND phot_g_mean_mag<=13.75  (g)
+WHERE phot_g_mean_mag>13.75 AND phot_g_mean_mag<=13.875  (h)
+WHERE phot_g_mean_mag>13.875 AND phot_g_mean_mag<=14  (i)
+
+WHERE phot_g_mean_mag>14 ORDER BY parallax DESC  (f)
+
