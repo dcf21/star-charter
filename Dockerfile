@@ -1,5 +1,5 @@
-# Use Python 3.12 running on Ubuntu 24.04
-FROM ubuntu:24.04
+# Use Python 3.14 running on Ubuntu 26.04
+FROM ubuntu:26.04
 
 # Install required libraries
 ENV DEBIAN_FRONTEND=noninteractive
