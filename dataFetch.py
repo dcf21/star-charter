@@ -222,26 +222,26 @@ def fetch_required_files(refresh: bool = False, never_refresh: bool = False,
 
         # Definitions of constellation boundaries
         #       {
-        #           'url': 'https://cdsarc.u-strasbg.fr/ftp/VI/49/bound_20.dat.gz',
+        #           'url': 'https://cdsarc.cds.unistra.fr/ftp/VI/49/bound_20.dat.gz',
         #           'destination': 'data/constellations/downloads/boundaries.dat',
         #           'force_refresh': refresh
         #       },
         #       {
-        #           'url': 'https://cdsarc.u-strasbg.fr/ftp/VI/49/ReadMe',
+        #           'url': 'https://cdsarc.cds.unistra.fr/ftp/VI/49/ReadMe',
         #           'destination': 'data/constellations/downloads/ReadMe',
         #           'force_refresh': refresh
         #       },
 
         # Yale Bright Star Catalog (copy for use in making constellation stick figures)
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/V/50/catalog.gz',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/V/50/catalog.gz',
             'destination': 'data/constellations/downloads/ybsc.gz',
             'force_refresh': refresh
         },
 
         # Hipparcos Catalog (copy for use in making constellation stick figures)
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/I/239/hip_main.dat',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/I/239/hip_main.dat',
             'destination': 'data/constellations/downloads/hip_main.dat.gz',
             'force_refresh': refresh
         },
@@ -255,72 +255,72 @@ def fetch_required_files(refresh: bool = False, never_refresh: bool = False,
 
         # HD-DM-GC-HR-HIP-Bayer-Flamsteed Cross-Index
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/IV/27A/ReadMe',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/IV/27A/ReadMe',
             'destination': 'data/stars/bayerAndFlamsteed/ReadMe',
             'force_refresh': refresh
         },
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/IV/27A/catalog.dat',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/IV/27A/catalog.dat',
             'destination': 'data/stars/bayerAndFlamsteed/catalog.dat',
             'force_refresh': refresh
         },
 
         # Yale Bright Star Catalog
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/V/50/ReadMe',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/V/50/ReadMe',
             'destination': 'data/stars/brightStars/ReadMe',
             'force_refresh': refresh
         },
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/V/50/catalog.gz',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/V/50/catalog.gz',
             'destination': 'data/stars/brightStars/catalog.gz',
             'force_refresh': refresh
         },
 
         # Gaia DR1
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/I/337/ReadMe',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/I/337/ReadMe',
             'destination': 'data/stars/gaiaDR1/ReadMe',
             'force_refresh': refresh
         },
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/I/337/tgas.dat.gz',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/I/337/tgas.dat.gz',
             'destination': 'data/stars/gaiaDR1/tgas.dat.gz',
             'force_refresh': refresh
         },
 
         # Tycho 1
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/I/239/ReadMe',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/I/239/ReadMe',
             'destination': 'data/stars/tycho1/ReadMe',
             'force_refresh': refresh
         },
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/I/239/tyc_main.dat',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/I/239/tyc_main.dat',
             'destination': 'data/stars/tycho1/tyc_main.dat',
             'force_refresh': refresh
         },
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/I/239/hip_main.dat',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/I/239/hip_main.dat',
             'destination': 'data/stars/tycho1/hip_main.dat.gz',
             'force_refresh': refresh
         },
 
         # Hipparcos catalogue new reduction
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/I/311/ReadMe',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/I/311/ReadMe',
             'destination': 'data/stars/hipparcosNewReduction/ReadMe',
             'force_refresh': refresh
         },
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/I/311/hip2.dat.gz',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/I/311/hip2.dat.gz',
             'destination': 'data/stars/hipparcosNewReduction/hip2.dat.gz',
             'force_refresh': refresh
         },
 
         # Tycho 2
         {
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/I/259/ReadMe',
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/I/259/ReadMe',
             'destination': 'data/stars/tycho2/ReadMe',
             'force_refresh': refresh
         }
@@ -330,7 +330,7 @@ def fetch_required_files(refresh: bool = False, never_refresh: bool = False,
     file_number: int
     for file_number in range(20):
         required_files.append({
-            'url': 'https://cdsarc.u-strasbg.fr/ftp/I/259/tyc2.dat.{:02d}.gz'.format(file_number),
+            'url': 'https://cdsarc.cds.unistra.fr/ftp/I/259/tyc2.dat.{:02d}.gz'.format(file_number),
             'destination': 'data/stars/tycho2/tyc2.dat.{:02d}.gz'.format(file_number),
             'force_refresh': refresh
         })
