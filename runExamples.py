@@ -32,10 +32,10 @@ import os
 import sys
 import logging
 
-from typing import Dict, List, Tuple
+from typing import Dict, Final, List, Tuple
 
 # Data file numbering for each ASCII JPL ephemeris
-de_ephemeris_file_specs: Dict[int, Tuple[int, int, int, int, str]] = {
+de_ephemeris_file_specs: Final[Dict[int, Tuple[int, int, int, int, str]]] = {
     405: (1600, 2200, 20, 4, ""),
     430: (1550, 2550, 100, 4, "_572"),
     431: (1000, 16000, 1000, 5, "_572"),
@@ -62,9 +62,10 @@ def run_demos(selected_ephemeris: int = 440, all_ephemerides: bool = False) -> N
     """
 
     # Path to EphemerisCompute binary
-    our_path: str = os.path.split(os.path.abspath(__file__))[0]
-    binary_path: str = os.path.join(our_path, "bin", "starchart.bin")
-    examples_path: str = os.path.join(our_path, "examples")
+    our_path: Final[str] = os.path.split(os.path.abspath(__file__))[0]
+    binary_path: Final[str] = os.path.join(our_path, "bin", "starchart.bin")
+    examples_path: Final[str] = os.path.join(our_path, "examples")
+    output_path: Final[str] = os.path.join(examples_path, "output")
 
     # List of the JPL DE4xx ephemerides we are to use
     ephemeris_list: List[int] = [
@@ -78,7 +79,9 @@ def run_demos(selected_ephemeris: int = 440, all_ephemerides: bool = False) -> N
     script_name: str
     for de_number in ephemeris_list:
         for script_name in script_list:
-            command: str = "cd {} ; {} -d {:d} {:s}".format(examples_path, binary_path, de_number, script_name)
+            command: str = """
+cd '{}' ; mkdir -p '{}' ; {} -d {:d} '{:s}'
+""".format(examples_path, output_path, binary_path, de_number, script_name).strip()
             logging.info("Running <{}>".format(command))
             os.system(command)
 

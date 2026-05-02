@@ -31,10 +31,10 @@ import os
 import sys
 import logging
 
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Final, List, Tuple
 
 # Data file numbering for each ASCII JPL ephemeris
-de_ephemeris_file_specs: Dict[int, Tuple[int, int, int, int, str]] = {
+de_ephemeris_file_specs: Final[Dict[int, Tuple[int, int, int, int, str]]] = {
     405: (1600, 2200, 20, 4, ""),
     430: (1550, 2550, 100, 4, "_572"),
     431: (1000, 16000, 1000, 5, "_572"),
@@ -350,24 +350,24 @@ def fetch_required_files(refresh: bool = False, never_refresh: bool = False,
                    )
 
     # Create a list of all the files containing orbital elements for planets
-    planet_elements: List[str] = glob.glob("data/planets*.dat")
-    with open("data/list_planet_files.txt", "wt") as f_out:
+    planet_elements: List[str] = glob.glob(os.path.join(our_path, "data/planets*.dat"))
+    with open(os.path.join(our_path, "data/list_planet_files.txt"), "wt") as f_out:
         f_out.write("# List of files containing orbital elements for planets\n")
         for item in sorted(planet_elements):
             f_out.write("{}\n".format(os.path.abspath(item)))
 
     # Create a list of all the files containing orbital elements for planets
-    asteroid_elements: List[str] = (["data/astorb.dat"] +
+    asteroid_elements: List[str] = ([os.path.join(our_path, "data/astorb.dat")] +
                                     glob.glob(os.path.expanduser("~/astorb_archive/astorb_*.dat")))
-    with open("data/list_astorb_files.txt", "wt") as f_out:
+    with open(os.path.join(our_path, "data/list_astorb_files.txt"), "wt") as f_out:
         f_out.write("# List of files containing orbital elements for asteroids\n")
         for item in sorted(asteroid_elements):
             f_out.write("{}\n".format(os.path.abspath(item)))
 
     # Create a list of all the files containing orbital elements for planets
-    comet_elements: List[str] = (["data/Soft00Cmt.txt"] +
+    comet_elements: List[str] = ([os.path.join(our_path, "data/Soft00Cmt.txt")] +
                                  glob.glob(os.path.expanduser("~/astorb_archive/Soft00Cmt_*.dat*")))
-    with open("data/list_comet_files.txt", "wt") as f_out:
+    with open(os.path.join(our_path, "data/list_comet_files.txt"), "wt") as f_out:
         f_out.write("# List of files containing orbital elements for comets\n")
         for item in sorted(comet_elements):
             f_out.write("{}\n".format(os.path.abspath(item)))
