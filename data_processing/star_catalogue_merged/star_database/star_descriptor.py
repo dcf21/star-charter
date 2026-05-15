@@ -30,8 +30,10 @@ import os
 import sqlite3
 
 from contextlib import closing
-from math import cos, hypot, isfinite, pi
+from math import acos, cos, isfinite, pi, sin
 from typing import Dict, Final, Iterator, List, Optional, Tuple, Union
+
+import numpy as np
 
 from .temporary_directory import TemporaryDirectory
 
@@ -40,7 +42,7 @@ AU: Final[float] = 1.49598e11  # metres
 LYR: Final[float] = 9.4605284e15  # lightyear in metres
 
 # List of catalogue references of stars where we want very verbose debugging
-debug_targets: Final[List[str]] = []
+debug_targets: Final[List[str]] = ["HR 4730", "HR 4731"]
 # debug_targets: Final[List[str]] = ["HD 105963", "HIP 59432", "TYC 3834-1089-1"]
 # debug_targets: Final[List[str]] = ["HD 12447", "TYC 40-1338-2"]
 debug_all_targets: Final[bool] = False
@@ -463,17 +465,41 @@ class StarDescriptor:
 
         return output
 
-    def check_positions_agree(self, ra_new: float, dec_new: float, mag: float, cat_name_new: str, threshold: float) \
+    def angular_separation(self, other: "StarDescriptor") -> float:
+        """
+        Calculate the angular separation of a new point from the object.
+
+        :param other:
+            The other object, whose angular separation from us we are calculating.
+        :return:
+            Angular separation, degrees
+        """
+
+        if (
+                (self.ra is None) or (not isfinite(self.ra)) or
+                (self.decl is None) or (not isfinite(self.decl)) or
+                (other.ra is None) or (not isfinite(other.ra)) or
+                (other.decl is None) or (not isfinite(other.decl))
+        ):
+            return np.nan
+
+        deg: Final[float] = pi / 180.
+        hours: Final[float] = pi / 12.
+        ang_sep: Final[float] = acos(min(max(
+            sin(self.decl * deg) * sin(other.decl * deg) +
+            cos(self.decl * deg) * cos(other.decl * deg) * cos(
+                (other.ra - self.ra) * hours),
+            -1.), 1.)) / deg
+
+        return ang_sep
+
+    def check_positions_agree(self, other: "StarDescriptor", cat_name_new: str, threshold: float) \
             -> None:
         """
         Check that a new position for an object on the sky roughly matches its previously reported position.
 
-        :param ra_new:
-            New RA, degrees
-        :param dec_new:
-            New declination, degrees
-        :param mag:
-            Magnitude of object
+        :param other:
+            The new position for this object.
         :param cat_name_new:
             Catalogue from which the new position was taken
         :param threshold:
@@ -481,13 +507,12 @@ class StarDescriptor:
         :return:
             None
         """
-        ra_diff: float = ra_new - self.ra
-        dec_diff: float = dec_new - self.decl
-        ang_change: float = hypot(dec_diff, ra_diff * cos(ra_new * pi / 180))
-        if ang_change > threshold:
-            logging.info("Warning: moving mag {:4.1f} star {} by {:.3f} deg ({} --> {})"
-                         .format(mag, self.generate_catalogue_name(), ang_change, self.source_pos, cat_name_new)
-                         )
+
+        ang_sep: Final[float] = self.angular_separation(other=other)
+        if ang_sep > threshold:
+            logging.info("Warning: moving mag {:4.1f} star {} by {:.3f} deg ({} --> {})".format(
+                other.mag_reference, self.generate_catalogue_name(), ang_sep, self.source_pos, cat_name_new
+            ))
 
     def reference_magnitude(self) -> Optional[float]:
         """
@@ -862,6 +887,7 @@ CREATE {unique} INDEX stars_5 ON stars (names_tycho_id);
 CREATE {unique} INDEX stars_6 ON stars (names_edr3_id);
 CREATE INDEX stars_7 ON stars (mag_reference);
 CREATE INDEX stars_8 ON stars (child_of);
+CREATE INDEX stars_9 ON stars (decl);
 
 """
 
@@ -1087,6 +1113,44 @@ WHERE
         if self.require_unique_ids and s.emit_debugging():
             logging.info("DELETE {}".format(str(s)))
 
+    def search_by_position(self, ra: float, decl: float, mag: float,
+                           position_tolerance: float = 1 / 60. / 60., mag_tolerance: float = 0.1):
+        """
+        Search for stars in the SQLite3 database by position and magnitude.
+
+        :param ra:
+            The RA to search around (hours; J2000.0)
+        :param decl:
+            The declination to search around (degrees; J2000.0)
+        :param mag:
+            The magnitude to match against
+        :param position_tolerance:
+            The search radius around the specified position (degrees).
+        :param mag_tolerance:
+            The allowed difference is magnitude.
+        """
+
+        # Run query
+        search_cursor: sqlite3.Cursor
+        with closing(self.db.cursor()) as search_cursor:
+            search_cursor.execute("""
+SELECT s.*, EXISTS (SELECT 1 FROM stars x WHERE x.child_of=s.id) AS is_parent,
+       acos(min(1, max(-1,
+            sin(s.decl*pi()/180)*sin(?*pi()/180) +
+            cos(s.decl*pi()/180)*cos(?*pi()/180)*cos((s.ra - ?)*pi()/12)
+            )))*180/pi() AS ang_dist
+FROM stars s
+WHERE (s.decl BETWEEN ? AND ?) AND (ang_dist < ?) AND (s.mag_reference BETWEEN ? AND ?)
+ORDER BY ang_dist;
+""", (decl, decl, ra,
+      decl - position_tolerance, decl + position_tolerance, position_tolerance,
+      mag - mag_tolerance, mag + mag_tolerance))
+
+            # Iterate over results
+            for row in search_cursor:
+                output = self.build_star_from_sql_row(row=row)
+                yield output
+
     def search(self, hd_num: Optional[int] = None, bs_num: Optional[int] = None, nsv_num: Optional[int] = None,
                hip_num: Optional[int] = None, tycho_id: Optional[str] = None, edr3_id: Optional[str] = None,
                has_parent: Optional[bool] = None, is_parent: Optional[bool] = None, child_of: Optional[int] = None,
@@ -1194,46 +1258,49 @@ WHERE ({}) ORDER BY {};
 
             # Iterate over results
             for row in search_cursor:
-                output: StarDescriptor = StarDescriptor()
-                output.id = row['id']
-                output.db_path = self.db_path
-                output.child_of = row['child_of']
-                output.is_parent = row['is_parent']
-                output.ra = row['ra']
-                output.decl = row['decl']
-                output.mag_reference = row['mag_reference']
-                output.is_variable = row['is_variable']
-                output.color_bv = row['color_bv']
-                output.dist = row['dist']
-                output.parallax = row['parallax']
-                output.source_par = row['source_par']
-                output.proper_motion = row['proper_motion']
-                output.proper_motion_pa = row['proper_motion_pa']
-                output.source_pos = row['source_pos']
-
-                output.mag_V = row['mag_V']
-                output.mag_V_source = row['mag_V_source']
-                output.mag_BT = row['mag_BT']
-                output.mag_BT_source = row['mag_BT_source']
-                output.mag_VT = row['mag_VT']
-                output.mag_VT_source = row['mag_VT_source']
-                output.mag_G = row['mag_G']
-                output.mag_G_source = row['mag_G_source']
-                output.mag_BP = row['mag_BP']
-                output.mag_BP_source = row['mag_BP_source']
-                output.mag_RP = row['mag_RP']
-                output.mag_RP_source = row['mag_RP_source']
-
-                output.names_english = json.loads(row['names_english'])
-                output.names_catalogue_ref = json.loads(row['names_catalogue_ref'])
-                output.names_bayer_letter = row['names_bayer_letter']
-                output.names_const = row['names_const']
-                output.names_flamsteed_number = row['names_flamsteed_number']
-                output.names_hd_num = row['names_hd_num']
-                output.names_bs_num = row['names_bs_num']
-                output.names_nsv_num = row['names_nsv_num']
-                output.names_hip_num = row['names_hip_num']
-                output.names_tycho_id = row['names_tycho_id']
-                output.names_edr3_id = row['names_edr3_id']
-
+                output = self.build_star_from_sql_row(row=row)
                 yield output
+
+    def build_star_from_sql_row(self, row: dict) -> StarDescriptor:
+        output: StarDescriptor = StarDescriptor()
+        output.id = row['id']
+        output.db_path = self.db_path
+        output.child_of = row['child_of']
+        output.is_parent = row['is_parent']
+        output.ra = row['ra']
+        output.decl = row['decl']
+        output.mag_reference = row['mag_reference']
+        output.is_variable = row['is_variable']
+        output.color_bv = row['color_bv']
+        output.dist = row['dist']
+        output.parallax = row['parallax']
+        output.source_par = row['source_par']
+        output.proper_motion = row['proper_motion']
+        output.proper_motion_pa = row['proper_motion_pa']
+        output.source_pos = row['source_pos']
+
+        output.mag_V = row['mag_V']
+        output.mag_V_source = row['mag_V_source']
+        output.mag_BT = row['mag_BT']
+        output.mag_BT_source = row['mag_BT_source']
+        output.mag_VT = row['mag_VT']
+        output.mag_VT_source = row['mag_VT_source']
+        output.mag_G = row['mag_G']
+        output.mag_G_source = row['mag_G_source']
+        output.mag_BP = row['mag_BP']
+        output.mag_BP_source = row['mag_BP_source']
+        output.mag_RP = row['mag_RP']
+        output.mag_RP_source = row['mag_RP_source']
+
+        output.names_english = json.loads(row['names_english'])
+        output.names_catalogue_ref = json.loads(row['names_catalogue_ref'])
+        output.names_bayer_letter = row['names_bayer_letter']
+        output.names_const = row['names_const']
+        output.names_flamsteed_number = row['names_flamsteed_number']
+        output.names_hd_num = row['names_hd_num']
+        output.names_bs_num = row['names_bs_num']
+        output.names_nsv_num = row['names_nsv_num']
+        output.names_hip_num = row['names_hip_num']
+        output.names_tycho_id = row['names_tycho_id']
+        output.names_edr3_id = row['names_edr3_id']
+        return output

@@ -30,6 +30,8 @@
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
 
+int strcmp_ascii(const char *in1, const char *in2);
+
 void tweak_magnitude_limits(chart_config *s);
 
 void plot_stars_calculate_magnitude_range(chart_config *s, FILE *stars_data_file, const tiling_information *tiles,

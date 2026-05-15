@@ -1,16 +1,17 @@
 # StarCharter
 
 `StarCharter` is a versatile command-line tool for producing charts of the
-night sky in a wide variety of styles. Charts can be generated relative to the
-local horizon, depicting the sky as seen from a particular location at a
-particular time, or as a star atlas in equatorial or galactic coordinates.
-Many configuration options are available to allow the charts to be fully
-customised.
+night sky in a wide variety of styles. Planetarium-style charts can be
+generated showing the sky and local horizon as seen from any particular
+location. Alternatively, charts can be generated in a star-atlas style, in
+equatorial or galactic coordinates.  A wide range of configuration options are
+available to allow charts to be fully customised.
 
-`StarCharter` can depict the positions of solar system objects - planets,
-asteroids and comets - retrieving their positions from NASA's DE4xx series of
-ephemerides.  The paths of these objects across the sky can also be shown over
-a specified time period.
+`StarCharter` can show the positions of solar system objects - planets,
+asteroids and comets - automatically retrieving their positions from NASA's
+DE4xx series of ephemerides and from orbital elements published online.  The
+tracks of these objects through the constellations can also be shown over
+extended time periods.
 
 Charts can be generated in either PNG (bitmap graphics) format for quick
 viewing and use online, or in PDF/SVG/EPS (vector graphics) formats for
@@ -18,7 +19,8 @@ subsequent typesetting or editing in a vector graphics package such as Adobe
 Illustrator or Inkscape.
 
 `StarCharter` was originally developed to produce star charts for the website
-[https://in-the-sky.org](https://in-the-sky.org).
+[https://in-the-sky.org](https://in-the-sky.org), which is maintained by the
+author.
 
 ### Example output
 
@@ -56,12 +58,12 @@ git clone https://github.com/dcf21/star-charter.git
 
 If you wish to run `StarCharter` locally (not within a Docker container), then
 you must run the shell script `setup.sh` to download the required astronomical
-catalogs from online sources and to compile the software.  The downloaded data
-includes the DE440 solar system ephemeris, star catalogues, deep sky
-catalogues, and an image of the Milky Way used to shade the background of star
-charts.
+catalogs from online sources and to compile the software. By default, the
+downloaded data includes the DE440 solar system ephemeris, star catalogues,
+deep sky catalogues, and an image of the Milky Way used to shade the background
+of star charts.
 
-The total download size will be around 500 MB, and it will take around 10-15
+The total download size will be around 1 GB, and it will take around 10-15
 minutes to process the downloaded files.
 
 Once you have built `StarCharter`, you must not change its location within your
@@ -73,6 +75,40 @@ their path changes. If you move the code, you must fully rebuild it:
 make clean
 ./setup.sh
 ```
+
+### Supported planetary ephemerides
+
+`StarCharter` can fetch the positions of the planets from the following
+planetary ephemerides, published by NASA JPL:
+
+| Ephemeris | Published | Time period covered | Download size |
+|-----------|-----------|---------------------|---------------|
+| DE405     | 1997      | AD 1600 to AD 2200  | 184 MB        |
+| DE430     | 2013      | AD 1550 to AD 2650  | 323 MB        |
+| DE431     | 2013      | AD 1000 to AD 17000 | 4.6 GB        |
+| DE440     | 2020      | AD 1550 to AD 2650  | 322 MB        |
+| DE441     | 2020      | AD 1000 to AD 17000 | 4.6 GB        |
+
+By default, only the DE440 planetary ephemeris is downloaded and used, as this
+is best suited for most purposes.
+
+If you wish to download and use other ephemerides, you need to specify this
+when you set up `StarCharter` with the `setup.sh` script. You should either
+supply the command-line argument `--ephemeris xxx`, where `xxx` is the DE
+number of the required ephemeris, or use the argument `--all-ephemerides` to
+download all the ephemerides. For example:
+
+```bash
+./setup.sh --ephemeris 441
+./setup.sh --all-ephemerides
+```
+
+The total download size will range between 1 GB for the default ephemeris, or
+12 GB to download all ephemerides.
+
+Note that you must also specify which DE4xx planetary ephemeris to use each
+time you run `starchart.bin` using the `--use_de` command-line argument
+described below (default: DE440).
 
 ### Docker container
 

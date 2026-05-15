@@ -1057,6 +1057,43 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("must_label_brighter_than")
         x->must_label_brighter_than = (int) key_val_num;
         return 0;
+    } else if (strcmp(key, "must_label_objects") == 0) {
+        //! must_label_objects - Comma-separated list of object names that we must display.
+        const char *in_scan = key_val;
+        while (*in_scan != '\0') {
+            char buffer[LSTR_LENGTH];
+            str_comma_separated_list_scan(&in_scan, buffer);
+            if (strlen(buffer) > 0) {
+                if (x->must_label_objects_length >= N_CUSTOM_LABELS_MAX) {
+                    snprintf(temp_err_string, FNAME_LENGTH,
+                             "Bad input file. Too many entries for <must_label_objects>.");
+                    stch_error(temp_err_string);
+                    return 1;
+                }
+                snprintf(x->must_label_objects[x->must_label_objects_length], OBJECT_LABEL_LENGTH, "%s", buffer);
+                x->must_label_objects_length++;
+            }
+        }
+        return 0;
+    } else if (strcmp(key, "must_not_label_objects") == 0) {
+        //! must_not_label_objects - Comma-separated list of object names that we must not display.
+        const char *in_scan = key_val;
+        while (*in_scan != '\0') {
+            char buffer[LSTR_LENGTH];
+            str_comma_separated_list_scan(&in_scan, buffer);
+            if (strlen(buffer) > 0) {
+                if (x->must_not_label_objects_length >= N_CUSTOM_LABELS_MAX) {
+                    snprintf(temp_err_string, FNAME_LENGTH,
+                             "Bad input file. Too many entries for <must_not_label_objects>.");
+                    stch_error(temp_err_string);
+                    return 1;
+                }
+                snprintf(x->must_not_label_objects[x->must_not_label_objects_length], OBJECT_LABEL_LENGTH,
+                         "%s", buffer);
+                x->must_not_label_objects_length++;
+            }
+        }
+        return 0;
     } else if (strcmp(key, "plot_ecliptic") == 0) {
         //! plot_ecliptic - Boolean (0 or 1) indicating whether to draw a line along the ecliptic
         CHECK_VALUE_NUMERIC("plot_ecliptic")

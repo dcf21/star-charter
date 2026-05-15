@@ -26,11 +26,45 @@
 #include <gsl/gsl_math.h>
 
 #include "astroGraphics/deepSky.h"
+#include "astroGraphics/stars.h"
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
 #include "mathsTools/projection.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/cairo_page.h"
+
+//! dso_labelling_priority - Work out the priority level for labelling this DSO
+//! @param s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! @param name - The English name of the DSO
+//! @param mag - The reference magnitude of the DSO
+//! @param label_counter - Counter of how many DSOs we have already displayed
+//! @return - Priority level, or NaN if this label should not be shown
+
+double dso_labelling_priority(const chart_config *s, const char *name, double mag, int label_counter) {
+    // Check if this label is specifically not to be displayed
+    if (s->must_not_label_objects_length > 0) {
+        for (int i = 0; i < s->must_not_label_objects_length; i++) {
+            if (strcmp_ascii(name, s->must_not_label_objects[i]) == 0) return GSL_NAN;
+        }
+    }
+
+    // Check if this label must be displayed
+    if (s->must_label_objects_length > 0) {
+        for (int i = 0; i < s->must_label_objects_length; i++) {
+            if (strcmp_ascii(name, s->must_label_objects[i]) == 0) return -2;
+        }
+    }
+
+    // Must label all DSOs
+    if (s->must_label_all_dsos) return -2;
+
+    // Prioritise labels by magnitude
+    if ((mag < s->dso_label_mag_min) && (label_counter < s->maximum_dso_label_count)) {
+        const double priority = mag;
+        return priority;
+    }
+    return GSL_NAN;
+}
 
 // -------------- Renderers for the <coloured> style scheme --------------
 
@@ -125,19 +159,19 @@ void draw_ellipsoid_coloured(chart_config *s, const double axis_pa, const double
 void draw_galaxy_coloured(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
                           const double radius_major, const double radius_minor) {
     draw_ellipsoid_coloured(
-            s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
-            s->dso_galaxy_col.alpha,
-            s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
+        s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
+        s->dso_galaxy_col.alpha,
+        s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
 }
 
 void draw_dark_nebula_coloured(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
                                const double radius_major, const double radius_minor) {
     draw_ellipsoid_coloured(
-            s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
-            0.75,
-            gsl_max(s->galaxy_col0.red, s->twilight_zenith_col.red),
-            gsl_max(s->galaxy_col0.grn, s->twilight_zenith_col.grn),
-            gsl_max(s->galaxy_col0.blu, s->twilight_zenith_col.blu));
+        s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
+        0.75,
+        gsl_max(s->galaxy_col0.red, s->twilight_zenith_col.red),
+        gsl_max(s->galaxy_col0.grn, s->twilight_zenith_col.grn),
+        gsl_max(s->galaxy_col0.blu, s->twilight_zenith_col.blu));
 }
 
 void draw_galaxy_cluster_coloured(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
@@ -271,9 +305,11 @@ void draw_ellipsoid_fuzzy(chart_config *s, const double axis_pa, const double x_
 
 #define stop_count_galaxy (5)
     const double offsets[stop_count_galaxy] = {
-            0, 0.3, 0.5, 0.75, 1};
+        0, 0.3, 0.5, 0.75, 1
+    };
     const double alphas[stop_count_galaxy] = {
-            0.8 * opacity, 0.75 * opacity, 0.35 * opacity, 0.11 * opacity, 0};
+        0.8 * opacity, 0.75 * opacity, 0.35 * opacity, 0.11 * opacity, 0
+    };
     draw_generic_object_fuzzy(s, stop_count_galaxy, offsets, alphas,
                               colour_r, colour_g, colour_b);
 }
@@ -281,27 +317,27 @@ void draw_ellipsoid_fuzzy(chart_config *s, const double axis_pa, const double x_
 void draw_galaxy_fuzzy(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
                        const double radius_major, const double radius_minor) {
     draw_ellipsoid_fuzzy(
-            s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
-            0.75 * s->dso_galaxy_col.alpha,
-            s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
+        s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
+        0.75 * s->dso_galaxy_col.alpha,
+        s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
 }
 
 void draw_dark_nebula_fuzzy(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
                             const double radius_major, const double radius_minor) {
     draw_ellipsoid_fuzzy(
-            s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
-            0.75,
-            gsl_max(s->galaxy_col0.red, s->twilight_zenith_col.red),
-            gsl_max(s->galaxy_col0.grn, s->twilight_zenith_col.grn),
-            gsl_max(s->galaxy_col0.blu, s->twilight_zenith_col.blu));
+        s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
+        0.75,
+        gsl_max(s->galaxy_col0.red, s->twilight_zenith_col.red),
+        gsl_max(s->galaxy_col0.grn, s->twilight_zenith_col.grn),
+        gsl_max(s->galaxy_col0.blu, s->twilight_zenith_col.blu));
 }
 
 void draw_galaxy_cluster_fuzzy(chart_config *s, const double axis_pa, const double x_canvas, const double y_canvas,
                                const double radius_major, const double radius_minor) {
     draw_ellipsoid_fuzzy(
-            s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
-            0.75 * s->dso_galaxy_col.alpha,
-            s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
+        s, axis_pa, x_canvas, y_canvas, radius_major, radius_minor,
+        0.75 * s->dso_galaxy_col.alpha,
+        s->dso_galaxy_col.red, s->dso_galaxy_col.grn, s->dso_galaxy_col.blu);
 }
 
 void draw_generic_nebula_fuzzy(chart_config *s, const double x_canvas, const double y_canvas, const double point_size) {
@@ -345,10 +381,10 @@ void draw_open_cluster(chart_config *s, const double x_tangent, const double y_t
     // Populate possible positions for the label for this object
     if (possible_positions != NULL) {
         const double offset = 0.8 * s->mm + radius;
-        possible_positions[0] = (label_position) {x_tangent, y_tangent, 0, offset, 0, -1, 0};
-        possible_positions[1] = (label_position) {x_tangent, y_tangent, 0, -offset, 0, 1, 0};
-        possible_positions[2] = (label_position) {x_tangent, y_tangent, 0, 0, offset, 0, -1};
-        possible_positions[3] = (label_position) {x_tangent, y_tangent, 0, 0, -offset, 0, 1};
+        possible_positions[0] = (label_position){x_tangent, y_tangent, 0, offset, 0, -1, 0};
+        possible_positions[1] = (label_position){x_tangent, y_tangent, 0, -offset, 0, 1, 0};
+        possible_positions[2] = (label_position){x_tangent, y_tangent, 0, 0, offset, 0, -1};
+        possible_positions[3] = (label_position){x_tangent, y_tangent, 0, 0, -offset, 0, 1};
         *possible_position_count = 4;
     }
 }
@@ -369,10 +405,10 @@ void draw_globular_cluster(chart_config *s, const double x_tangent, const double
     // Populate possible positions for the label for this object
     if (possible_positions != NULL) {
         const double offset = 0.8 * s->mm + radius;
-        possible_positions[0] = (label_position) {x_tangent, y_tangent, 0, offset, 0, -1, 0};
-        possible_positions[1] = (label_position) {x_tangent, y_tangent, 0, -offset, 0, 1, 0};
-        possible_positions[2] = (label_position) {x_tangent, y_tangent, 0, 0, offset, 0, -1};
-        possible_positions[3] = (label_position) {x_tangent, y_tangent, 0, 0, -offset, 0, 1};
+        possible_positions[0] = (label_position){x_tangent, y_tangent, 0, offset, 0, -1, 0};
+        possible_positions[1] = (label_position){x_tangent, y_tangent, 0, -offset, 0, 1, 0};
+        possible_positions[2] = (label_position){x_tangent, y_tangent, 0, 0, offset, 0, -1};
+        possible_positions[3] = (label_position){x_tangent, y_tangent, 0, 0, -offset, 0, 1};
         *possible_position_count = 4;
     }
 }
@@ -393,10 +429,10 @@ void draw_planetary_nebula(chart_config *s, const double x_tangent, const double
     // Populate possible positions for the label for this object
     if (possible_positions != NULL) {
         const double offset = 0.8 * s->mm + point_size;
-        possible_positions[0] = (label_position) {x_tangent, y_tangent, 0, offset, 0, -1, 0};
-        possible_positions[1] = (label_position) {x_tangent, y_tangent, 0, -offset, 0, 1, 0};
-        possible_positions[2] = (label_position) {x_tangent, y_tangent, 0, 0, offset, 0, -1};
-        possible_positions[3] = (label_position) {x_tangent, y_tangent, 0, 0, -offset, 0, 1};
+        possible_positions[0] = (label_position){x_tangent, y_tangent, 0, offset, 0, -1, 0};
+        possible_positions[1] = (label_position){x_tangent, y_tangent, 0, -offset, 0, 1, 0};
+        possible_positions[2] = (label_position){x_tangent, y_tangent, 0, 0, offset, 0, -1};
+        possible_positions[3] = (label_position){x_tangent, y_tangent, 0, 0, -offset, 0, 1};
         *possible_position_count = 4;
     }
 }
@@ -421,10 +457,12 @@ void populate_galaxy_label_position(label_position *possible_position,
         v_align = 0;
     }
 
-    *possible_position = (label_position) {x_tangent, y_tangent, 0,
-                                           radius * sin(theta),
-                                           radius * cos(theta),
-                                           h_align, v_align};
+    *possible_position = (label_position){
+        x_tangent, y_tangent, 0,
+        radius * sin(theta),
+        radius * cos(theta),
+        h_align, v_align
+    };
 }
 
 void draw_galaxy(chart_config *s, const double axis_pa, const double x_tangent, const double y_tangent,
@@ -527,10 +565,10 @@ void draw_generic_nebula(chart_config *s, const double x_tangent, const double y
     // Populate possible positions for the label for this object
     if (possible_positions != NULL) {
         const double offset = 0.8 * s->mm + point_size;
-        possible_positions[0] = (label_position) {x_tangent, y_tangent, 0, offset, 0, -1, 0};
-        possible_positions[1] = (label_position) {x_tangent, y_tangent, 0, -offset, 0, 1, 0};
-        possible_positions[2] = (label_position) {x_tangent, y_tangent, 0, 0, offset, 0, -1};
-        possible_positions[3] = (label_position) {x_tangent, y_tangent, 0, 0, -offset, 0, 1};
+        possible_positions[0] = (label_position){x_tangent, y_tangent, 0, offset, 0, -1, 0};
+        possible_positions[1] = (label_position){x_tangent, y_tangent, 0, -offset, 0, 1, 0};
+        possible_positions[2] = (label_position){x_tangent, y_tangent, 0, 0, offset, 0, -1};
+        possible_positions[3] = (label_position){x_tangent, y_tangent, 0, 0, -offset, 0, 1};
         *possible_position_count = 4;
     }
 }
@@ -727,12 +765,8 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
         }
 
         // Consider whether to write a text label next to this deep sky object
-        if ((mag < s->dso_label_mag_min) && (label_counter < s->maximum_dso_label_count)) {
-
-            // Set priority for labelling this object
-            double priority = mag;
-            if (s->must_label_all_dsos) priority = -2;
-
+        const double label_priority = dso_labelling_priority(s, object_name, mag, label_counter);
+        if (isfinite(label_priority)) {
             // Write a text label for this object
             const int show_name = s->dso_names;
             const int show_mag = s->dso_mags && (mag < 40);
@@ -742,7 +776,7 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
                 chart_label_buffer(page, s, s->dso_label_col, object_name,
                                    possible_positions, possible_position_count,
                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
-                                   0, 0, 0, priority);
+                                   0, 0, 0, label_priority);
                 label_counter++;
             }
             if (show_mag) {
@@ -750,7 +784,7 @@ void plot_deep_sky_objects(chart_config *s, cairo_page *page, int messier_only) 
                 chart_label_buffer(page, s, s->dso_label_col, temp_err_string,
                                    possible_positions, possible_position_count,
                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
-                                   0, 0, 0, priority);
+                                   0, 0, 0, label_priority);
                 label_counter++;
             }
         }

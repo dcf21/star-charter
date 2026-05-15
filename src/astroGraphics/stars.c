@@ -40,11 +40,11 @@
 //! \param in2 - Second string
 //! \return - strcmp-like comparison of in1 and in2
 
-static int strcmp_ascii(const char *in1, const char *in2) {
+int strcmp_ascii(const char *in1, const char *in2) {
     char buffer1[256], buffer2[256];
     int j1 = 0, j2 = 0;
-    for (int i = 0; in1[i] != '\0' && i < 255; i++) if (isalpha(in1[i])) buffer1[j1++] = in1[i];
-    for (int i = 0; in2[i] != '\0' && i < 255; i++) if (isalpha(in2[i])) buffer2[j2++] = in2[i];
+    for (int i = 0; in1[i] != '\0' && i < 255; i++) if (isalnum(in1[i])) buffer1[j1++] = in1[i];
+    for (int i = 0; in2[i] != '\0' && i < 255; i++) if (isalnum(in2[i])) buffer2[j2++] = in2[i];
     buffer1[j1] = buffer2[j2] = '\0';
     return strcmp(buffer1, buffer2);
 }
@@ -215,6 +215,37 @@ double get_star_size(const chart_config *s, double mag) {
     const double pt = 1. / 72; // 1 pt
     const double size = 0.75 * 3 * pt * mag2 * 0.0014552083 * 60;
     return size;
+}
+
+//! star_labelling_priority - Work out the priority level for labelling this star
+//! @param s - A <chart_config> structure defining the properties of the star chart to be drawn.
+//! @param name - The English name of the star
+//! @param mag - The reference magnitude of the star
+//! @param label_counter - Counter of how many stars we have already displayed
+//! @return - Priority level, or NaN if this label should not be shown
+
+double star_labelling_priority(const chart_config *s, const char *name, double mag, int label_counter) {
+    // Check if this label is specifically not to be displayed
+    if (s->must_not_label_objects_length > 0) {
+        for (int i = 0; i < s->must_not_label_objects_length; i++) {
+            if (strcmp_ascii(name, s->must_not_label_objects[i]) == 0) return GSL_NAN;
+        }
+    }
+
+    // Check if this label must be displayed
+    if (s->must_label_objects_length > 0) {
+        for (int i = 0; i < s->must_label_objects_length; i++) {
+            if (strcmp_ascii(name, s->must_label_objects[i]) == 0) return -2;
+        }
+    }
+
+    // Prioritise labels by magnitude
+    if ((mag < s->star_label_mag_min) && (label_counter < s->maximum_star_label_count)) {
+        double priority = mag;
+        if (mag <= s->must_label_brighter_than) priority = -2;
+        return priority;
+    }
+    return GSL_NAN;
 }
 
 //! plot_stars_calculate_magnitude_range - Calculate the range of star magnitudes which will end up on this chart
@@ -462,7 +493,9 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                     }
 
                     // Consider whether to write a text label nest to this star
-                    if ((sd.mag < s->star_label_mag_min) && (label_counter < s->maximum_star_label_count)) {
+                    const double label_priority = star_labelling_priority(s, sd.name3, sd.mag, label_counter);
+
+                    if (isfinite(label_priority)) {
                         // Do we show an English name for this star?
                         const int show_name3 = s->star_names && (sd.name3[0] != '\0') && (sd.name3[0] != '-') &&
                                                (strcmp_ascii(sd.name3, sd.name2) != 0);
@@ -493,10 +526,6 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                         // How far should we move this label to the side of the star, to avoid writing text on top of the star?
                         const double horizontal_offset = size * s->dpi + 0.075 * s->cm;
 
-                        // Set priority for labelling this star
-                        double priority = sd.mag;
-                        if (sd.mag <= s->must_label_brighter_than) priority = -2;
-
                         // Write an English name next to this star
                         if (show_name3) {
                             strcpy(temp_err_string, sd.name3);
@@ -513,7 +542,7 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                                                    {x, y, 0, 0, -horizontal_offset, 0, 1}
                                                }, 4,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
-                                               0, 0, 0, priority);
+                                               0, 0, 0, label_priority);
                             label_counter++;
                             if (!s->star_allow_multiple_labels) continue;
                         }
@@ -528,7 +557,7 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                                                    {x, y, 0, 0, -horizontal_offset, 0, 1}
                                                }, 4,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
-                                               0, 0, 0, priority);
+                                               0, 0, 0, label_priority);
                             label_counter++;
                             if (!s->star_allow_multiple_labels) continue;
                         }
@@ -543,7 +572,7 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                                                    {x, y, 0, 0, -horizontal_offset, 0, 1}
                                                }, 4,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
-                                               0, 0, 0, priority);
+                                               0, 0, 0, label_priority);
                             label_counter++;
                             if (!s->star_allow_multiple_labels) continue;
                         }
@@ -564,7 +593,7 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                                                    {x, y, 0, 0, -horizontal_offset, 0, 1}
                                                }, 4,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
-                                               0, 0, 0, priority);
+                                               0, 0, 0, label_priority);
                             label_counter++;
                             if (!s->star_allow_multiple_labels) continue;
                         }
@@ -582,7 +611,7 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                                                        {x, y, 0, 0, -horizontal_offset, 0, 1}
                                                    }, 4,
                                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
-                                                   0, 0, 0, priority);
+                                                   0, 0, 0, label_priority);
                             } else if ((s->star_catalogue == SW_CAT_YBSC) && (sd.ybsn_num > 0)) {
                                 // Write an HR number (i.e. Yale Bright Star Catalog number)
                                 snprintf(temp_err_string, FNAME_LENGTH, "HR%d", sd.ybsn_num);
@@ -594,7 +623,7 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                                                        {x, y, 0, 0, -horizontal_offset, 0, 1}
                                                    }, 4,
                                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
-                                                   0, 0, 0, priority);
+                                                   0, 0, 0, label_priority);
                             } else if ((s->star_catalogue == SW_CAT_HD) && (sd.hd_num > 0)) {
                                 // Write a Henry Draper number
                                 snprintf(temp_err_string, FNAME_LENGTH, "HD%d", sd.hd_num);
@@ -606,7 +635,7 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                                                        {x, y, 0, 0, -horizontal_offset, 0, 1}
                                                    }, 4,
                                                    multiple_labels, 0, 1.2 * s->label_font_size_scaling,
-                                                   0, 0, 0, priority);
+                                                   0, 0, 0, label_priority);
                             }
                             label_counter++;
                             if (!s->star_allow_multiple_labels) continue;
@@ -628,7 +657,7 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                                                    {x, y, 0, 0, -horizontal_offset, 0, 1}
                                                }, 4,
                                                multiple_labels, 0, 1.2 * s->label_font_size_scaling,
-                                               0, 0, 0, priority - 0.000001);
+                                               0, 0, 0, label_priority - 0.000001);
                             label_counter++;
                             if (!s->star_allow_multiple_labels) continue;
                         }

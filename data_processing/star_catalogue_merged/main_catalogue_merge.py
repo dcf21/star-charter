@@ -228,6 +228,7 @@ def merge_databases(target: StarList, new_entries: StarList, source: str) -> Non
     matches_ambiguous: int = 0
     matches_multiple_star: int = 0
     matches_single_star: int = 0
+    matches_by_position: int = 0
     matches_new_star: int = 0
     total_stars: int = 0
 
@@ -264,8 +265,7 @@ def merge_databases(target: StarList, new_entries: StarList, source: str) -> Non
                         (new_star.ra is not None) and isfinite(new_star.ra) and
                         (new_star.decl is not None) and isfinite(new_star.decl)):
                     old_star.check_positions_agree(
-                        ra_new=new_star.ra, dec_new=new_star.decl, mag=new_star.mag_reference,
-                        cat_name_new=source, threshold=match_threshold)
+                        other=new_star, cat_name_new=source, threshold=match_threshold)
 
                 # Merge new data into old entry
                 old_star.merge_new_data(new_star=new_star)
@@ -279,14 +279,56 @@ def merge_databases(target: StarList, new_entries: StarList, source: str) -> Non
                                     new_star=new_star, old_star=old_star)
         else:
             # Star did not match any existing database entries
-            matches_new_star += 1
-            target.add_star(star_descriptor=new_star)
+            positional_match: Optional[StarDescriptor] = match_by_position(target=target, new_star=new_star)
+            if positional_match is not None:
+                # Check whether the star is a good positional match to any previous database entry
+                matches_by_position += 1
+                positional_match.merge_new_data(new_star=new_star)
+                target.add_star(star_descriptor=positional_match)
+            else:
+                matches_new_star += 1
+                target.add_star(star_descriptor=new_star)
 
     # Final logging update
     logging.info("""
--> Found {:,} new stars; {:,} existing singletons; {:,} new multiple stars; {:,} ambiguous catalogue IDs; total {:,}.
-""".format(matches_new_star, matches_single_star, matches_multiple_star, matches_ambiguous, total_stars).strip())
+-> Found {:,} new stars; {:,} existing singletons; {:,} new multiple stars; {:,} ambiguous catalogue IDs; \
+{:,} matches by position; total {:,}.
+""".format(matches_new_star, matches_single_star, matches_multiple_star, matches_ambiguous, matches_by_position,
+           total_stars).strip())
     logging.info("-> Total of {:,} stars in database.".format(len(target)))
+
+
+def match_by_position(target: StarList, new_star: StarDescriptor) -> Optional[StarDescriptor]:
+    """
+    Try to match a new star against existing stars, purely by its position and magnitude.
+
+    :param target:
+        The list of stars that we are populating.
+    :param new_star:
+        The new star to add to the list.
+    :return:
+        The star descriptor for any matching star.
+    """
+
+    position_tolerance: Final[float] = 0.6 / 60 / 60  # 0.6 arcseconds
+    mag_tolerance: Final[float] = 0.1  # 0.1 magnitudes
+
+    if (new_star.ra is None) or (new_star.decl is None) or (new_star.mag_reference is None):
+        return None
+
+    matches: List[StarDescriptor] = list(target.star_db.search_by_position(
+        ra=new_star.ra, decl=new_star.decl, mag=new_star.mag_reference,
+        position_tolerance=position_tolerance, mag_tolerance=mag_tolerance
+    ))
+
+    if len(matches) == 1:
+        positional_match: StarDescriptor = matches[0]
+        if emit_debugging(star_list=[new_star, positional_match]):
+            logging.info("Matched <{}> to <{}>; separation <{:.4f} arcsec>".format(
+                new_star, positional_match, new_star.angular_separation(other=positional_match) * 3600))
+        return positional_match
+    else:
+        return None
 
 
 def filter_multiple_matches(target: StarList, new_star: StarDescriptor,
@@ -1094,54 +1136,42 @@ def read_bayer_flamsteed_cross_index(star_data: StarList) -> None:
     logging.info("-> Rejected {:,} / {:,} new catalogue entries.".format(rejection_count, total_count))
 
 
-def read_english_names(star_data: StarList) -> None:
+def read_english_names() -> Tuple[StarList, str]:
     """
     Read popular names for stars.
 
-    :param star_data:
-        The list of stars we merge new entries into.
     :return:
-        None
+        The list of stars we have read , The source string for the catalogue we read.
     """
+
+    output: StarList = StarList(require_unique_ids=False)
+
     # Read list of English names for stars
     logging.info("Reading English names for stars...")
+    source: str = "iau_wgsn"
+
     star_names_path: Final[str] = os.path.join(input_path, "brightStars/starNames_iau.txt")
     with open(star_names_path, "rt") as f_in:
         for line in f_in:
             if (len(line) < 5) or (line[0] == '#'):
                 continue
-            words: Sequence[str] = line.split()
-            cat_name: str = words[0]
-            cat_number: int = int(words[1])
-            parallax: float = float(words[2])
-            name: str = line[20:]
-            star: Optional[StarDescriptor] = None
-            if cat_name == "HR":
-                matches: List[StarDescriptor] = list(star_data.lookup_by_bs_num(bs_num=cat_number))
-                if len(matches) > 0:
-                    star: StarDescriptor = matches[0]
-            elif cat_name == "HD":
-                matches: List[StarDescriptor] = list(star_data.lookup_by_hd_num(hd_num=cat_number))
-                if len(matches) > 0:
-                    star: StarDescriptor = matches[0]
-            elif cat_name == "HIP":
-                matches: List[StarDescriptor] = list(star_data.lookup_by_hip_num(hip_num=cat_number))
-                if len(matches) > 0:
-                    star: StarDescriptor = matches[0]
-            if star is None:
-                logging.info("  Error - could not find star {} {}".format(cat_name, cat_number))
-                continue
 
-            # Add new English name for this star
-            star.add_english_name(new_name=name.strip(), prepend=True)
-
-            # Add new manually-set parallax, if available
-            if parallax:
-                star.source_par = 'manual'
-                star.parallax = parallax
+            star: StarDescriptor = StarDescriptor()
+            try:
+                star.names_hip_num = int(line[90:].split()[0])
+            except ValueError:
+                pass
+            try:
+                star.names_hd_num = int(line[97:].split()[0])
+            except ValueError:
+                pass
+            star.add_english_name(new_name=line[18:36].strip(), prepend=True)
 
             # Update star
-            star_data.add_star(star)
+            if star.names_hip_num or star.names_hd_num:
+                output.add_star(star_descriptor=star)
+
+    return output, source
 
 
 def merge_star_catalogues(magnitude_limit: Optional[float] = None) -> None:
@@ -1188,9 +1218,12 @@ def merge_star_catalogues(magnitude_limit: Optional[float] = None) -> None:
         list_multiple_star_systems(target=star_data, max_children=1)
         display_multiple_star_statistics(target=star_data)
 
-    # Update Bayer / Flamsteed / English star names
+    # Update Bayer / Flamsteed star names
     read_bayer_flamsteed_cross_index(star_data=star_data)
-    read_english_names(star_data=star_data)
+
+    # Update English star names
+    new_entries, source = read_english_names()
+    merge_databases(target=star_data, new_entries=new_entries, source=source)
 
     # Create a histogram of the brightness of all the stars we have inserted into catalogue
     bin_size: float = 0.25
