@@ -464,7 +464,7 @@ Only the filename is compulsory. The fields have the following meanings:
 
 ## Change history
 
-**Version 10.0** (1 May 2026) - Switched default ephemeris from DE430 to DE440. Add support for horizon graphics.
+**Version 10.0** (6 June 2026) - Switched default ephemeris from DE430 to DE440. Add support for horizon graphics.
 
 **Version 9.0** (10 Nov 2025) - Allow colours to have alpha components. Support using multiple files of asteroid / comet orbital elements at different epochs.
 
