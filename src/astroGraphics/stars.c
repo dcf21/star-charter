@@ -33,6 +33,7 @@
 #include "mathsTools/projection.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/cairo_page.h"
+#include "vectorGraphics/label_arranger.h"
 
 
 //! strcmp_ascii - Compare two strings, on the basis of ASCII characters only, ignoring UTF8 characters

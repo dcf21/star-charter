@@ -28,10 +28,10 @@
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
 #include "mathsTools/projection.h"
-#include "mathsTools/sphericalTrig.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/arrowDraw.h"
 #include "vectorGraphics/cairo_page.h"
+#include "vectorGraphics/label_arranger.h"
 
 //! plot_meteor_showers - Plot the positions of the radiants of meteor showers.
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
@@ -61,7 +61,7 @@ void plot_meteor_showers(chart_config *s, cairo_page *page) {
         dec_radiant_j2000 = get_float(buffer, NULL);
 
         // Project onto the plotting canvas
-        double x, y;  // radians in tangent plane
+        double x, y; // radians in tangent plane
         plane_project(&x, &y, s, ra_radiant_j2000 * M_PI / 180, dec_radiant_j2000 * M_PI / 180, 0);
 
         // Ignore this star if it falls outside the plot area
@@ -100,12 +100,11 @@ void plot_meteor_showers(chart_config *s, cairo_page *page) {
 
         // Write label
         chart_label_buffer(page, s, s->meteor_radiant_colour, label,
-                           (label_position[2]) {
-                                   {x, y, 0, marker_size,  marker_size, -1, 0},
-                                   {x, y, 0, -marker_size, marker_size, 1,  0}
+                           (label_position[2]){
+                               {x, y, 0, marker_size, marker_size, -1, 0},
+                               {x, y, 0, -marker_size, marker_size, 1, 0}
                            }, 2,
                            0, 0, 1.3 * s->label_font_size_scaling,
                            0, 0, 0, -10);
     }
-
 }

@@ -38,7 +38,6 @@
 #include "mathsTools/projection.h"
 #include "mathsTools/sphericalTrig.h"
 #include "settings/chart_config.h"
-#include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
 
 //! The dimensions of the binary map of the Milky Way, as read from disk.

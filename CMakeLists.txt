@@ -22,6 +22,8 @@ set(SOURCE_FILES
         src/astroGraphics/gridLines.h
         src/astroGraphics/horizon.c
         src/astroGraphics/horizon.h
+        src/astroGraphics/horizonGraphic.c
+        src/astroGraphics/horizonGraphic.h
         src/astroGraphics/meteorShower.c
         src/astroGraphics/meteorShower.h
         src/astroGraphics/solarSystem.c
@@ -66,6 +68,8 @@ set(SOURCE_FILES
         src/mathsTools/projection.h
         src/mathsTools/sphericalTrig.c
         src/mathsTools/sphericalTrig.h
+        src/png/image.h
+        src/png/image_in.c
         src/settings/chart_config.c
         src/settings/chart_config.h
         src/settings/read_config.c
@@ -74,12 +78,14 @@ set(SOURCE_FILES
         src/settings/render_chart.h
         src/vectorGraphics/arrowDraw.c
         src/vectorGraphics/arrowDraw.h
-        src/vectorGraphics/lineDraw.c
-        src/vectorGraphics/lineDraw.h
         src/vectorGraphics/cairo_page.c
         src/vectorGraphics/cairo_page.h
+        src/vectorGraphics/label_arranger.c
+        src/vectorGraphics/label_arranger.h
+        src/vectorGraphics/lineDraw.c
+        src/vectorGraphics/lineDraw.h
         src/main.c)
 
 add_executable(starcharter ${SOURCE_FILES})
 
-target_link_libraries(starcharter gsl gslcblas z cairo m)
+target_link_libraries(starcharter gsl gslcblas png z cairo m)

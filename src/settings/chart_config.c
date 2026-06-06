@@ -60,9 +60,9 @@ void default_config(chart_config *i) {
     i->show_horizon = 0;
     i->horizon_latitude = 0;
     i->horizon_longitude = 0;
-    i->horizon_colour = (colour) {0, 0, 0, 1};
-    i->horizon_cardinal_points_marker_colour = (colour) {0, 0, 0, 1};
-    i->horizon_cardinal_points_labels_colour = (colour) {0, 0, 0, 1};
+    i->horizon_colour = (colour){0, 0, 0, 1};
+    i->horizon_cardinal_points_marker_colour = (colour){0, 0, 0, 1};
+    i->horizon_cardinal_points_labels_colour = (colour){0, 0, 0, 1};
     i->horizon_cardinal_points_marker_size = 1;
     i->horizon_cardinal_points_marker_count = 8;
     i->horizon_cardinal_points_marker_elevate = 0;
@@ -87,11 +87,11 @@ void default_config(chart_config *i) {
     i->solar_system_ids_custom_count = 0;
     i->solar_system_labels_custom_count = 0;
     i->solar_system_final_count = 0;
-    i->solar_system_colour[0] = (colour) {1, 0.9, 0.75, 1};
+    i->solar_system_colour[0] = (colour){1, 0.9, 0.75, 1};
     i->solar_system_colour_default_count = 1;
     i->solar_system_colour_custom_count = 0;
     i->solar_system_colour_final_count = 0;
-    i->solar_system_label_colour[0] = (colour) {1, 0.9, 0.75, 1};
+    i->solar_system_label_colour[0] = (colour){1, 0.9, 0.75, 1};
     i->solar_system_label_colour_default_count = 1;
     i->solar_system_label_colour_custom_count = 0;
     i->solar_system_label_colour_final_count = 0;
@@ -99,15 +99,15 @@ void default_config(chart_config *i) {
     i->solar_system_show_moon_phase = 1;
     i->solar_system_sun_actual_size = 0;
     i->solar_system_sun_actual_size_scaling = 1.;
-    i->solar_system_sun_col = (colour) {1, 1, 0, 1};
+    i->solar_system_sun_col = (colour){1, 1, 0, 1};
     i->solar_system_moon_earthshine_intensity = 0.12;
-    i->solar_system_moon_colour = (colour) {1, 1, 0.8, 1};
+    i->solar_system_moon_colour = (colour){1, 1, 0.8, 1};
     i->solar_system_topocentric_correction = 0;
     i->shade_twilight = 0;
     i->shade_near_sun = 0;
     i->shade_not_observable = 0;
-    i->twilight_zenith_col = (colour) {0.337, 0.547, 0.820, 1};
-    i->twilight_horizon_col = (colour) {0.506, 0.765, 0.929, 1};
+    i->twilight_zenith_col = (colour){0.337, 0.547, 0.820, 1};
+    i->twilight_horizon_col = (colour){0.506, 0.765, 0.929, 1};
     i->font_size = 1.0;
     i->axis_ticks_value_only = 1;
     i->show_grid_lines = 1;
@@ -161,7 +161,7 @@ void default_config(chart_config *i) {
     i->scale_bars_default_count = 0;
     i->scale_bars_custom_count = 0;
     i->scale_bars_final_count = 0;
-    i->scale_bar_colour = (colour) {0, 0, 0, 1};
+    i->scale_bar_colour = (colour){0, 0, 0, 1};
     i->ephemeris_autoscale = 0;
     i->ephemeris_coords = SW_COORDS_EPHEMERIS_RADEC;
     i->ephemeris_resolution = 0.5;
@@ -180,42 +180,42 @@ void default_config(chart_config *i) {
     i->maximum_dso_label_count = 100;
     i->copyright_gap = 0;
     i->copyright_gap_2 = 0;
-    i->dso_cluster_col = (colour) {0.8, 0.8, 0.25, 1};
-    i->dso_galaxy_col = (colour) {0.75, 0.15, 0.15, 1};
-    i->dso_nebula_col = (colour) {0.25, 0.75, 0.25, 1};
-    i->dso_label_col = (colour) {0, 0, 0, 1};
-    i->dso_outline_col = (colour) {0.25, 0.25, 0.25, 1};
+    i->dso_cluster_col = (colour){0.8, 0.8, 0.25, 1};
+    i->dso_galaxy_col = (colour){0.75, 0.15, 0.15, 1};
+    i->dso_nebula_col = (colour){0.25, 0.75, 0.25, 1};
+    i->dso_label_col = (colour){0, 0, 0, 1};
+    i->dso_outline_col = (colour){0.25, 0.25, 0.25, 1};
     i->plot_ecliptic = 1;
     i->label_ecliptic = 0;
     i->plot_galactic_plane = 1;
     i->plot_equator = 1;
-    i->ecliptic_col = (colour) {0.8, 0.65, 0, 1};
-    i->galactic_plane_col = (colour) {0, 0, 0.75, 1};
-    i->equator_col = (colour) {0.65, 0, 0.65, 1};
-    i->constellation_stick_col = (colour) {0, 0.6, 0, 1};
-    i->grid_col = (colour) {0.7, 0.7, 0.7, 1};
-    i->constellation_boundary_col = (colour) {0.5, 0.5, 0.5, 1};
-    i->ephemeris_col[0] = (colour) {0, 0, 0, 1};
+    i->ecliptic_col = (colour){0.8, 0.65, 0, 1};
+    i->galactic_plane_col = (colour){0, 0, 0.75, 1};
+    i->equator_col = (colour){0.65, 0, 0.65, 1};
+    i->constellation_stick_col = (colour){0, 0.6, 0, 1};
+    i->grid_col = (colour){0.7, 0.7, 0.7, 1};
+    i->constellation_boundary_col = (colour){0.5, 0.5, 0.5, 1};
+    i->ephemeris_col[0] = (colour){0, 0, 0, 1};
     i->ephemeris_col_default_count = 1;
     i->ephemeris_col_custom_count = 0;
     i->ephemeris_col_final_count = 0;
     i->ephemeris_arrow_line_width = 1;
-    i->ephemeris_arrow_col[0] = (colour) {0, 0, 0, 1};
+    i->ephemeris_arrow_col[0] = (colour){0, 0, 0, 1};
     i->ephemeris_arrow_col_default_count = 1;
     i->ephemeris_arrow_col_custom_count = 0;
     i->ephemeris_arrow_col_final_count = 0;
-    i->ephemeris_label_col[0] = (colour) {0, 0, 0, 1};
+    i->ephemeris_label_col[0] = (colour){0, 0, 0, 1};
     i->ephemeris_label_col_default_count = 1;
     i->ephemeris_label_col_custom_count = 0;
     i->ephemeris_label_col_final_count = 0;
-    i->constellation_label_col = (colour) {0.1, 0.1, 0.1, 1};
+    i->constellation_label_col = (colour){0.1, 0.1, 0.1, 1};
     i->plot_galaxy_map = 1;
     i->galaxy_map_width_pixels = 2048;
-    i->galaxy_col = (colour) {0.68, 0.76, 1, 1};
-    i->galaxy_col0 = (colour) {1, 1, 1, 1};
-    i->star_col = (colour) {0, 0, 0, 1};
-    i->star_label_col = (colour) {0, 0, 0, 1};
-    i->chart_edge_line_col = (colour) {0, 0, 0, 1};
+    i->galaxy_col = (colour){0.68, 0.76, 1, 1};
+    i->galaxy_col0 = (colour){1, 1, 1, 1};
+    i->star_col = (colour){0, 0, 0, 1};
+    i->star_label_col = (colour){0, 0, 0, 1};
+    i->chart_edge_line_col = (colour){0, 0, 0, 1};
     i->magnitude_key = 1;
     i->great_circle_key = 1;
     i->dso_symbol_key = 1;
@@ -233,7 +233,7 @@ void default_config(chart_config *i) {
     i->show_horizon_zenith = 0;
     i->show_poles = 0;
     i->horizon_zenith_marker_size = 1;
-    i->horizon_zenith_colour = (colour) {1, 1, 1, 1};
+    i->horizon_zenith_colour = (colour){1, 1, 1, 1};
     i->ephemeris_style = SW_EPHEMERIS_TRACK;
     i->ephemeris_show_arrow_shadow = 1;
     i->ephemeris_minimum_size = 3.;
@@ -241,7 +241,7 @@ void default_config(chart_config *i) {
     i->meteor_radiants_custom_count = 0;
     i->meteor_radiants_final_count = 0;
     i->meteor_radiant_marker_size = 1;
-    i->meteor_radiant_colour = (colour) {0.75, 0.75, 1, 1};
+    i->meteor_radiant_colour = (colour){0.75, 0.75, 1, 1};
     strcpy(i->font_family, "Ubuntu");
     i->great_circle_line_width = 2;
     i->great_circle_dotted = 0;
@@ -256,7 +256,7 @@ void default_config(chart_config *i) {
     i->mag_min_is_set = 0;
     i->mag_max_is_set = 0;
     i->dso_mag_min_is_set = 0;
-    i->minimum_star_count_is_set = 0;  // not exposed
+    i->minimum_star_count_is_set = 0; // not exposed
     i->ra0_is_set = 0;
     i->dec0_is_set = 0;
     i->star_flamsteed_labels_is_set = 0;
@@ -274,7 +274,9 @@ void default_config(chart_config *i) {
 
     // Pointers default to NULL
     i->ephemeris_data = NULL;
+    i->ephemeris_data_sorted = NULL;
     i->solar_system_ephemeris_data = NULL;
+    i->solar_system_ephemeris_data_sorted = NULL;
     i->cairo_surface = NULL;
     i->cairo_draw = NULL;
 }
@@ -458,7 +460,7 @@ void config_init_pointing(chart_config *i) {
         // Work out the position angle of the galactic pole, counterclockwise from north, as measured at centre of frame
         // radians, for J2000 north pole
         const double zenith_position_angle = position_angle(
-                i->ra0_final, i->dec0_final, ra_ngp_j2000, dec_ngp_j2000);
+            i->ra0_final, i->dec0_final, ra_ngp_j2000, dec_ngp_j2000);
 
         // Apply fix
         if ((i->projection != SW_PROJECTION_FLAT) && (i->projection != SW_PROJECTION_PETERS)) {
@@ -480,7 +482,7 @@ void config_init_pointing(chart_config *i) {
         // Work out the position angle of the zenith, counterclockwise from north, as measured at centre of frame
         // radians, for J2000 north pole
         const double zenith_position_angle = position_angle(
-                i->ra0_final, i->dec0_final, ra_zenith_j2000, dec_zenith_j2000);
+            i->ra0_final, i->dec0_final, ra_zenith_j2000, dec_zenith_j2000);
 
         // Apply fix
         if ((i->projection != SW_PROJECTION_FLAT) && (i->projection != SW_PROJECTION_PETERS)) {
@@ -525,4 +527,13 @@ void config_init_pointing(chart_config *i) {
 //! config_close - Free up a chart configuration data structure
 
 void config_close(chart_config *i) {
+    if (i->ephemeris_data != NULL) free(i->ephemeris_data);
+    if (i->ephemeris_data_sorted != NULL) free(i->ephemeris_data_sorted);
+    if (i->solar_system_ephemeris_data != NULL) free(i->solar_system_ephemeris_data);
+    if (i->solar_system_ephemeris_data_sorted != NULL) free(i->solar_system_ephemeris_data_sorted);
+
+    i->ephemeris_data = NULL;
+    i->ephemeris_data_sorted = NULL;
+    i->solar_system_ephemeris_data = NULL;
+    i->solar_system_ephemeris_data_sorted = NULL;
 }

@@ -32,6 +32,7 @@
 #include "mathsTools/projection.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/cairo_page.h"
+#include "vectorGraphics/label_arranger.h"
 
 //! dso_labelling_priority - Work out the priority level for labelling this DSO
 //! @param s - A <chart_config> structure defining the properties of the star chart to be drawn.

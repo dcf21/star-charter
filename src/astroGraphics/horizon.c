@@ -26,16 +26,15 @@
 
 #include <gsl/gsl_math.h>
 
-#include "astroGraphics/ephemeris.h"
 #include "astroGraphics/greatCircles.h"
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
 #include "mathsTools/julianDate.h"
 #include "mathsTools/projection.h"
-#include "mathsTools/sphericalTrig.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
+#include "vectorGraphics/label_arranger.h"
 
 // Cardinal point label texts
 static const char cardinal_label[16][6] = {

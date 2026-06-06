@@ -59,7 +59,7 @@ eggs/
 /data_generated/milky_way_map/mellinger.png
 
 # /data_generated/star_catalogue_merged
-/data_generated/star_catalogue_merged/all_stars.sqlite3*
+/data_generated/star_catalogue_merged/*.sqlite3*
 /data_generated/star_catalogue_merged/star_charter_stars.*
 
 # /data_generated/deep_sky_merged_catalogue

@@ -35,6 +35,7 @@
 #include "settings/chart_config.h"
 #include "vectorGraphics/arrowDraw.h"
 #include "vectorGraphics/cairo_page.h"
+#include "vectorGraphics/label_arranger.h"
 
 //! annotation_transform_coordinates - Transform the supplied coordinates for annotations into Cairo pixels
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
@@ -257,8 +258,8 @@ void plot_text_annotations(chart_config *s, cairo_page *page) {
 
         // Write label
         chart_label_buffer(page, s, label_colour, label_text,
-                           (label_position[1]) {
-                                   {x_tangent, y_tangent, 0, 0, 0, x_align, y_align}
+                           (label_position[1]){
+                               {x_tangent, y_tangent, 0, 0, 0, x_align, y_align}
                            }, 1,
                            0, 0, font_size * s->label_font_size_scaling,
                            font_bold, font_italic, 0, -10);

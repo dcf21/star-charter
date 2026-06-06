@@ -57,10 +57,34 @@ colour colour_from_string(const char *input) {
     const char *in_scan = input;
     char buffer[FNAME_LENGTH];
     str_comma_separated_list_scan(&in_scan, buffer);
+    {
+        int l = (int) strlen(buffer);
+        if (!valid_float(buffer, &l)) {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. Colour '%s' should be 3-4 comma-separated floats.", input);
+            stch_fatal(__FILE__,__LINE__, temp_err_string);
+        }
+    }
     output.red = get_float(buffer, NULL);
     str_comma_separated_list_scan(&in_scan, buffer);
+    {
+        int l = (int) strlen(buffer);
+        if (!valid_float(buffer, &l)) {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. Colour '%s' should be 3-4 comma-separated floats.", input);
+            stch_fatal(__FILE__,__LINE__, temp_err_string);
+        }
+    }
     output.grn = get_float(buffer, NULL);
     str_comma_separated_list_scan(&in_scan, buffer);
+    {
+        int l = (int) strlen(buffer);
+        if (!valid_float(buffer, &l)) {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. Colour '%s' should be 3-4 comma-separated floats.", input);
+            stch_fatal(__FILE__,__LINE__, temp_err_string);
+        }
+    }
     output.blu = get_float(buffer, NULL);
 
     // Alpha component defaults to 1 if not specified

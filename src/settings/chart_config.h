@@ -121,6 +121,7 @@ typedef struct ephemeris_point {
     double phase; // 0-1
     double angular_size; // diameter; arcseconds
     double sun_pa; // radians; J2000
+    double earth_distance; // AU
     char *text_label;
     int sub_month_label;
 } ephemeris_point;
@@ -135,6 +136,12 @@ typedef struct ephemeris {
     int point_count, is_comet;
     ephemeris_point *data;
 } ephemeris;
+
+//! A structure used to sort objects by distance
+typedef struct distance_sort {
+    int index;
+    double distance;
+} distance_sort;
 
 typedef struct chart_config {
     //! Select projection to use. Set to SW_PROJECTION_STEREOGRAPHIC, SW_PROJECTION_FLAT, SW_PROJECTION_GNOMONIC,
@@ -836,6 +843,7 @@ typedef struct chart_config {
 
     //! Ephemeris data for the tracks of solar system objects we are to plot
     ephemeris *ephemeris_data;
+    distance_sort *ephemeris_data_sorted;
 
     //! The definitions of ephemerides for the solar system bodies whose positions we will show.
     //! Each definition should take the form of: `<bodyId>,<jdMin>,<jdMax>` where bodyId is an object ID string,
@@ -844,6 +852,7 @@ typedef struct chart_config {
 
     //! Ephemeris data for solar system objects
     ephemeris *solar_system_ephemeris_data;
+    distance_sort *solar_system_ephemeris_data_sorted;
 
     //! Image format to use for the output. One of SW_FORMAT_SVG, SW_FORMAT_PNG, SW_FORMAT_EPS or SW_FORMAT_PDF
     int output_format;

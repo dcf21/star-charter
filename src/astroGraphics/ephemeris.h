@@ -29,7 +29,7 @@
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
 
-int ephemerides_fetch(ephemeris **ephemeris_data_out, int ephemeris_count,
+int ephemerides_fetch(ephemeris **ephemeris_data_out, distance_sort **ephemeris_data_sort_order, int ephemeris_count,
                       const char (*ephemeris_definitions)[N_TRACES_MAX][FNAME_LENGTH],
                       double jd_step, int output_coordinates, double jd_central,
                       int do_topocentric_correction,
@@ -52,4 +52,3 @@ void plot_ephemeris(chart_config *s, line_drawer *ld, cairo_page *page, int trac
 double draw_ephemeris_table(chart_config *s, double legend_y_pos, int draw_output, double *width_out);
 
 #endif
-

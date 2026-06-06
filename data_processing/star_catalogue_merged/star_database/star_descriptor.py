@@ -42,7 +42,7 @@ AU: Final[float] = 1.49598e11  # metres
 LYR: Final[float] = 9.4605284e15  # lightyear in metres
 
 # List of catalogue references of stars where we want very verbose debugging
-debug_targets: Final[List[str]] = ["HR 4730", "HR 4731"]
+debug_targets: Final[List[str]] = []
 # debug_targets: Final[List[str]] = ["HD 105963", "HIP 59432", "TYC 3834-1089-1"]
 # debug_targets: Final[List[str]] = ["HD 12447", "TYC 40-1338-2"]
 debug_all_targets: Final[bool] = False
@@ -58,6 +58,7 @@ class StarDescriptor:
         self.db_path: Optional[str] = None
         self.child_of: Optional[int] = None
         self.is_parent: Optional[bool] = None
+        self.immutable: bool = False
 
         self.ra: Optional[float] = None  # degrees, J2000.0
         self.decl: Optional[float] = None  # degrees, J2000.0
@@ -145,6 +146,7 @@ class StarDescriptor:
         if copy_id:
             output.id = self.id
             output.db_path = self.db_path
+            output.immutable = self.immutable
         output.child_of = self.child_of
         output.is_parent = self.is_parent
         output.ra = self.ra
@@ -191,6 +193,7 @@ class StarDescriptor:
         self.db_path = old_star.db_path
         self.child_of = old_star.child_of
         self.is_parent = old_star.is_parent
+        self.immutable = old_star.immutable
         return self
 
     def set_catalogue_name(self, catalogue: str, name) -> "StarDescriptor":
@@ -256,6 +259,7 @@ class StarDescriptor:
         if overwrite_id:
             self.id = new_star.id
             self.db_path = new_star.db_path
+            self.immutable = new_star.immutable
         if new_star.child_of is not None:
             self.child_of = new_star.child_of
         if new_star.ra is not None and isfinite(new_star.ra):
@@ -839,6 +843,7 @@ CREATE TABLE stars
 (
     id                     INTEGER PRIMARY KEY,
     child_of               INTEGER,
+    is_immutable           INTEGER,
     ra                     REAL,
     decl                   REAL,
     mag_reference          REAL,
@@ -938,6 +943,9 @@ CREATE INDEX stars_9 ON stars (decl);
         if not db_already_exists:
             self.c.executescript(self.schema.format(unique="UNIQUE" if require_unique_ids else ""))
 
+    def commit(self):
+        self.db.commit()
+
     def __del__(self):
         self.db.commit()
         self.db.close()
@@ -1021,16 +1029,16 @@ CREATE INDEX stars_9 ON stars (decl);
         try:
             self.c.execute("""
 INSERT INTO stars (
-    child_of, ra, decl, mag_reference, color_bv, dist, parallax, source_par,
+    child_of, is_immutable, ra, decl, mag_reference, color_bv, dist, parallax, source_par,
     proper_motion, proper_motion_pa, source_pos, is_variable,
     mag_V, mag_V_source, mag_BT, mag_BT_source, mag_VT, mag_VT_source,
     mag_G, mag_G_source, mag_BP, mag_BP_source, mag_RP, mag_RP_source,
     names_english, names_catalogue_ref, names_bayer_letter, names_const,
     names_flamsteed_number, names_hd_num, names_bs_num, names_nsv_num,
     names_hip_num, names_tycho_id, names_edr3_id
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);
 """, (
-                s.child_of, s.ra, s.decl, s.mag_reference, s.color_bv, s.dist, s.parallax, s.source_par,
+                s.child_of, s.immutable, s.ra, s.decl, s.mag_reference, s.color_bv, s.dist, s.parallax, s.source_par,
                 s.proper_motion, s.proper_motion_pa, s.source_pos, s.is_variable,
                 s.mag_V, s.mag_V_source, s.mag_BT, s.mag_BT_source, s.mag_VT, s.mag_VT_source,
                 s.mag_G, s.mag_G_source, s.mag_BP, s.mag_BP_source, s.mag_RP, s.mag_RP_source,
@@ -1062,7 +1070,7 @@ INSERT INTO stars (
         try:
             self.c.execute("""
 UPDATE stars SET
-    child_of=?, ra=?, decl=?, mag_reference=?, color_bv=?, dist=?, parallax=?, source_par=?,
+    child_of=?, is_immutable=?, ra=?, decl=?, mag_reference=?, color_bv=?, dist=?, parallax=?, source_par=?,
     proper_motion=?, proper_motion_pa=?, source_pos=?, is_variable=?,
     mag_V=?, mag_V_source=?, mag_BT=?, mag_BT_source=?, mag_VT=?, mag_VT_source=?,
     mag_G=?, mag_G_source=?, mag_BP=?, mag_BP_source=?, mag_RP=?, mag_RP_source=?,
@@ -1072,7 +1080,7 @@ UPDATE stars SET
 WHERE
     id=?;
 """, (
-                s.child_of, s.ra, s.decl, s.mag_reference, s.color_bv, s.dist, s.parallax, s.source_par,
+                s.child_of, s.immutable, s.ra, s.decl, s.mag_reference, s.color_bv, s.dist, s.parallax, s.source_par,
                 s.proper_motion, s.proper_motion_pa, s.source_pos, s.is_variable,
                 s.mag_V, s.mag_V_source, s.mag_BT, s.mag_BT_source, s.mag_VT, s.mag_VT_source,
                 s.mag_G, s.mag_G_source, s.mag_BP, s.mag_BP_source, s.mag_RP, s.mag_RP_source,
@@ -1267,10 +1275,11 @@ WHERE ({}) ORDER BY {};
         output.db_path = self.db_path
         output.child_of = row['child_of']
         output.is_parent = row['is_parent']
+        output.immutable = bool(row['is_immutable'])
         output.ra = row['ra']
         output.decl = row['decl']
         output.mag_reference = row['mag_reference']
-        output.is_variable = row['is_variable']
+        output.is_variable = bool(row['is_variable'])
         output.color_bv = row['color_bv']
         output.dist = row['dist']
         output.parallax = row['parallax']

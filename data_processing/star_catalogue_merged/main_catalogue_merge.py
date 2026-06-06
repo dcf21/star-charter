@@ -33,10 +33,11 @@ import logging
 import numpy as np
 import os
 import re
+import shutil
 import sys
 
 from math import atan2, floor, hypot, isfinite, pi
-from typing import Callable, Dict, Final, Optional, List, Sequence, Tuple
+from typing import Any, Callable, Dict, Final, Optional, List, Tuple
 
 from star_database.star_descriptor import StarDescriptor, StarList, debugging_active, emit_debugging
 from star_database.star_name_conversion import StarNameConversion
@@ -207,7 +208,7 @@ def display_multiple_star_statistics(target: StarList) -> None:
             child_count, histogram[child_count]))
 
 
-def merge_databases(target: StarList, new_entries: StarList, source: str) -> None:
+def merge_databases(target: StarList, new_entries: StarList, source: str, create_new_entries: bool) -> None:
     """
     Merge all the stars into the <target> catalogue, matching by ID where possible.
 
@@ -217,6 +218,8 @@ def merge_databases(target: StarList, new_entries: StarList, source: str) -> Non
         The database of new stars to add into the target database.
     :param source:
         The name of the catalogue of new entries (used in log messages).
+    :param create_new_entries:
+        Boolean flag indicating whether we're allowed to insert entirely new records into the star catalogue.
     :return:
         None
     """
@@ -240,10 +243,14 @@ def merge_databases(target: StarList, new_entries: StarList, source: str) -> Non
         # Search for matches
         matches: List[Tuple[StarDescriptor, Dict[str, int]]]
         matches = target.match_star(new_star=new_star, new_catalogue=new_entries)
+        matches_immutable: bool = any([i[0].immutable for i in matches])
 
         # If we had multiple ambiguous matches, issue a warning
         if len(matches) > 1:
             matches_ambiguous += 1
+            if matches_immutable:
+                # If any of the matched stars are immutable, ignore this match
+                continue
             filter_multiple_matches(target=target, new_star=new_star, matches=matches)
 
         # If we got a match, merge the new entry into the match
@@ -274,6 +281,9 @@ def merge_databases(target: StarList, new_entries: StarList, source: str) -> Non
                 # Star has been split into a multiple star system
                 matches_multiple_star += 1
 
+                if matches_immutable:
+                    continue
+
                 # Mark this as a subcomponent of the multiple star system
                 split_multiple_star(target=target, match_count_by_catalogue=match_count_by_catalogue,
                                     new_star=new_star, old_star=old_star)
@@ -283,11 +293,16 @@ def merge_databases(target: StarList, new_entries: StarList, source: str) -> Non
             if positional_match is not None:
                 # Check whether the star is a good positional match to any previous database entry
                 matches_by_position += 1
+
+                if positional_match.immutable:
+                    continue
+
                 positional_match.merge_new_data(new_star=new_star)
                 target.add_star(star_descriptor=positional_match)
             else:
                 matches_new_star += 1
-                target.add_star(star_descriptor=new_star)
+                if create_new_entries:
+                    target.add_star(star_descriptor=new_star)
 
     # Final logging update
     logging.info("""
@@ -310,11 +325,22 @@ def match_by_position(target: StarList, new_star: StarDescriptor) -> Optional[St
         The star descriptor for any matching star.
     """
 
-    position_tolerance: Final[float] = 0.6 / 60 / 60  # 0.6 arcseconds
-    mag_tolerance: Final[float] = 0.1  # 0.1 magnitudes
-
+    # Discard stars with missing data
     if (new_star.ra is None) or (new_star.decl is None) or (new_star.mag_reference is None):
         return None
+
+    # For brighter stars, use a bigger matching radius; linear interpolation between; constant values outside
+    # transitional range
+    t: Final[dict] = {
+        'mag_min': 6,
+        'mag_max': 3,
+        'radius_min': 0.6 / 60 / 60,  # 0.6 arcseconds
+        'radius_max': 3. / 60 / 60,  # 3 arcseconds
+    }
+
+    scaling: Final[float] = max(0., min(1., (new_star.mag_reference - t['mag_max']) / (t['mag_min'] - t['mag_max'])))
+    position_tolerance: Final[float] = t['radius_min'] * scaling + t['radius_max'] * (1 - scaling)
+    mag_tolerance: Final[float] = 0.1  # 0.1 magnitudes
 
     matches: List[StarDescriptor] = list(target.star_db.search_by_position(
         ra=new_star.ra, decl=new_star.decl, mag=new_star.mag_reference,
@@ -508,6 +534,63 @@ def split_multiple_star(target: StarList, match_count_by_catalogue: Dict[str, in
     else:
         if emit_debugging(star_list=[old_star, new_star]):
             logging.info("Splitting multiple star system -- parent {} and child {}.".format(old_star, new_star))
+
+
+def read_manual_entries() -> Tuple[StarList, str]:
+    """
+    Read stars with hard-coded catalogue entries
+
+    :return:
+        The list of stars we have read , The source string for the catalogue we read.
+    """
+
+    output: StarList = StarList(require_unique_ids=False)
+
+    star_name_converter: StarNameConversion = StarNameConversion()
+
+    # Read stars with hard-coded catalogue entries
+    logging.info("Reading stars with hard-coded catalogue entries...")
+    source: str = "manual"
+    input_catalogue_path: Final[str] = os.path.join(input_path, "brightStars/manual_entries.txt")
+    for line in open(input_catalogue_path, "rt"):
+        # Ignore comment lines
+        if line.startswith("#") or (len(line.strip()) == 0):
+            continue
+
+        # Create star descriptor
+        star: StarDescriptor = StarDescriptor()
+        star.immutable = True
+
+        # Read catalogue entries
+        words = line.split()
+        bayer_letter: Optional[str] = words[0] if words[0] != '-' else None
+        bayer_letter_num: Optional[int] = int(words[1]) if words[1] != '-' else None
+        star.names_const = words[2] if words[2] != '-' else None
+        star.names_flamsteed_number = int(words[3]) if words[3] != '-' else None
+        star.names_bs_num = int(words[4]) if words[4] != '-' else None
+        star.names_nsv_num = int(words[5]) if words[5] != '-' else None
+        star.names_hd_num = int(words[6]) if words[6] != '-' else None
+        star.names_hip_num = int(words[7]) if words[7] != '-' else None
+        star.names_tycho_id = words[8] if words[8] != '-' else None
+        star.names_edr3_id = words[9] if words[9] != '-' else None
+
+        if words[10] != '-':
+            star.add_english_name(new_name=words[10])
+
+        if bayer_letter is not None:
+            assert bayer_letter in star_name_converter.greek_alphabet_tex_lookup
+            greek_letter = star_name_converter.greek_alphabet_tex_lookup[bayer_letter]
+            if bayer_letter_num is not None:
+                greek_letter += "^{}".format(bayer_letter_num)
+            star.names_bayer_letter = greek_letter
+
+        star.is_variable = (star.names_nsv_num is not None)
+
+        # Ensure this star is recorded in the output catalogue
+        output.add_star(star_descriptor=star)
+
+    logging.info("-> Read {:,} stars.".format(len(output)))
+    return output, source
 
 
 def read_from_ybsc() -> Tuple[StarList, str]:
@@ -1112,8 +1195,13 @@ def read_bayer_flamsteed_cross_index(star_data: StarList) -> None:
                 if bayer_letter_num:
                     greek_letter += "^{:d}".format(int(bayer_letter_num))
                 if bayer_letter_old and (bayer_letter_old != greek_letter):
-                    logging.info("Warning, changing Bayer designation from <{}> to <{}> {} for HD {:d}"
-                                 .format(bayer_letter_old, greek_letter, bayer_const, hd_number))
+                    if len(bayer_letter_old) >= len(greek_letter):
+                        logging.info("Warning, ignoring new Bayer designation <{}> for <{}> {} (HD {:d})"
+                                     .format(greek_letter, bayer_letter_old, bayer_const, hd_number))
+                        continue
+                    else:
+                        logging.info("Warning, changing Bayer designation from <{}> to <{}> {} (HD {:d})"
+                                     .format(bayer_letter_old, greek_letter, bayer_const, hd_number))
 
                 star.names_bayer_letter = greek_letter
                 star.names_const = bayer_const
@@ -1174,12 +1262,15 @@ def read_english_names() -> Tuple[StarList, str]:
     return output, source
 
 
-def merge_star_catalogues(magnitude_limit: Optional[float] = None) -> None:
+def merge_star_catalogues(magnitude_limit: Optional[float] = None, preserve: bool = False) -> None:
     """
     Main entry point for merging all available star catalogues.
 
     :param magnitude_limit:
         The magnitude of the faintest stars to include in the output catalogue
+    :param preserve:
+        If true, then we preserve a copy of all the temporary sqlite3 databases from each input catalogue, for
+        debugging purposes.
     :return:
         None
     """
@@ -1193,14 +1284,51 @@ def merge_star_catalogues(magnitude_limit: Optional[float] = None) -> None:
     star_data: StarList = StarList(magnitude_limit=magnitude_limit, require_unique_ids=True, db_path=db_path)
 
     # List of functions that read input catalogues
-    reader_functions: List[Callable] = [
-        read_from_ybsc, read_from_hipparcos, read_from_tycho_1, read_from_tycho_2, read_from_hipparcos_new,
-        read_from_gaia_edr3
+    reader_functions: Final[List[Dict[str, Any]]] = [
+        {
+            'name': "manual",
+            'reader_function': read_manual_entries,
+            'create_new_entries': True
+        },
+        {
+            'name': "ybsc",
+            'reader_function': read_from_ybsc,
+            'create_new_entries': True
+        },
+        {
+            'name': "hipparcos",
+            'reader_function': read_from_hipparcos,
+            'create_new_entries': True
+        },
+        {
+            'name': "tycho1",
+            'reader_function': read_from_tycho_1,
+            'create_new_entries': True
+        },
+        {
+            'name': "tycho2",
+            'reader_function': read_from_tycho_2,
+            'create_new_entries': True
+        },
+        {
+            'name': "hipparcos_new",
+            'reader_function': read_from_hipparcos_new,
+            'create_new_entries': True
+        },
+        {
+            'name': "edr3",
+            'reader_function': read_from_gaia_edr3,
+            'create_new_entries': False
+        },
     ]
 
     # Read each catalogue in turn
-    reader_function: Callable
-    for reader_function in reader_functions:
+    reader_info: dict
+    for reader_info in reader_functions:
+        reader_function: Callable = reader_info['reader_function']
+        reader_name: str = reader_info['name']
+        create_new_entries: bool = reader_info['create_new_entries']
+
         new_entries: StarList
         source: str
 
@@ -1212,18 +1340,24 @@ def merge_star_catalogues(magnitude_limit: Optional[float] = None) -> None:
             generate_debugging_output(target=star_data, new_entries=new_entries)
 
         # Merge new catalogue into output
-        merge_databases(target=star_data, new_entries=new_entries, source=source)
+        merge_databases(target=star_data, new_entries=new_entries, source=source, create_new_entries=create_new_entries)
 
         # Debugging
         list_multiple_star_systems(target=star_data, max_children=1)
         display_multiple_star_statistics(target=star_data)
+
+        if preserve:
+            db_preservation_path: str = os.path.join(output_path, "input_{}.sqlite3".format(reader_name))
+            new_entries.star_db.commit()
+            assert new_entries.star_db.db_path is not None
+            shutil.copyfile(new_entries.star_db.db_path, db_preservation_path)
 
     # Update Bayer / Flamsteed star names
     read_bayer_flamsteed_cross_index(star_data=star_data)
 
     # Update English star names
     new_entries, source = read_english_names()
-    merge_databases(target=star_data, new_entries=new_entries, source=source)
+    merge_databases(target=star_data, new_entries=new_entries, source=source, create_new_entries=False)
 
     # Create a histogram of the brightness of all the stars we have inserted into catalogue
     bin_size: float = 0.25
@@ -1333,6 +1467,11 @@ if __name__ == "__main__":
     # Add command-line options
     parser.add_argument('--magnitude-limit', required=False, dest='magnitude_limit', type=float,
                         help='Faintest magnitude of stars to store in catalogue')
+    parser.add_argument('--preserve', dest='preserve', action='store_true',
+                        help='Keep a copy of all the temporary sqlite3 databases from each input catalogue.')
+    parser.add_argument('--no-preserve', dest='preserve', action='store_false',
+                        help='Do not keep temporary databases (recommended; default).')
+    parser.set_defaults(preserve=False)
     args = parser.parse_args()
 
     # Set up logging
@@ -1343,4 +1482,4 @@ if __name__ == "__main__":
     logging.info(__doc__.strip())
 
     # Perform merger operation
-    merge_star_catalogues(magnitude_limit=args.magnitude_limit)
+    merge_star_catalogues(magnitude_limit=args.magnitude_limit, preserve=args.preserve)

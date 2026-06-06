@@ -22,11 +22,7 @@
 #ifndef CAIRO_PAGE_H
 #define CAIRO_PAGE_H 1
 
-#include <stdlib.h>
-#include <stdio.h>
-
 #include "listTools/ltList.h"
-
 #include "settings/chart_config.h"
 
 typedef struct {
@@ -74,8 +70,6 @@ typedef struct {
     int exclusion_region_counter;
 } cairo_page;
 
-char *string_make_permanent(const char *in);
-
 void cairo_init(cairo_page *p, chart_config *s);
 
 void plot_background_image(chart_config *s);
@@ -92,21 +86,6 @@ void fetch_canvas_coordinates(double *x_out, double *y_out, double x_in, double 
 
 void fetch_graph_coordinates(double x_in, double y_in, double *x_out, double *y_out, const chart_config *s);
 
-void chart_label_buffer(cairo_page *p, chart_config *s, colour colour, const char *label,
-                        const label_position *possible_positions, int possible_position_count, int multiple_labels,
-                        int make_background, double font_size, int font_bold, int font_italic, double extra_margin,
-                        double priority);
-
-void chart_label_unbuffer(cairo_page *p);
-
-void chart_add_label_exclusion(cairo_page *p, chart_config *s, double x_min, double x_max, double y_min, double y_max);
-
-int chart_label(cairo_page *p, chart_config *s, colour colour, const char *label,
-                const label_position *possible_positions, int possible_position_count, int multiple_labels,
-                int make_background, double font_size, int font_bold, int font_italic,
-                double extra_margin, double priority);
-
 int chart_finish(cairo_page *p, chart_config *s);
 
 #endif
-

@@ -1,0 +1,7 @@
+# Stars with manual catalogue entries
+
+# Bayer    Flamsteed  HR    NSV    HD      HIP    TYC          EDR3    Name
+Alp 1 Cen  -          5459  -      128620  71683  -            -       Rigil Kentaurus
+Alp 2 Cen  -          5460  -      128621  71681  -            -       Toliman
+Alp 1 Cru  -          4730  -      108248  60718  -            -       Acrux
+Alp 2 Cru  -          4731  -      108249  -      8979-3465-1  -       -

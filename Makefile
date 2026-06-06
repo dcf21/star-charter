@@ -27,7 +27,7 @@ PATHLINK= /
 
 WARNINGS= -Wall -Wno-format-truncation -Wno-unused-result -Wno-unknown-pragmas
 COMPILE = $(CC) $(WARNINGS) -g -c -I $(CWD)/src
-LIBS    = -lcairo -lgsl -lgslcblas -lz -lm
+LIBS    = -lcairo -lgsl -lgslcblas -lpng -lz -lm
 LINK    = $(CC) $(WARNINGS) -g -fopenmp
 
 OPTIMISATION = -O3
@@ -43,25 +43,28 @@ LOCAL_BINDIR = bin
 CORE_FILES = argparse/argparse.c astroGraphics/constellations.c astroGraphics/deepSky.c \
              astroGraphics/deepSkyOutlines.c astroGraphics/ephemeris.c astroGraphics/galaxyMap.c \
              astroGraphics/greatCircles.c astroGraphics/gridLines.c astroGraphics/horizon.c \
-             astroGraphics/meteorShower.c astroGraphics/solarSystem.c astroGraphics/starListReader.c \
-             astroGraphics/scaleBars.c astroGraphics/stars.c astroGraphics/textAnnotations.c astroGraphics/zenith.c \
-             coreUtils/asciiDouble.c coreUtils/errorReport.c coreUtils/makeRasters.c ephemCalc/constellations.c \
-             ephemCalc/magnitudeEstimate.c ephemCalc/jpl.c ephemCalc/orbitalElements.c listTools/ltDict.c \
-             listTools/ltList.c listTools/ltMemory.c listTools/ltStringProc.c mathsTools/julianDate.c \
-             mathsTools/projection.c mathsTools/sphericalTrig.c settings/chart_config.c settings/read_config.c \
-             settings/render_chart.c vectorGraphics/arrowDraw.c vectorGraphics/lineDraw.c vectorGraphics/cairo_page.c
+             astroGraphics/horizonGraphic.c astroGraphics/meteorShower.c astroGraphics/solarSystem.c \
+             astroGraphics/starListReader.c astroGraphics/scaleBars.c astroGraphics/stars.c \
+             astroGraphics/textAnnotations.c astroGraphics/zenith.c coreUtils/asciiDouble.c coreUtils/errorReport.c \
+             coreUtils/makeRasters.c ephemCalc/constellations.c ephemCalc/magnitudeEstimate.c ephemCalc/jpl.c \
+             ephemCalc/orbitalElements.c listTools/ltDict.c listTools/ltList.c listTools/ltMemory.c \
+             listTools/ltStringProc.c mathsTools/julianDate.c mathsTools/projection.c mathsTools/sphericalTrig.c \
+             png/image_in.c settings/chart_config.c settings/read_config.c settings/render_chart.c \
+             vectorGraphics/arrowDraw.c vectorGraphics/cairo_page.c vectorGraphics/label_arranger.c \
+             vectorGraphics/lineDraw.c
 
 CORE_HEADERS = argparse/argparse.h astroGraphics/constellations.h astroGraphics/deepSky.h \
                astroGraphics/deepSkyOutlines.h astroGraphics/ephemeris.h astroGraphics/galaxyMap.h \
                astroGraphics/greatCircles.h astroGraphics/gridLines.h astroGraphics/horizon.h \
-               astroGraphics/meteorShower.h astroGraphics/solarSystem.h astroGraphics/starListReader.h \
-               astroGraphics/scaleBars.h astroGraphics/stars.h astroGraphics/textAnnotations.h astroGraphics/zenith.h \
-               coreUtils/asciiDouble.h coreUtils/errorReport.h coreUtils/makeRasters.h coreUtils/strConstants.h \
-               ephemCalc/alias.h ephemCalc/constellations.h ephemCalc/magnitudeEstimate.h ephemCalc/jpl.h \
-               ephemCalc/orbitalElements.h listTools/ltDict.h listTools/ltList.h listTools/ltMemory.h \
-               listTools/ltStringProc.h mathsTools/julianDate.h mathsTools/projection.h mathsTools/sphericalTrig.h \
-               settings/chart_config.h settings/read_config.h settings/render_chart.h vectorGraphics/arrowDraw.h \
-               vectorGraphics/lineDraw.h vectorGraphics/cairo_page.h
+               astroGraphics/horizonGraphic.h astroGraphics/meteorShower.h astroGraphics/solarSystem.h \
+               astroGraphics/starListReader.h astroGraphics/scaleBars.h astroGraphics/stars.h \
+               astroGraphics/textAnnotations.h astroGraphics/zenith.h coreUtils/asciiDouble.h coreUtils/errorReport.h \
+               coreUtils/makeRasters.h coreUtils/strConstants.h ephemCalc/alias.h ephemCalc/constellations.h \
+               ephemCalc/magnitudeEstimate.h ephemCalc/jpl.h ephemCalc/orbitalElements.h listTools/ltDict.h \
+               listTools/ltList.h listTools/ltMemory.h listTools/ltStringProc.h mathsTools/julianDate.h \
+               mathsTools/projection.h mathsTools/sphericalTrig.h png/image.h settings/chart_config.h \
+               settings/read_config.h settings/render_chart.h vectorGraphics/arrowDraw.h vectorGraphics/cairo_page.h \
+               vectorGraphics/label_arranger.h vectorGraphics/lineDraw.h
 
 STARCHART_FILES = main.c
 
@@ -90,15 +93,15 @@ all: $(LOCAL_BINDIR)/starchart.bin $(LOCAL_BINDIR)/debug/starchart.bin $(LOCAL_B
 #
 
 $(LOCAL_OBJDIR)/%.o:               $(LOCAL_SRCDIR)/%.c $(ALL_HFILES)
-	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/argparse $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/ephemCalc $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
+	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/argparse $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/ephemCalc $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/png $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
 	$(COMPILE) $(OPTIMISATION) $(NODEBUG) $(SWITCHES) $< -o $@
 
 $(LOCAL_OBJDIR)/%.debug.o:         $(LOCAL_SRCDIR)/%.c $(ALL_HFILES)
-	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/argparse $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/ephemCalc $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
+	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/argparse $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/ephemCalc $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/png $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
 	$(COMPILE) $(OPTIMISATION) $(DEBUG)   $(SWITCHES) $< -o $@
 
 $(LOCAL_OBJDIR)/%.single_thread.o: $(LOCAL_SRCDIR)/%.c $(ALL_HFILES)
-	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/argparse $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/ephemCalc $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
+	mkdir -p $(LOCAL_OBJDIR) $(LOCAL_OBJDIR)/argparse $(LOCAL_OBJDIR)/astroGraphics $(LOCAL_OBJDIR)/coreUtils $(LOCAL_OBJDIR)/ephemCalc $(LOCAL_OBJDIR)/listTools $(LOCAL_OBJDIR)/mathsTools $(LOCAL_OBJDIR)/png $(LOCAL_OBJDIR)/settings $(LOCAL_OBJDIR)/vectorGraphics
 	$(COMPILE) $(OPTIMISATION) $(SINGLE_THREAD)   $(SWITCHES) $< -o $@
 
 #

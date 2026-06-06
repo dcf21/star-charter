@@ -32,6 +32,7 @@
 #include "settings/chart_config.h"
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
+#include "vectorGraphics/label_arranger.h"
 
 #define BUFLEN 1020
 
@@ -176,9 +177,9 @@ void plot_constellation_sticks(chart_config *s, line_drawer *ld) {
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
     cairo_set_source_rgba(
-            s->cairo_draw,
-            s->constellation_stick_col.red, s->constellation_stick_col.grn, s->constellation_stick_col.blu,
-            s->constellation_stick_col.alpha);
+        s->cairo_draw,
+        s->constellation_stick_col.red, s->constellation_stick_col.grn, s->constellation_stick_col.blu,
+        s->constellation_stick_col.alpha);
     cairo_set_line_width(s->cairo_draw, s->constellations_sticks_line_width * s->line_width_base);
 
     // Select which catalogue of constellation stick figures to plot
@@ -303,7 +304,7 @@ void plot_constellation_names(chart_config *s, cairo_page *page) {
             }
 
             chart_label_buffer(page, s, s->constellation_label_col, label_buffer,
-                               &(label_position) {x, y, 0, 0, 0, 0, 0},
+                               &(label_position){x, y, 0, 0, 0, 0, 0},
                                1, 0, s->constellations_label_shadow,
                                1.4 * s->constellations_label_size * s->label_font_size_scaling,
                                0, 1, 0, -1);

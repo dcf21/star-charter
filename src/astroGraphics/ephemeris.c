@@ -40,9 +40,25 @@
 #include "vectorGraphics/arrowDraw.h"
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
+#include "vectorGraphics/label_arranger.h"
+
+//! distance_sort_compare - Comparator function for sorting ephemerides by distance
+//! @param a - First record to compare
+//! @param b - Second record to compare
+//! @return - Comparison outcome
+int distance_sort_compare(const void *a, const void *b) {
+    const distance_sort *item_a = (distance_sort *) a;
+    const distance_sort *item_b = (distance_sort *) b;
+
+    // Reverse sort: put most distant object first
+    if (item_a->distance > item_b->distance) return -1;
+    if (item_a->distance < item_b->distance) return 1;
+    return 0;
+}
 
 //! ephemerides_fetch - Fetch the ephemeris data for solar system objects to be plotted on a star chart
 //! \param [out] ephemeris_data_out - Output data structure to contain ephemeris data.
+//! \param [out] ephemeris_data_sort_order - Output data structure, sorting ephemerides by distance.
 //! \param [in] ephemeris_count - The number of ephemeris tracks to compute
 //! \param [in] ephemeris_definitions - The definition strings of the ephemerides, of the form <bodyId>,<jdMin>,<jdMax>
 //! \param [in] jd_step - The time resolution to use when computing the ephemeris tracks
@@ -56,7 +72,8 @@
 //! \param [in] topocentric_latitude - Latitude (deg) of observer on Earth, if topocentric correction is applied.
 //! \param [in] topocentric_longitude - Longitude (deg) of observer on Earth, if topocentric correction is applied.
 
-int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
+int ephemerides_fetch(ephemeris **ephemeris_data_out, distance_sort **ephemeris_data_sort_order,
+                      const int ephemeris_count,
                       const char (*ephemeris_definitions)[N_TRACES_MAX][FNAME_LENGTH],
                       const double jd_step, const int output_coordinates, const double jd_central,
                       const int do_topocentric_correction,
@@ -65,6 +82,11 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
 
     // Allocate storage for the ephemeris of each solar system object
     (*ephemeris_data_out) = (ephemeris *) malloc(ephemeris_count * sizeof(ephemeris));
+    (*ephemeris_data_sort_order) = (distance_sort *) malloc(ephemeris_count * sizeof(distance_sort));
+    if (((*ephemeris_data_out) == NULL) || ((*ephemeris_data_sort_order) == NULL)) {
+        stch_fatal(__FILE__, __LINE__, "Malloc fail.");
+        exit(1);
+    }
 
     // Loop over each of the solar system objects we are plotting tracks for
     for (int i = 0; i < ephemeris_count; i++) {
@@ -118,6 +140,10 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
         (*ephemeris_data_out)[i].data = (ephemeris_point *) malloc(
             (*ephemeris_data_out)[i].point_count * sizeof(ephemeris_point)
         );
+        if ((*ephemeris_data_out)[i].data == NULL) {
+            stch_fatal(__FILE__, __LINE__, "Malloc fail.");
+            exit(1);
+        }
 
         // Loop over points in the ephemeris
         for (int line_counter = 0; line_counter < point_count; line_counter++) {
@@ -179,6 +205,7 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
             (*ephemeris_data_out)[i].data[line_counter].phase = phase;
             (*ephemeris_data_out)[i].data[line_counter].angular_size = angular_size; // diameter; arcseconds
             (*ephemeris_data_out)[i].data[line_counter].sun_pa = pa_to_sun; // radians
+            (*ephemeris_data_out)[i].data[line_counter].earth_distance = earth_distance; // AU
             (*ephemeris_data_out)[i].data[line_counter].text_label = NULL;
             (*ephemeris_data_out)[i].data[line_counter].sub_month_label = 0;
 
@@ -196,9 +223,20 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, const int ephemeris_count,
             }
         }
 
+        // Populate data structure for sorting objects by distance
+        (*ephemeris_data_sort_order)[i].index = i;
+        if (point_count > 0) {
+            (*ephemeris_data_sort_order)[i].distance = (*ephemeris_data_out)[i].data[0].earth_distance;
+        } else {
+            (*ephemeris_data_sort_order)[i].distance = GSL_NAN;
+        }
+
         // Keep tally of the sum total number of points in all ephemerides
         total_ephemeris_points += (*ephemeris_data_out)[i].point_count;
     }
+
+    // Sort the ephemerides by distance
+    qsort(*ephemeris_data_sort_order, ephemeris_count, sizeof(distance_sort), distance_sort_compare);
 
     // Return total number of points in all ephemerides
     return total_ephemeris_points;
@@ -216,6 +254,7 @@ void ephemerides_free(chart_config *s) {
         }
     }
     free(s->ephemeris_data);
+    s->ephemeris_data = NULL;
 }
 
 //! ephemerides_autoscale_show_config - Display the configuration settings chosen by the autoscaling logic

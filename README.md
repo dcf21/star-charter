@@ -283,7 +283,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `horizon_cardinal_points_marker_elevate` - Boolean flag (0 or 1) indicating whether to elevate cardinal point markers to the bottom of the field of view if they fall off the bottom of the chart.
 * `horizon_cardinal_points_marker_size` - Size scaling of the cardinal-point markers along the horizon. Default: 1.
 * `horizon_col` - Colour to use when drawing a line around the horizon. Default: `0,0,0`.
-* `horizon_graphic` - String specifying a PNG graphic that we should use for the horizon. The string should have the following comma-separated components, with defaults as shown: filename, azimuth_central=0, angular_width=360, y_position_horizon=height/2, angular_height. Only the filename is compulsory.
+* `horizon_graphic` - String specifying a PNG graphic that should be used for the horizon. The string should have the following comma-separated components, with defaults as shown: `filename, azimuth_central=0, angular_width=360, y_position_horizon=height/2, angular_height`. Only the filename is compulsory. For more information, see the section 'Horizon graphics' below.
 * `horizon_latitude` - Terrestrial latitude for which to show the local horizon; degrees
 * `horizon_longitude` - Terrestrial longitude for which to show the local horizon; degrees
 * `horizon_zenith_marker_size` - Scaling factor to apply to the size of the marker used at the zenith. Default: 1.
@@ -368,7 +368,9 @@ The following settings can be included in a `StarCharter` configuration file:
 
 ## Specifying colours
 
-Wherever colours are specified in the settings above, they should take the form of 3 or 4 comma-separated RGBA components, each in the range 0-1. The alpha component is optional, and defaults to 1 if not specified.
+Wherever colours are specified in the settings above, they should take the form
+of 3 or 4 comma-separated RGBA components, each in the range 0-1. The alpha
+component is optional, and defaults to 1 if not specified.
 
 ## Paths of solar system objects
 
@@ -409,31 +411,60 @@ ephemerides.
 
 ## Ephemeris files
 
-When the software is installed, data files containing the orbital elements of asteroids and comets are downloaded from
-the following sources:
+When the software is installed, data files containing the orbital elements of
+asteroids and comets are downloaded from the following sources:
 
 * Asteroids, from the [Lowell Observatory](https://asteroid.lowell.edu/astorb/) website.
 * Comets, from the [Minor Planet Center](https://www.minorplanetcenter.net/data) (MPC) website
 
-The orbital elements published on these websites are typically accurate for a few years either side of the epoch when
-they were downloaded, but will give erroneous positions outside this time range due to orbital perturbations. The exact
-timescale for orbital perturbation is unique to each object, depending on its proximity to sources of perturbation -
-in particular, Jupiter.
+The orbital elements published on these websites are typically accurate for a
+few years either side of the epoch when they were downloaded, but will give
+erroneous positions outside this time range due to orbital perturbations. The
+exact timescale for orbital perturbation is unique to each object, depending on
+its proximity to sources of perturbation - in particular, Jupiter.
 
-If a high degree of accuracy is required over a longer time span, the software supports the use of multiple orbital
-element files downloaded at different epochs. These should be placed in a directory `~/astorb_archive/` in the user's
+If a high degree of accuracy is required over a longer time span, the software
+supports the use of multiple orbital element files downloaded at different
+epochs. These should be placed in a directory `~/astorb_archive/` in the user's
 home directory; they should match the following wildcards:
 
 * `~/astorb_archive/astorb_*.dat`
 * `~/astorb_archive/Soft00Cmt_*.dat*`
 
-The software automatically reads the epoch specified within each data file and for each query will choose the two data
-files that are closest before and after the requested epoch. The predicted positions from the two data files are
-linearly interpolated to ensure that the output ephemerides are always continuous and differentiable.
+The software automatically reads the epoch specified within each data file and
+for each query will choose the two data files that are closest before and after
+the requested epoch. The predicted positions from the two data files are
+linearly interpolated to ensure that the output ephemerides are always
+continuous and differentiable.
+
+## Horizon graphics
+
+To add a horizon image to your sky charts, you should use the `horizon_graphic`
+configuration setting. By default, this repository contains a single sample
+horizon image of a rendered desert landscape. You can alternatively supply your
+own image, which should take the form of a PNG image with transparent pixels
+covering the sky. Rectilinear coordinates are used, with azimuth varying
+horizontally and altitude varying vertically; note that this is a very
+distorted projection in which pixels do not represent equal sky areas. 
+
+The `horizon_graphic` configuration setting can be specified multiple times to
+overlay multiple horizon graphics and create a multi-layer horizon.  Each
+string should have the following comma-separated components, with defaults as
+shown:
+
+`filename, azimuth_central=0, angular_width=360, y_position_horizon=height/2, angular_height`.
+
+Only the filename is compulsory. The fields have the following meanings:
+
+* `filename` - The file path to the PNG file containing the horizon graphic.
+* `azimuth_central` - The azimuth, in degrees east of north, where the centre point of the horizon graphic should be aligned.
+* `angular_width` - The number of degrees of azimuth spanned by the horizon graphic (horizontally). The default value of 360 degrees causes the image to be wrapped around the whole horizon.
+* `y_position_horizon` - The vertical pixel position within the image that should be placed on the horizon, at an altitude of zero degrees.
+* `angular_height` - The number of degrees of altitude spanned by the horizon graphic (vertically). By default, this is calculated from the aspect ratio and angular width of the image, assuming the pixels at the centre of the image to be square. So, if the image is twice as wide as it is high, and the angular width is 360 degrees, its angular height will be 180 degrees.
 
 ## Change history
 
-**Version 10.0** (1 May 2026) - Switched default ephemeris from DE430 to DE440.
+**Version 10.0** (1 May 2026) - Switched default ephemeris from DE430 to DE440. Add support for horizon graphics.
 
 **Version 9.0** (10 Nov 2025) - Allow colours to have alpha components. Support using multiple files of asteroid / comet orbital elements at different epochs.
 

@@ -36,6 +36,7 @@
 #include "mathsTools/sphericalTrig.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/cairo_page.h"
+#include "vectorGraphics/label_arranger.h"
 
 //! solar_system_write_ephemeris_definitions - Write the ephemeris requests for the positions of each solar system
 //! object we are to show.
@@ -182,11 +183,11 @@ void draw_solar_system_object(chart_config *s, cairo_page *page, const colour ob
     }
 
     // Default possible positions for this label
-    const label_position *possible_positions_default = (label_position[4]) {
-            {x, y, 0, horizontal_offset,  0,                  -1, 0},
-            {x, y, 0, -horizontal_offset, 0,                  1,  0},
-            {x, y, 0, 0,                  horizontal_offset,  0,  -1},
-            {x, y, 0, 0,                  -horizontal_offset, 0,  1}
+    const label_position *possible_positions_default = (label_position[4]){
+        {x, y, 0, horizontal_offset, 0, -1, 0},
+        {x, y, 0, -horizontal_offset, 0, 1, 0},
+        {x, y, 0, 0, horizontal_offset, 0, -1},
+        {x, y, 0, 0, -horizontal_offset, 0, 1}
     };
     const int possible_positions_default_count = 4;
 
@@ -232,14 +233,14 @@ void draw_moon(chart_config *s, cairo_page *page, const colour label_colour,
     const double dec_sun = dec_sun_deg * M_PI / 180;
 
     // Calculate Sun-Moon separation
-    const double sun_moon_sep = angDist_RADec(ra_sun, dec_sun, ra, dec);  // radians
+    const double sun_moon_sep = angDist_RADec(ra_sun, dec_sun, ra, dec); // radians
 
     // Calculate Sun's position angle relative to the Moon
-    const double crescent_pa_equatorial = position_angle(ra, dec, ra_sun, dec_sun);  // radians
+    const double crescent_pa_equatorial = position_angle(ra, dec, ra_sun, dec_sun); // radians
     const double crescent_pa = s->position_angle * M_PI / 180 + crescent_pa_equatorial;
 
     // Calculate angular size of crescent
-    const double crescent_size = sun_moon_sep;  // radians
+    const double crescent_size = sun_moon_sep; // radians
 
     // Convert tangent-plane coordinates into cairo pixel coordinates
     double x_canvas, y_canvas;
@@ -317,9 +318,9 @@ void draw_moon(chart_config *s, cairo_page *page, const colour label_colour,
 
     // Label this solar system object
     chart_label_buffer(page, s, label_colour, label,
-                       (label_position[2]) {
-                               {x, y, 0, horizontal_offset,  0, -1, 0},
-                               {x, y, 0, -horizontal_offset, 0, 1,  0}
+                       (label_position[2]){
+                           {x, y, 0, horizontal_offset, 0, -1, 0},
+                           {x, y, 0, -horizontal_offset, 0, 1, 0}
                        }, 2,
                        0, 0, 1.2 * s->label_font_size_scaling, 0, 0, 0, 0);
 }
@@ -370,9 +371,9 @@ void draw_sun(chart_config *s, cairo_page *page, const colour label_colour,
 
     // Label this solar system object
     chart_label_buffer(page, s, label_colour, label,
-                       (label_position[2]) {
-                               {x, y, 0, horizontal_offset,  0, -1, 0},
-                               {x, y, 0, -horizontal_offset, 0, 1,  0}
+                       (label_position[2]){
+                           {x, y, 0, horizontal_offset, 0, -1, 0},
+                           {x, y, 0, -horizontal_offset, 0, 1, 0}
                        }, 2,
                        0, 0, 1.2 * s->label_font_size_scaling, 0, 0, 0, 0);
 }
@@ -383,18 +384,19 @@ void draw_sun(chart_config *s, cairo_page *page, const colour label_colour,
 
 void plot_solar_system(chart_config *s, cairo_page *page) {
     // Loop over all the objects to display
-    for (int obj_id = 0; obj_id < s->solar_system_final_count; obj_id++) {
+    for (int render_index = 0; render_index < s->solar_system_final_count; render_index++) {
+        const int obj_id = s->solar_system_ephemeris_data_sorted[render_index].index;
         const ephemeris *e = &s->solar_system_ephemeris_data[obj_id];
 
         // Cannot plot objects with empty ephemeris data structures
         if (e->point_count > 0) {
             // Look up the celestial coordinates of this object
             const double jd = e->data[0].jd;
-            const double ra = e->data[0].ra;  // radians
-            const double dec = e->data[0].dec;  // radians
-            const double ang_size = e->data[0].angular_size;  // diameter; arcseconds
+            const double ra = e->data[0].ra; // radians
+            const double dec = e->data[0].dec; // radians
+            const double ang_size = e->data[0].angular_size; // diameter; arcseconds
             const double mag = e->data[0].mag;
-            const double sun_pa = e->data[0].sun_pa;  // radians
+            const double sun_pa = e->data[0].sun_pa; // radians
             const int is_comet = e->is_comet;
 
             // Check whether this is the Moon
@@ -405,7 +407,7 @@ void plot_solar_system(chart_config *s, cairo_page *page) {
             const int is_sun = (str_cmp_no_case(e->obj_id, "sun") == 0);
 
             // Work out coordinates of this object on the star chart (tangent plane coordinates)
-            double x, y;  // radians
+            double x, y; // radians
             plane_project(&x, &y, s, ra, dec, is_sun);
 
             // Ignore this object if it falls outside the plot area

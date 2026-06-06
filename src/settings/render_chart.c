@@ -37,6 +37,7 @@
 #include "astroGraphics/deepSky.h"
 #include "astroGraphics/deepSkyOutlines.h"
 #include "astroGraphics/horizon.h"
+#include "astroGraphics/horizonGraphic.h"
 #include "astroGraphics/gridLines.h"
 #include "astroGraphics/meteorShower.h"
 #include "astroGraphics/solarSystem.h"
@@ -46,12 +47,12 @@
 #include "astroGraphics/zenith.h"
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
+#include "vectorGraphics/label_arranger.h"
 
 //! render_chart - Main entry point to render a single star chart
 //! \param s - The configuration for the star chart to be rendered
 
 void render_chart(chart_config *s) {
-    int i;
     cairo_page page;
     line_drawer ld;
     char line[FNAME_LENGTH];
@@ -62,9 +63,10 @@ void render_chart(chart_config *s) {
     // If we're plotting ephemerides for solar system objects, fetch the data now
     // We do this first, as auto-scaling plots use this data to determine which sky area to show
     const int total_ephemeris_points = ephemerides_fetch(
-            &s->ephemeris_data, s->ephemeris_final_count, &s->ephemeris_definitions, s->ephemeris_resolution,
-            s->ephemeris_coords, s->julian_date,
-            s->solar_system_topocentric_correction, s->horizon_latitude, s->horizon_longitude);
+        &s->ephemeris_data, &s->ephemeris_data_sorted,
+        s->ephemeris_final_count, &s->ephemeris_definitions, s->ephemeris_resolution,
+        s->ephemeris_coords, s->julian_date,
+        s->solar_system_topocentric_correction, s->horizon_latitude, s->horizon_longitude);
 
     // Automatically scale plot to contain all the computed ephemeris tracks
     ephemerides_autoscale_plot(s, total_ephemeris_points);
@@ -82,7 +84,8 @@ void render_chart(chart_config *s) {
     if (s->show_solar_system) {
         solar_system_write_ephemeris_definitions(&s->solar_system_ids, s->julian_date, s->solar_system_final_count,
                                                  &s->solar_system_ephemeris_definitions);
-        ephemerides_fetch(&s->solar_system_ephemeris_data, s->solar_system_final_count,
+        ephemerides_fetch(&s->solar_system_ephemeris_data, &s->solar_system_ephemeris_data_sorted,
+                          s->solar_system_final_count,
                           &s->solar_system_ephemeris_definitions, s->ephemeris_resolution,
                           s->ephemeris_coords, s->julian_date,
                           s->solar_system_topocentric_correction, s->horizon_latitude, s->horizon_longitude);
@@ -166,7 +169,8 @@ void render_chart(chart_config *s) {
     if (s->constellation_names) plot_constellation_names(s, &page);
 
     // If we're plotting ephemerides for solar system objects, draw these now
-    for (i = 0; i < s->ephemeris_final_count; i++) {
+    for (int render_index = 0; render_index < s->ephemeris_final_count; render_index++) {
+        const int i = s->ephemeris_data_sorted[render_index].index;
         if (s->output_multiple_pages) move_to_next_page(s);
         plot_ephemeris(s, &ld, &page, i);
     }
@@ -180,6 +184,13 @@ void render_chart(chart_config *s) {
     // If we're showing the zenith, label it now
     if (s->show_horizon_zenith) plot_zenith(s, &page);
     if (s->show_poles) plot_celestial_poles(s, &page);
+
+    // If we're overlaying a horizon graphic, create this layer now
+    if (s->horizon_graphics_count > 0) {
+        if (s->output_multiple_pages) move_to_next_page(s);
+        plot_horizon_graphic(s, &page);
+        if (s->output_multiple_pages) move_to_next_page(s);
+    }
 
     // If we're showing scale bars, do so now
     if (s->scale_bars_final_count > 0) plot_scale_bars(s, &page);
@@ -231,4 +242,3 @@ void render_chart(chart_config *s) {
     ephemerides_free(s);
     config_close(s);
 }
-

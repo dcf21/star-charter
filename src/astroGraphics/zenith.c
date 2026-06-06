@@ -32,6 +32,7 @@
 #include "mathsTools/projection.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/cairo_page.h"
+#include "vectorGraphics/label_arranger.h"
 
 //! plot_zenith - Plot the positions of the zenith.
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
@@ -77,9 +78,9 @@ void plot_zenith(chart_config *s, cairo_page *page) {
 
     // Write label
     chart_label_buffer(page, s, s->horizon_zenith_colour, "Zenith",
-                       (label_position[2]) {
-                               {x, y, 0, marker_size / 4,  marker_size / 4, -1, -1},
-                               {x, y, 0, -marker_size / 4, marker_size / 4, 1,  -1}
+                       (label_position[2]){
+                           {x, y, 0, marker_size / 4, marker_size / 4, -1, -1},
+                           {x, y, 0, -marker_size / 4, marker_size / 4, 1, -1}
                        }, 2,
                        0, 0, 1.4 * s->label_font_size_scaling,
                        0, 0, 0, -10);
@@ -125,9 +126,9 @@ void plot_celestial_poles(chart_config *s, cairo_page *page) {
         char buffer[FNAME_LENGTH];
         snprintf(buffer, FNAME_LENGTH, "%s Celestial Pole", ((decl < 0) ? "South" : "North"));
         chart_label_buffer(page, s, s->horizon_zenith_colour, buffer,
-                           (label_position[2]) {
-                                   {x, y, 0, marker_size / 4,  marker_size / 4, -1, -1},
-                                   {x, y, 0, -marker_size / 4, marker_size / 4, 1,  -1}
+                           (label_position[2]){
+                               {x, y, 0, marker_size / 4, marker_size / 4, -1, -1},
+                               {x, y, 0, -marker_size / 4, marker_size / 4, 1, -1}
                            }, 2,
                            0, 0, 1.4 * s->label_font_size_scaling,
                            0, 0, 0, -10);

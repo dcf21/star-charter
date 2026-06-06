@@ -26,7 +26,6 @@
 
 #include <gsl/gsl_math.h>
 
-#include "astroGraphics/ephemeris.h"
 #include "astroGraphics/greatCircles.h"
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
@@ -35,6 +34,7 @@
 #include "settings/chart_config.h"
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
+#include "vectorGraphics/label_arranger.h"
 
 //! The number of samples along the length of a great circle to be plotted across the sky
 #define N_SAMPLES 720
@@ -88,7 +88,7 @@ void plot_great_circle(double ra0, double dec0, chart_config *s, line_drawer *ld
 
             chart_label_buffer(page, s, colour, labels[i].label,
                                &(label_position)
-                                       {x, y + 0.045, 0, 0, 0, 0, -1},
+                               {x, y + 0.045, 0, 0, 0, 0, -1},
                                1,
                                0, 1, 2.0, 1, 0, 0, -0.5);
         }
@@ -160,18 +160,20 @@ void plot_ecliptic(chart_config *s, line_drawer *ld, cairo_page *page) {
         cairo_set_dash(s->cairo_draw, dash_style, 1, 0);
     }
 
-    gc_label labels[12] = {{"Jan", 11},
-                           {"Feb", 42},
-                           {"Mar", 70},
-                           {"Apr", 101},
-                           {"May", 131},
-                           {"Jun", 162},
-                           {"Jul", 192},
-                           {"Aug", 223},
-                           {"Sep", 254},
-                           {"Oct", 284},
-                           {"Nov", 315},
-                           {"Dec", 345}};
+    gc_label labels[12] = {
+        {"Jan", 11},
+        {"Feb", 42},
+        {"Mar", 70},
+        {"Apr", 101},
+        {"May", 131},
+        {"Jun", 162},
+        {"Jul", 192},
+        {"Aug", 223},
+        {"Sep", 254},
+        {"Oct", 284},
+        {"Nov", 315},
+        {"Dec", 345}
+    };
 
     // Set line colour
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);

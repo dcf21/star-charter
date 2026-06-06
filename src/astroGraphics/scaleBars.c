@@ -35,6 +35,7 @@
 #include "vectorGraphics/arrowDraw.h"
 #include "vectorGraphics/lineDraw.h"
 #include "vectorGraphics/cairo_page.h"
+#include "vectorGraphics/label_arranger.h"
 
 //! convert_normalised_coordinates_to_tangent_plane - Convert coordinates normalised to 0-1 across the star chart
 //! canvas into tangent plane coordinates
