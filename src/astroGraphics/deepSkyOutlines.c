@@ -1,7 +1,7 @@
 // deepSkyOutlines.c
 // 
 // -------------------------------------------------
-// Copyright 2015-2026 Dominic Ford
+// Copyright 2015-2025 Dominic Ford
 //
 // This file is part of StarCharter.
 //
@@ -21,6 +21,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <glob.h>
 #include <wordexp.h>
 
@@ -32,6 +33,33 @@
 #include "mathsTools/projection.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/cairo_page.h"
+
+#define DSO_MAX_POINTS 4096
+#define DSO_MAX_OUTLINES 4096
+
+//! DsoPoint - A single point in a deep sky object outline
+typedef struct {
+    double ra;   // degrees
+    double dec;  // degrees
+    int continuous; // 1 if this point continues from the previous, 0 if it starts a new sub-path
+} DsoPoint;
+
+//! DsoOutline - All points belonging to one deep sky object outline
+typedef struct {
+    DsoPoint points[DSO_MAX_POINTS];
+    int point_count;
+} DsoOutline;
+
+//! DsoOutlineCollection - The full set of loaded outlines
+typedef struct {
+    DsoOutline outlines[DSO_MAX_OUTLINES];
+    int outline_count;
+    int loaded;
+} DsoOutlineCollection;
+
+// Global collection, loaded once at startup
+static DsoOutlineCollection dso_collection = { .loaded = 0, .outline_count = 0 };
+
 
 //! close_dso_outline - Close the path around a deep sky object
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
@@ -48,135 +76,164 @@ void close_dso_outline(chart_config *s) {
     cairo_stroke(s->cairo_draw);
 }
 
-//! plot_deep_sky_outlines - Draw outlines of deep sky objects onto a star chart
+
+//! load_dso_outlines - Load all deep sky object outline files into memory.
+//! Should be called once before any charts are rendered.
+
+void load_dso_outlines() {
+    if (dso_collection.loaded) return;
+    dso_collection.loaded = 1;
+    dso_collection.outline_count = 0;
+
+    wordexp_t w;
+    glob_t g;
+
+    const char *outlines_path = SRCDIR "/../data/deepSky/ngc/outlines/*.txt";
+
+    if (wordexp(outlines_path, &w, 0) != 0) return;
+
+    for (int i = 0; i < w.we_wordc; i++) {
+        if (glob(w.we_wordv[i], 0, NULL, &g) != 0) continue;
+
+        for (int j = 0; j < g.gl_pathc; j++) {
+            if (dso_collection.outline_count >= DSO_MAX_OUTLINES) {
+                stch_log("Warning: DSO_MAX_OUTLINES reached; some outlines will not be loaded.");
+                break;
+            }
+
+            const char *outline_file = g.gl_pathv[j];
+
+            if (DEBUG) {
+                char message[FNAME_LENGTH];
+                snprintf(message, FNAME_LENGTH, "Loading DSO outline from <%s>", outline_file);
+                stch_log(message);
+            }
+
+            FILE *file = fopen(outline_file, "r");
+            if (file == NULL) {
+                char message[FNAME_LENGTH];
+                snprintf(message, FNAME_LENGTH, "Could not open deep sky object outline <%s>; skipping.", outline_file);
+                stch_log(message);
+                continue;
+            }
+
+            DsoOutline *outline = &dso_collection.outlines[dso_collection.outline_count];
+            outline->point_count = 0;
+
+            while ((!feof(file)) && (!ferror(file))) {
+                if (outline->point_count >= DSO_MAX_POINTS) break;
+
+                char line[FNAME_LENGTH];
+                const char *line_ptr = line;
+                file_readline(file, line, sizeof line);
+
+                if (line[0] != 'l') continue;
+
+                DsoPoint *pt = &outline->points[outline->point_count];
+
+                line_ptr = next_word(line_ptr);
+                pt->continuous = (line_ptr[0] == '+');
+                line_ptr = next_word(line_ptr);
+                pt->ra = get_float(line_ptr, NULL);
+                line_ptr = next_word(line_ptr);
+                pt->dec = get_float(line_ptr, NULL);
+
+                outline->point_count++;
+            }
+
+            fclose(file);
+
+            if (outline->point_count > 0) {
+                dso_collection.outline_count++;
+            }
+        }
+
+        globfree(&g);
+    }
+
+    wordfree(&w);
+
+    if (DEBUG) {
+        char message[FNAME_LENGTH];
+        snprintf(message, FNAME_LENGTH, "Loaded %d DSO outlines into memory.", dso_collection.outline_count);
+        stch_log(message);
+    }
+}
+
+
+//! plot_deep_sky_outlines - Draw outlines of deep sky objects onto a star chart.
+//! Assumes load_dso_outlines() has already been called.
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
 //! \param page - A <cairo_page> structure defining the cairo drawing context.
 
 void plot_deep_sky_outlines(chart_config *s, cairo_page *page) {
-    wordexp_t w;
-    glob_t g;
 
     // We only plot DSO outlines in the 'coloured' plot style
     if (s->dso_style == SW_DSO_STYLE_FUZZY) return;
 
-    // Path to where deep sky object outlines are stored
-    const char *outlines_path = SRCDIR "/../data/deepSky/ngc/outlines/*.txt";
+    // Ensure outlines are loaded (safe to call multiple times)
+    load_dso_outlines();
 
-    // Fetch list of all the deep sky object outlines we have
-    if (wordexp(outlines_path, &w, 0) != 0) return; // No matches; return empty list
-    for (int i = 0; i < w.we_wordc; i++) {
-        if (glob(w.we_wordv[i], 0, NULL, &g) != 0) continue;
-        for (int j = 0; j < g.gl_pathc; j++) {
-            // Deep sky object outline we are processing
-            const char *outline_file = g.gl_pathv[j];
+    // Iterate over all loaded outlines
+    for (int c = 0; c < dso_collection.outline_count; c++) {
+        DsoOutline *outline = &dso_collection.outlines[c];
 
-            // Logging message
-            if (DEBUG) {
-                char message[FNAME_LENGTH];
-                snprintf(message, FNAME_LENGTH, "Drawing outline from <%s>", outline_file);
-                stch_log(message);
+        // Project all points for this chart and check visibility
+        double x_canvas[DSO_MAX_POINTS], y_canvas[DSO_MAX_POINTS];
+        int reject_object = 0;
+
+        for (int k = 0; k < outline->point_count; k++) {
+            double x, y;
+            plane_project(&x, &y, s,
+                          outline->points[k].ra  * M_PI / 180,
+                          outline->points[k].dec * M_PI / 180, 0);
+
+            if ((!gsl_finite(x)) || (!gsl_finite(y))) {
+                reject_object = 1;
+                break;
             }
 
-            // Open file
-            FILE *file = fopen(outline_file, "r");
-            if (file == NULL) stch_fatal(__FILE__, __LINE__, "Could not open deep sky object outline");
+            if ((x < s->x_min * 1.2) || (x > s->x_max * 1.2) ||
+                (y < s->y_min * 1.2) || (y > s->y_max * 1.2)) {
+                reject_object = 1;
+                break;
+            }
 
-            // Initially, read path into an array
-            const int max_points = 4096;
-            double ra[max_points], dec[max_points];
-            double x[max_points], y[max_points];
-            double x_canvas[max_points], y_canvas[max_points];
-            int continuous[max_points];
+            fetch_canvas_coordinates(&x_canvas[k], &y_canvas[k], x, y, s);
 
-            // Loop over the lines of the data file
-            int point_counter = 0;
-            int reject_object = 0;
-            while ((!feof(file)) && (!ferror(file))) {
-                char line[FNAME_LENGTH];
-                const char *line_ptr = line;
-
-                file_readline(file, line, sizeof line);
-
-                // Ignore comment lines
-                if (line[0] != 'l') continue;
-
-                // Extract data from line
-                line_ptr = next_word(line_ptr);
-                continuous[point_counter] = (line_ptr[0] == '+');
-                line_ptr = next_word(line_ptr);
-                ra[point_counter] = get_float(line_ptr, NULL);
-                line_ptr = next_word(line_ptr);
-                dec[point_counter] = get_float(line_ptr, NULL);
-
-                // Project RA and Dec of object into physical coordinates on the star chart
-                plane_project(&x[point_counter], &y[point_counter], s,
-                              ra[point_counter] * M_PI / 180, dec[point_counter] * M_PI / 180, 0);
-
-                // Reject this object if it falls outside the plot area
-                if ((!gsl_finite(x[point_counter])) || (!gsl_finite(y[point_counter]))) {
+            if (k > 0) {
+                double line_length = hypot(y_canvas[k - 1] - y_canvas[k],
+                                           x_canvas[k - 1] - x_canvas[k]);
+                if (line_length > 100) {
                     reject_object = 1;
                     break;
                 }
-
-                if (
-                        (x[point_counter] < s->x_min * 1.2) || (x[point_counter] > s->x_max * 1.2) ||
-                        (y[point_counter] < s->y_min * 1.2) || (y[point_counter] > s->y_max * 1.2)
-                        ) {
-                    reject_object = 1;
-                    break;
-                }
-
-                // Convert coordinates from tangent plane into pixels on the Cairo canvas
-                fetch_canvas_coordinates(&x_canvas[point_counter], &y_canvas[point_counter],
-                                         x[point_counter], y[point_counter], s);
-
-                // Check that we haven't jumped off one side of star chart, and on the other side
-                if (point_counter > 0) {
-                    double line_length = hypot(y_canvas[point_counter - 1] - y_canvas[point_counter],
-                                               x_canvas[point_counter - 1] - x_canvas[point_counter]);
-                    if (line_length > 100) reject_object = 1;
-                }
-
-                // Update point counter
-                point_counter++;
             }
-
-            // If this object has been rejected, ignore it
-            if (reject_object) continue;
-
-            // Start drawing a path around the outline of this object
-            cairo_new_path(s->cairo_draw);
-
-            // Loop over all the points in the path
-            int line_point_counter = 0;
-            for (int k = 0; k < point_counter; k++) {
-
-                // Either continue an existing line, or start a new path
-                if (line_point_counter == 0) {
-                    cairo_move_to(s->cairo_draw, x_canvas[k], y_canvas[k]);
-                } else {
-                    cairo_line_to(s->cairo_draw, x_canvas[k], y_canvas[k]);
-                }
-
-                // Close path, if requested
-                if (!continuous[k]) {
-                    close_dso_outline(s);
-                    line_point_counter = 0;
-                }
-
-                // Update point counter
-                line_point_counter++;
-            }
-
-            // Finally, stroke and fill path
-            if (line_point_counter > 0) {
-                close_dso_outline(s);
-            }
-
-            // Close outline file
-            fclose(file);
         }
-        globfree(&g);
+
+        if (reject_object) continue;
+
+        // Draw the outline
+        cairo_new_path(s->cairo_draw);
+        int line_point_counter = 0;
+
+        for (int k = 0; k < outline->point_count; k++) {
+            if (line_point_counter == 0) {
+                cairo_move_to(s->cairo_draw, x_canvas[k], y_canvas[k]);
+            } else {
+                cairo_line_to(s->cairo_draw, x_canvas[k], y_canvas[k]);
+            }
+
+            if (!outline->points[k].continuous) {
+                close_dso_outline(s);
+                line_point_counter = 0;
+            }
+
+            line_point_counter++;
+        }
+
+        if (line_point_counter > 0) {
+            close_dso_outline(s);
+        }
     }
-    wordfree(&w);
 }

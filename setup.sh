@@ -112,9 +112,9 @@ cd ${cwd} || exit 1
 
 # Make some test charts of the paths of solar system objects, to ensure all ASCII input ephemeris files are converted
 # to binary for rapid access on subsequent queries
-echo "[`date`] Generating test charts"
-cd ${cwd} || exit 1
-./runExamples.py "$@" || exit 1
+# echo "[`date`] Generating test charts"
+#cd ${cwd} || exit 1
+#./runExamples.py "$@" || exit 1
 
 # Finished
 cd ${cwd} || exit 1

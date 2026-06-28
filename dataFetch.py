@@ -212,12 +212,12 @@ def fetch_required_files(refresh: bool = False, never_refresh: bool = False,
         {
             'url': 'https://ftp.lowell.edu/pub/elgb/astorb.dat.gz',
             'destination': 'data/astorb.dat',
-            'force_refresh': True
+            'force_refresh': refresh  # was True
         },
         {
             'url': 'https://www.minorplanetcenter.net/iau/MPCORB/AllCometEls.txt',
             'destination': 'data/Soft00Cmt.txt',
-            'force_refresh': True
+            'force_refresh': refresh  # was True
         },
 
         # Definitions of constellation boundaries

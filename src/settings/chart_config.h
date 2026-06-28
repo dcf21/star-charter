@@ -357,8 +357,8 @@ typedef struct chart_config {
     //! Either SW_STICKS_IAU or SW_STICKS_REY or SW_STICKS_SIMPLIFIED
     int constellation_stick_design;
 
-    //! Optionally select a constellation to highlight
-    char constellation_highlight[8];
+    //! Optionally select a series of constellations to highlight
+    char constellation_highlight[FNAME_LENGTH];
 
     //! Boolean indicating whether we label the English names of stars
     int star_names;

@@ -26,20 +26,18 @@
 #include <stdio.h>
 
 // Output 1 is for starcharts_svg
-#define SMOOTH        16                      /* Median smoothing of Axel Mellinger's panorama */
-#define RESOLUTION_1  (360./8000*(SMOOTH)/16) /* resolution of grid in degrees */
+#define SMOOTH        16 /* Median smoothing of Axel Mellinger's panorama */
+#define RESOLUTION_1  (360./8000*(SMOOTH)/16)    /* resolution of grid in degrees */
 
-#define H_SIZE_MAP1  ((int)(360/(RESOLUTION_1)))
-#define V_SIZE_MAP1  ((int)(180/(RESOLUTION_1)))
+#define H_SIZE_MAP1   8000
+#define V_SIZE_MAP1   4000
 
-// Output2 is for HTML5 planetarium
-#define RESOLUTION_2 (360./4096) /* resolution of grid in degrees */
-
-#define H_SIZE_MAP2  ((int)(360/(RESOLUTION_2)))
-#define V_SIZE_MAP2  ((int)(100/(RESOLUTION_2)))
+#define RESOLUTION_2  (360./4096)                /* resolution of grid in degrees */
+#define H_SIZE_MAP2   4096
+#define V_SIZE_MAP2   1137
 
 typedef struct {
-    unsigned char C[V_SIZE_MAP1][H_SIZE_MAP1];
+    unsigned char C[V_SIZE_MAP1][H_SIZE_MAP1];  /* 4000 x 8000 = 32 MB */
 } dataArray;
 
 #endif

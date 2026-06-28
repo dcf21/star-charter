@@ -867,10 +867,9 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         }
         return 0;
     } else if (strcmp(key, "constellation_highlight") == 0) {
-        //! constellation_highlight - Optionally highlight the boundary of a particular constellation, referenced
-        //! by its three-letter abbreviation
-        snprintf(x->constellation_highlight, 6, "%s", key_val);
-        x->constellation_highlight[6] = '\0';
+        //! constellation_highlight - Optionally highlight the boundary of the constellations, referenced
+        //! by comma separated list of three-letter abbreviations
+        snprintf(x->constellation_highlight, FNAME_LENGTH, "%s", key_val);
         return 0;
     } else if (strcmp(key, "plot_stars") == 0) {
         //! plot_stars - Boolean (0 or 1) indicating whether we plot any stars

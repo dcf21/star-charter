@@ -1247,11 +1247,11 @@ def read_english_names() -> Tuple[StarList, str]:
             star: StarDescriptor = StarDescriptor()
             try:
                 star.names_hip_num = int(line[90:].split()[0])
-            except ValueError:
+            except (ValueError, IndexError):
                 pass
             try:
                 star.names_hd_num = int(line[97:].split()[0])
-            except ValueError:
+            except (ValueError, IndexError):
                 pass
             star.add_english_name(new_name=line[18:36].strip(), prepend=True)
 

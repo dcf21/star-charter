@@ -216,7 +216,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `chart_edge_line_width` - Line width to use when marking the edge of the chart. Default: 2.5.
 * `constellation_boundaries` - Boolean (0 or 1) indicating whether we draw constellation boundaries. Default: 1.
 * `constellation_boundary_col` - Colour to use when drawing constellation boundaries
-* `constellation_highlight` - Optionally, highlight the boundary of one particular constellation, identified by a three-letter abbreviation.
+* `constellation_highlight` - Optionally, highlight the boundary of particular constellations, identified by three-letter abbreviation, comma sepparated list.
 * `constellation_label_col` - Colour to use when writing constellation names
 * `constellation_label_size` - Relative font size to use when rendering constellation names. Default: 1.
 * `constellation_names` - Boolean (0 or 1) indicating whether we label the names of constellations
@@ -463,6 +463,7 @@ Only the filename is compulsory. The fields have the following meanings:
 * `angular_height` - The number of degrees of altitude spanned by the horizon graphic (vertically). By default, this is calculated from the aspect ratio and angular width of the image, assuming the pixels at the centre of the image to be square. So, if the image is twice as wide as it is high, and the angular width is 360 degrees, its angular height will be 180 degrees.
 
 ## Change history
+FORK version (28 June 2026) - Added the ability to highlight multiple constellations. Fixed bug of generating more than 5 charts in one configuration file
 
 **Version 10.0** (6 June 2026) - Switched default ephemeris from DE430 to DE440. Add support for horizon graphics.
 

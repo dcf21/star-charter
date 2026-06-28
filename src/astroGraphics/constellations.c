@@ -85,8 +85,27 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
     double x_first = 0, y_first = 0;
     char line[FNAME_LENGTH], *scan, constellation[6] = "@@@@";
 
-    // This must be set to true initially, to ensure that colour is set when we start tracing the first constellation
-    int was_highlighted = 1;
+    // Parse constellation_highlight into a list of 3-letter abbreviations, comma-separated
+    // e.g. "Ori,Tau,Gem"
+    // char highlight_buf[FNAME_LENGTH];
+    // strncpy(highlight_buf, s->constellation_highlight, FNAME_LENGTH - 1);
+    // highlight_buf[FNAME_LENGTH - 1] = '\0';
+
+    char highlight_buf[FNAME_LENGTH];
+    snprintf(highlight_buf, FNAME_LENGTH, "%s", s->constellation_highlight);
+
+    char highlights[64][4];  // up to 64 highlighted constellations, 3 chars + null
+    int highlight_count = 0;
+
+    char *token = strtok(highlight_buf, ",");
+    while (token != NULL && highlight_count < 64) {
+        // Strip leading/trailing spaces
+        while (token[0] == ' ') token++;
+        strncpy(highlights[highlight_count], token, 3);
+        highlights[highlight_count][3] = '\0';
+        highlight_count++;
+        token = strtok(NULL, ",");
+    }
 
     // Set up line-drawing class
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
@@ -137,22 +156,30 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
             x_first = x;
             y_first = y;
 
+            // Check if this constellation is in the highlight list
+            int is_highlighted = 0;
+            for (int i = 0; i < highlight_count; i++) {
+                if (strncasecmp(constellation, highlights[i], 3) == 0) {
+                    is_highlighted = 1;
+                    break;
+                }
+            }
+
             // Set the line colour and width for the boundary of this constellation
-            if (strncmp(constellation, s->constellation_highlight, 3) == 0) {
+            if (is_highlighted) {
                 cairo_set_source_rgba(s->cairo_draw,
                                       s->star_col.red, s->star_col.grn, s->star_col.blu,
                                       s->star_col.alpha);
                 cairo_set_line_width(s->cairo_draw, 2 * s->line_width_base);
-                was_highlighted = 1;
-            } else if (was_highlighted) {
+            } else {
                 cairo_set_source_rgba(s->cairo_draw,
                                       s->constellation_boundary_col.red,
                                       s->constellation_boundary_col.grn,
                                       s->constellation_boundary_col.blu,
                                       s->constellation_boundary_col.alpha);
                 cairo_set_line_width(s->cairo_draw, 0.8 * s->line_width_base);
-                was_highlighted = 0;
             }
+            
         }
 
         ld_point(ld, x, y, NULL);
@@ -161,6 +188,7 @@ void plot_constellation_boundaries(chart_config *s, line_drawer *ld) {
     fclose(file);
     ld_pen_up(ld, GSL_NAN, GSL_NAN, NULL, 1);
 }
+
 
 //! plot_constellation_sticks - Draw stick figures to represent the constellations.
 //! \param s - A <chart_config> structure defining the properties of the star chart to be drawn.
