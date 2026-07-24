@@ -32,6 +32,7 @@
 
 #include "astroGraphics/stars.h"
 #include "mathsTools/julianDate.h"
+#include "mathsTools/precession.h"
 #include "mathsTools/projection.h"
 #include "mathsTools/sphericalTrig.h"
 
@@ -68,6 +69,8 @@ void default_config(chart_config *i) {
     i->horizon_cardinal_points_marker_elevate = 0;
     i->horizon_graphics_count = 0;
     i->julian_date = 2451544.5;
+    i->time_standard = SW_TIME_STANDARD_UTC;
+    i->ra_dec_epoch = 2451545.0;
     i->show_solar_system = 0;
     strcpy(i->solar_system_labels[0], "Mercury");
     strcpy(i->solar_system_labels[1], "Venus");
@@ -167,6 +170,7 @@ void default_config(chart_config *i) {
     i->ephemeris_resolution = 0.5;
     i->ephemeris_table = 0;
     i->must_show_all_ephemeris_labels = 0;
+    i->star_style = SW_STAR_STYLE_NORMAL;
     i->mag_min = 6.0;
     i->mag_max = 0.0;
     i->mag_step = 0.5;
@@ -472,8 +476,8 @@ void config_init_pointing(chart_config *i) {
                                                &(i->ra0_final), &(i->dec0_final));
 
         // Fix position angle of plot
-        double ra_zenith_at_epoch, dec_zenith_at_epoch;
-        double ra_zenith_j2000, dec_zenith_j2000;
+        double ra_zenith_at_epoch, dec_zenith_at_epoch; // radians
+        double ra_zenith_j2000, dec_zenith_j2000; // radians
         get_zenith_position(i->horizon_latitude, i->horizon_longitude, i->julian_date,
                             &ra_zenith_at_epoch, &dec_zenith_at_epoch);
         ra_dec_to_j2000(ra_zenith_at_epoch, dec_zenith_at_epoch, i->julian_date,

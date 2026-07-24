@@ -178,8 +178,8 @@ int ephemerides_fetch(ephemeris **ephemeris_data_out, distance_sort **ephemeris_
 
             // Work out the Sun's position, and the direction to the Sun
             double ra_sun_epoch_hr, dec_sun_epoch_deg, ra_sun_0_hr, dec_sun_0_deg;
-            sun_pos(jd, &ra_sun_epoch_hr, &dec_sun_epoch_deg);
-            sun_pos(jd_central, &ra_sun_0_hr, &dec_sun_0_deg);
+            sun_pos_approx(jd, &ra_sun_epoch_hr, &dec_sun_epoch_deg);
+            sun_pos_approx(jd_central, &ra_sun_0_hr, &dec_sun_0_deg);
             const double pa_from_sun = position_angle(
                 ra_sun_epoch_hr * M_PI / 12, dec_sun_epoch_deg * M_PI / 180, ra, dec);
             const double pa_to_sun = position_angle(

@@ -30,7 +30,7 @@
 #include "astroGraphics/textAnnotations.h"
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
-#include "mathsTools/julianDate.h"
+#include "mathsTools/precession.h"
 #include "mathsTools/projection.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/arrowDraw.h"

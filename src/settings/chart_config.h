@@ -44,11 +44,19 @@
 #define SW_COORDS_EPHEMERIS_RADEC 1
 #define SW_COORDS_EPHEMERIS_SOLAR 2
 
+// Options for the time standard to use
+#define SW_TIME_STANDARD_UTC 1
+#define SW_TIME_STANDARD_TT  2
+
 // Options for output image formats
 #define SW_FORMAT_SVG 1
 #define SW_FORMAT_PNG 2
 #define SW_FORMAT_EPS 3
 #define SW_FORMAT_PDF 4
+
+// Options for the style in which to draw stars
+#define SW_STAR_STYLE_NORMAL 1
+#define SW_STAR_STYLE_ANCIENT 2
 
 // Options for catalogue to use when labelling the catalogue numbers of stars
 #define SW_CAT_HIP  1
@@ -221,6 +229,14 @@ typedef struct chart_config {
     //! of solar system bodies.
     double julian_date;
 
+    //! The time standard to use when interpreting Julian day number inputs. Options are:
+    //! SW_TIME_STANDARD_UTC (Coordinated Universal Time; default) or
+    //! SW_TIME_STANDARD_TT (Terrestrial Time).
+    int time_standard;
+
+    //! The epoch of the equatorial (RA, Dec) coordinate grid to draw; Julian day number. Default: 2451545 (J2000.0)
+    double ra_dec_epoch;
+
     //! Colour to use when drawing a line around the horizon
     colour horizon_colour;
 
@@ -359,6 +375,10 @@ typedef struct chart_config {
 
     //! Optionally select a constellation to highlight
     char constellation_highlight[8];
+
+    //! The style to use when drawing stars. Options are: SW_STAR_STYLE_NORMAL (default) or
+    //! SW_STAR_STYLE_ANCIENT (ornate stars inspired by Johann Bayer's 1603 star atlas, Uranometria).
+    int star_style;
 
     //! Boolean indicating whether we label the English names of stars
     int star_names;

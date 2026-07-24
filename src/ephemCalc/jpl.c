@@ -118,7 +118,7 @@ void jpl_setEphemerisNumber(int de_number) {
             break;
         case 431:
             JPL_EphemNumber = 431;
-            JPL_ASCII_first = 1000;
+            JPL_ASCII_first = -13000;
             JPL_ASCII_last = 16000;
             JPL_ASCII_number_width = 5;
             JPL_ASCII_step = 1000;
@@ -132,7 +132,7 @@ void jpl_setEphemerisNumber(int de_number) {
             break;
         case 441:
             JPL_EphemNumber = 441;
-            JPL_ASCII_first = 1000;
+            JPL_ASCII_first = -13000;
             JPL_ASCII_last = 16000;
             JPL_ASCII_number_width = 5;
             JPL_ASCII_step = 1000;
@@ -289,7 +289,10 @@ void jpl_readAsciiData() {
     const char *line_ptr;
 
     FILE *input = NULL; // The ASCII file we are reading the ephemeris from
-    int year = -1; // The year number in the filename of the ephemeris file we are reading (advances in N-year steps)
+
+    // The year number in the filename of the ephemeris file we are reading (advances in N-year steps)
+    int year = -999999;
+
     int state = -1; // The last GROUP number header we passed; different blocks of data have different GROUP numbers
     int var_dict_len = -1; // The number of metadata variables set in GROUP 1040, in the header of the ephemeris
     int first = 0; // Boolean flag indicating whether this is the first line of the current GROUP
@@ -326,7 +329,7 @@ void jpl_readAsciiData() {
             if (year >= JPL_ASCII_last) break;
 
             // If we've not started reading yet, start at the beginning, otherwise advance N years
-            if (year == -1) year = JPL_ASCII_first;
+            if (year == -999999) year = JPL_ASCII_first;
             else year += JPL_ASCII_step;
 
             // Log message that we are opening a new ephemeris file
@@ -352,8 +355,10 @@ void jpl_readAsciiData() {
 
             // Populate <fname> with the filename of the next ASCII ephemeris data file to read
             // The ephemeris data is contained in files <data/de4xx/ascp????.4xx>, where ???? is the start year
-            snprintf(fname, FNAME_LENGTH, "%s/../data/de%d/ascp%0*d.%d", SRCDIR,
-                     JPL_EphemNumber, JPL_ASCII_number_width, year, JPL_EphemNumber);
+            const int file_number_abs = abs(year);
+            const char file_number_sgn = (year < 0) ? 'm' : 'p';
+            snprintf(fname, FNAME_LENGTH, "%s/../data/de%d/asc%c%0*d.%d", SRCDIR,
+                     JPL_EphemNumber, file_number_sgn, JPL_ASCII_number_width, file_number_abs, JPL_EphemNumber);
         }
 
         // Read a line of data from the ephemeris file
@@ -803,10 +808,10 @@ void jpl_computeXYZ(int body_id, double jd, double *x, double *y, double *z) {
 //! \param [in] bodyId - The object ID number we want to query. 0=Mercury. 2=Earth/Moon barycentre. 9=Pluto. 10=Sun, etc
 //! \param [in] jd - The Julian date to query; TT
 //! \param [out] x - x,y,z position of body, in ICRF v2, in AU, relative to solar system barycentre.
-//! \param [out] y - x points to RA=0. y points to RA=6h.
-//! \param [out] z - z points to celestial north pole (i.e. J2000.0).
-//! \param [out] ra - Right ascension of the object (J2000.0, radians, relative to geocentre)
-//! \param [out] dec - Declination of the object (J2000.0, radians, relative to geocentre)
+//! \param [out] y - x points to RA=0. y points to J2000.0 RA=6h.
+//! \param [out] z - z points to celestial north pole (of J2000.0).
+//! \param [out] ra - Right ascension of the object (requested epoch; radians; geocentric or topocentric)
+//! \param [out] dec - Declination of the object (requested epoch; radians; geocentric or topocentric)
 //! \param [out] mag - Estimated V-band magnitude of the object
 //! \param [out] phase - Phase of the object (0-1)
 //! \param [out] angSize - Angular size of the object (diameter; arcseconds)
@@ -815,9 +820,9 @@ void jpl_computeXYZ(int body_id, double jd, double *x, double *y, double *z) {
 //! \param [out] sunDist - Distance of the object from the Sun (AU)
 //! \param [out] earthDist - Distance of the object from the Earth (AU)
 //! \param [out] sunAngDist - Angular distance of the object from the Sun, as seen from the Earth (radians)
-//! \param [out] theta_ESO - Angular distance of the object from the Earth, as seen from the Sun (radians)
-//! \param [out] eclipticLongitude - The ecliptic longitude of the object (J2000.0 radians)
-//! \param [out] eclipticLatitude - The ecliptic latitude of the object (J2000.0 radians)
+//! \param [out] theta_eso - Angular distance of the object from the Earth, as seen from the Sun (radians)
+//! \param [out] eclipticLongitude - The ecliptic longitude of the object (J2000.0; radians)
+//! \param [out] eclipticLatitude - The ecliptic latitude of the object (J2000.0; radians)
 //! \param [out] eclipticDistance - The separation of the object from the Sun, in ecliptic longitude (radians)
 //! \param [in] ra_dec_epoch - The epoch of the RA/Dec coordinates to output. Supply 2451545.0 for J2000.0.
 //! \param [in] do_topocentric_correction - Boolean indicating whether to apply topocentric correction to (ra, dec)
@@ -826,7 +831,7 @@ void jpl_computeXYZ(int body_id, double jd, double *x, double *y, double *z) {
 
 void jpl_computeEphemeris(int bodyId, const double jd, double *x, double *y, double *z, double *ra, double *dec,
                           double *mag, double *phase, double *angSize, double *phySize, double *albedo, double *sunDist,
-                          double *earthDist, double *sunAngDist, double *theta_ESO, double *eclipticLongitude,
+                          double *earthDist, double *sunAngDist, double *theta_eso, double *eclipticLongitude,
                           double *eclipticLatitude, double *eclipticDistance, const double ra_dec_epoch,
                           const int do_topocentric_correction,
                           const double topocentric_latitude, const double topocentric_longitude) {
@@ -871,7 +876,7 @@ void jpl_computeEphemeris(int bodyId, const double jd, double *x, double *y, dou
     // We give asteroids body numbers which start at 1e7 + 1 (Ceres). These aren't in DE4xx, so use orbital elements.
     if (bodyId > ASTEROIDS_OFFSET) {
         orbitalElements_computeEphemeris(bodyId, jd, x, y, z, ra, dec, mag, phase, angSize, phySize, albedo, sunDist,
-                                         earthDist, sunAngDist, theta_ESO, eclipticLongitude, eclipticLatitude,
+                                         earthDist, sunAngDist, theta_eso, eclipticLongitude, eclipticLatitude,
                                          eclipticDistance, ra_dec_epoch,
                                          do_topocentric_correction, topocentric_latitude, topocentric_longitude);
         return;
@@ -994,7 +999,7 @@ void jpl_computeEphemeris(int bodyId, const double jd, double *x, double *y, dou
     // Populate other quantities, like the brightness, RA and Dec of the object, based on its XYZ position
     magnitudeEstimate(bodyId, *x, *y, *z, earth_pos_x, earth_pos_y, earth_pos_z, sun_pos_x, sun_pos_y, sun_pos_z, ra,
                       dec, mag, phase, angSize, phySize,
-                      albedo, sunDist, earthDist, sunAngDist, theta_ESO, eclipticLongitude, eclipticLatitude,
+                      albedo, sunDist, earthDist, sunAngDist, theta_eso, eclipticLongitude, eclipticLatitude,
                       eclipticDistance, ra_dec_epoch, jd,
                       do_topocentric_correction, topocentric_latitude, topocentric_longitude);
 }

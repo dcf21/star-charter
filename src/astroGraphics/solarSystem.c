@@ -228,7 +228,7 @@ void draw_moon(chart_config *s, cairo_page *page, const colour label_colour,
                const double julian_date, const char *label) {
     // Calculate the position of the Sun
     double ra_sun_hr, dec_sun_deg;
-    sun_pos(julian_date, &ra_sun_hr, &dec_sun_deg);
+    sun_pos_approx(julian_date, &ra_sun_hr, &dec_sun_deg);
     const double ra_sun = ra_sun_hr * M_PI / 12;
     const double dec_sun = dec_sun_deg * M_PI / 180;
 

@@ -35,6 +35,7 @@
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
 #include "mathsTools/julianDate.h"
+#include "mathsTools/precession.h"
 #include "mathsTools/projection.h"
 #include "mathsTools/sphericalTrig.h"
 #include "settings/chart_config.h"
@@ -82,7 +83,7 @@ void plot_galaxy_map(chart_config *s) {
 
     // Fetch position of the Sun
     double ra_sun, dec_sun; // hours / degrees
-    sun_pos(s->julian_date, &ra_sun, &dec_sun);
+    sun_pos_approx(s->julian_date, &ra_sun, &dec_sun);
 
     // Render galaxy map into pixel array
 #pragma omp parallel for shared(pixel_data, ra_sun, dec_sun) private(j)
@@ -117,7 +118,7 @@ void plot_galaxy_map(chart_config *s) {
 
                 // Convert (RA, Dec) to local (Alt, Az)
                 double alt, az;
-                double ra_at_epoch, dec_at_epoch;
+                double ra_at_epoch, dec_at_epoch; // radians
                 ra_dec_from_j2000(ra, dec, s->julian_date, &ra_at_epoch, &dec_at_epoch);
                 alt_az(ra_at_epoch, dec_at_epoch, s->julian_date, s->horizon_latitude, s->horizon_longitude, &alt, &az);
                 const double alt_degrees = alt * 180 / M_PI;
@@ -175,8 +176,8 @@ void plot_galaxy_map(chart_config *s) {
 
                     // Calculate angular distance of zenith from the Sun
                     const double angular_separation = angDist_RADec(
-                            ra_sun * M_PI / 12, dec_sun * M_PI / 180,
-                            ra_zenith_j2000, dec_zenith_j2000);
+                        ra_sun * M_PI / 12, dec_sun * M_PI / 180,
+                        ra_zenith_j2000, dec_zenith_j2000);
                     const double solar_altitude = 90 - angular_separation * 180 / M_PI;
 
                     // Reject time steps which fall in twilight
@@ -230,10 +231,10 @@ void plot_galaxy_map(chart_config *s) {
 
             // Cairo's ARGB32 pixel format stores pixels as 32-bit ints, with alpha in most significant byte.
             *(uint32_t *) (pixel_data + j * stride + 4 * i) =
-                    (uint32_t) (255 * colour_final.blu) +  // blue
-                    ((uint32_t) (255 * colour_final.grn) << (unsigned) 8) +  // green
-                    ((uint32_t) (255 * colour_final.red) << (unsigned) 16) +  // red
-                    ((uint32_t) 255 << (unsigned) 24);  // alpha
+                    (uint32_t) (255 * colour_final.blu) + // blue
+                    ((uint32_t) (255 * colour_final.grn) << (unsigned) 8) + // green
+                    ((uint32_t) (255 * colour_final.red) << (unsigned) 16) + // red
+                    ((uint32_t) 255 << (unsigned) 24); // alpha
         }
     }
 

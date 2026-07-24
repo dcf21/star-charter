@@ -29,6 +29,7 @@
 
 #include "astroGraphics/starListReader.h"
 #include "astroGraphics/stars.h"
+#include "astroGraphics/stars_ancient.h"
 #include "coreUtils/errorReport.h"
 #include "mathsTools/projection.h"
 #include "settings/chart_config.h"
@@ -467,8 +468,9 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                         continue;
                     }
 
-                    // Calculate the radius of this star on tha canvas
-                    const double size = get_star_size(s, sd.mag); // inches
+                    // Calculate the radius of this star on the canvas
+                    const double size_multiplier = (s->star_style == SW_STAR_STYLE_ANCIENT) ? 2.5 : 1;
+                    const double size = get_star_size(s, sd.mag) * size_multiplier; // inches
 
                     // Draw a circular splodge on the star chart
                     const double size_canvas = size * s->dpi; // Cairo pixels
@@ -477,7 +479,11 @@ int plot_stars_draw(chart_config *s, cairo_page *page, FILE *stars_data_file, co
                     cairo_set_source_rgba(s->cairo_draw, s->star_col.red, s->star_col.grn, s->star_col.blu,
                                           s->star_col.alpha);
                     cairo_new_path(s->cairo_draw);
-                    cairo_arc(s->cairo_draw, x_canvas, y_canvas, size_canvas, 0, 2 * M_PI);
+                    if (s->star_style == SW_STAR_STYLE_NORMAL) {
+                        cairo_arc(s->cairo_draw, x_canvas, y_canvas, size_canvas, 0, 2 * M_PI);
+                    } else {
+                        draw_ancient_star(s->cairo_draw, x_canvas, y_canvas, sd.mag, size_canvas);
+                    }
                     cairo_fill(s->cairo_draw);
 
                     // Don't allow text labels to be placed over this star

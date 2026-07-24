@@ -37,9 +37,9 @@ from typing import Dict, Final, List, Tuple
 de_ephemeris_file_specs: Final[Dict[int, Tuple[int, int, int, int, str]]] = {
     405: (1600, 2200, 20, 4, ""),
     430: (1550, 2550, 100, 4, "_572"),
-    431: (1000, 16000, 1000, 5, "_572"),
+    431: (-13000, 16000, 1000, 5, "_572"),
     440: (1550, 2550, 100, 5, ""),
-    441: (1000, 16000, 1000, 5, "")
+    441: (-13000, 16000, 1000, 5, "")
 }
 
 
@@ -175,10 +175,17 @@ def list_de4xx_files(de_number: int, refresh: bool) -> List[Dict[str, str | bool
 
     # Fetch the JPL DE4xx ephemeris data files
     for file_number in range(file_number_min, file_number_max + 1, file_number_step):
-        f: Dict[str, int] = {'de': de_number, 'num': file_number, 'width': file_number_width}
+        f: Dict[str, int | str] = {
+            'de': de_number,
+            'num': file_number,
+            'num_sgn': 'm' if file_number < 0 else 'p',
+            'num_abs': abs(file_number),
+            'width': file_number_width
+        }
         required_files.append({
-            'url': 'https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de{de:3d}/ascp{num:0{width}d}.{de:3d}'.format(**f),
-            'destination': 'data/de{de:3d}/ascp{num:0{width}d}.{de:3d}'.format(**f),
+            'url': ('https://ssd.jpl.nasa.gov/ftp/eph/planets/ascii/de{de:3d}/asc{num_sgn}{num_abs:0{width}d}.{de:3d}'.
+                    format(**f)),
+            'destination': 'data/de{de:3d}/asc{num_sgn}{num_abs:0{width}d}.{de:3d}'.format(**f),
             'force_refresh': refresh
         })
 

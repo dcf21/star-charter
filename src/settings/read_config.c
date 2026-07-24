@@ -478,6 +478,24 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("julian_date")
         x->julian_date = key_val_num;
         return 0;
+    } else if (strcmp(key, "time_standard") == 0) {
+        //! time_standard - The time standard to use when interpreting Julian day number inputs. Options are: `utc`
+        //! (Coordinated Universal Time; default) or `tt` (Terrestrial Time).
+        if (strcmp(key_val, "utc") == 0) x->star_style = SW_TIME_STANDARD_UTC;
+        else if (strcmp(key_val, "tt") == 0) x->star_style = SW_TIME_STANDARD_TT;
+        else {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. time_standard should equal 'utc', or 'tt'.");
+            stch_error(temp_err_string);
+            return 1;
+        }
+        return 0;
+    } else if (strcmp(key, "ra_dec_epoch") == 0) {
+        //! ra_dec_epoch - The epoch of the equatorial (RA, Dec) coordinate grid to draw; Julian day number.
+        //! Default: 2451545 (J2000.0)
+        CHECK_VALUE_NUMERIC("ra_dec_epoch")
+        x->ra_dec_epoch = key_val_num;
+        return 0;
     } else if (strcmp(key, "meteor_radiant") == 0) {
         //! meteor_radiant - Specify that the radiant of a meteor shower should be marked. This should be set to a
         //! string of the form `<shower_label>,<ra_radiant/deg>,<dec_radiant/deg>`. To mark multiple shower
@@ -904,6 +922,18 @@ int process_configuration_file_line(char *line, const char *filename, const int 
         CHECK_VALUE_NUMERIC("constellation_label_size")
         x->constellations_label_size = key_val_num;
         x->constellations_label_size_is_set = 1;
+        return 0;
+    } else if (strcmp(key, "star_style") == 0) {
+        //! star_style - The style to use when drawing stars. Options are: `normal` (default) or `ancient` (ornate
+        //! stars inspired by Johann Bayer's 1603 star atlas, Uranometria).
+        if (strcmp(key_val, "normal") == 0) x->star_style = SW_STAR_STYLE_NORMAL;
+        else if (strcmp(key_val, "ancient") == 0) x->star_style = SW_STAR_STYLE_ANCIENT;
+        else {
+            snprintf(temp_err_string, FNAME_LENGTH,
+                     "Bad input file. star_style should equal 'normal', or 'ancient'.");
+            stch_error(temp_err_string);
+            return 1;
+        }
         return 0;
     } else if (strcmp(key, "star_names") == 0) {
         //! star_names - Boolean (0 or 1) indicating whether we label the English names of stars

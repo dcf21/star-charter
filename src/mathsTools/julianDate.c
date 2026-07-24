@@ -1,5 +1,5 @@
 // julianDate.c
-//
+// 
 // -------------------------------------------------
 // Copyright 2015-2026 Dominic Ford
 //
@@ -25,18 +25,21 @@
 
 #include <gsl/gsl_math.h>
 
-#include "mathsTools/julianDate.h"
+#include "mathsTools/deltaT.h"
+
+#include "julianDate.h"
+#include "precession.h"
 
 // Routines for looking up the dates when the transition between the Julian calendar and the Gregorian calendar occurred
 
 //! switch_over_calendar_date - Return the calendar date when the Julian calendar was replaced with the Gregorian
 //! calendar
-//! \param [out] lastJulian - The last day of the Julian calendar, expressed as yyyymmdd
-//! \param [out] firstGregorian - The first day of the Gregorian calendar, expressed as yyyymmdd
+//! \param [out] last_julian - The last day of the Julian calendar, expressed as yyyymmdd
+//! \param [out] first_gregorian - The first day of the Gregorian calendar, expressed as yyyymmdd
 
-void switch_over_calendar_date(double *lastJulian, double *firstGregorian) {
-    *lastJulian = 17520902.0;
-    *firstGregorian = 17520914.0; // British
+void switch_over_calendar_date(double *last_julian, double *first_gregorian) {
+    *last_julian = 17520902.0;
+    *first_gregorian = 17520914.0; // British
 }
 
 //! The Julian day number when the Julian calendar was replaced with the Gregorian
@@ -50,7 +53,7 @@ double switch_over_jd() {
 //! \param [in] i - Month number
 //! \return Month name
 
-char *get_month_name(int i) {
+char *get_month_name(const int i) {
     switch (i) {
         case 1:
             return "January";
@@ -85,7 +88,7 @@ char *get_month_name(int i) {
 //! \param [in] i - Number of the day of the week
 //! \return Name of the day
 
-char *get_week_day_name(int i) {
+char *get_week_day_name(const int i) {
     switch (i) {
         case 0:
             return "Monday";
@@ -117,7 +120,8 @@ char *get_week_day_name(int i) {
 //! \param [out] err_text Error message (if status is non-zero)
 //! \return Julian day number
 
-double julian_day(int year, int month, int day, int hour, int min, int sec, int *status, char *err_text) {
+double julian_day(int year, int month, const int day, const int hour, const int min, const int sec,
+                  int *status, char *err_text) {
     double last_julian, first_gregorian;
     int b;
 
@@ -160,13 +164,11 @@ double julian_day(int year, int month, int day, int hour, int min, int sec, int 
         year--;
     }
 
-    if (required_date <= last_julian) {
-        // Julian calendar
-        b = -2 + ((year + 4716) / 4) - 1179;
-    } else if (required_date >= first_gregorian) {
-        // Gregorian calendar
-        b = (year / 400) - (year / 100) + (year / 4);
-    } else {
+    // Julian calendar
+    if (required_date <= last_julian) { b = -2 + ((year + 4716) / 4) - 1179; }
+
+    // Gregorian calendar
+    else if (required_date >= first_gregorian) { b = (year / 400) - (year / 100) + (year / 4); } else {
         *status = 1;
         sprintf(err_text,
                 "The requested date never happened in the British calendar: "
@@ -192,13 +194,11 @@ double julian_day(int year, int month, int day, int hour, int min, int sec, int 
 //! \param [out] status Zero on success; One on failure
 //! \param [out] err_text Error message (if status is non-zero)
 
-void inv_julian_day(double jd, int *year, int *month, int *day, int *hour, int *min, double *sec, int *status,
+void inv_julian_day(const double jd, int *year, int *month, int *day, int *hour, int *min, double *sec, int *status,
                     char *err_text) {
     long b, c;
     int temp;
-
-    // Dummy placeholder, since we need month later in the calculation
-    if (month == NULL) month = &temp;
+    if (month == NULL) month = &temp; // Dummy placeholder, since we need month later in the calculation
 
     if ((jd < -1e8) || (jd > 1e8) || (!gsl_finite(jd))) {
         *status = 1;
@@ -216,59 +216,32 @@ void inv_julian_day(double jd, int *year, int *month, int *day, int *hour, int *
     // a = Number of whole Julian days.
     // b = Number of centuries since the Council of Nicaea.
     // c = Julian Day number as if century leap years happened.
-    const long a = jd + 0.5;
+    const long a = (long) (jd + 0.5);
 
-    if (a < switch_over_jd()) {
-        // Julian calendar
+    // Julian calendar
+    if (a < (long) switch_over_jd()) {
         b = 0;
         c = a + 1524;
-    } else {
-        // Gregorian calendar
+    }
+
+    // Gregorian calendar
+    else {
         b = (a - 1867216.25) / 36524.25;
         c = a + b - (b / 4) + 1525;
     }
-
-    // Number of 365.25 periods, starting the year at the end of February
-    const long d = (c - 122.1) / 365.25;
-
-    // Number of days accounted for by these
-    const long e = 365 * d + d / 4;
-
-    // Number of 30.6001 days periods (a.k.a. months) in remainder
-    const long f = (c - e) / 30.6001;
-
+    const long d = (c - 122.1) / 365.25; // Number of 365.25 periods, starting the year at the end of February
+    const long e = 365 * d + d / 4; // Number of days accounted for by these
+    const long f = (c - e) / 30.6001; // Number of 30.6001 days periods (a.k.a. months) in remainder
     if (day != NULL) *day = (int) floor(c - e - (int) (30.6001 * f));
     *month = (int) floor(f - 1 - 12 * (f >= 14));
     if (year != NULL) *year = (int) floor(d - 4715 - (*month >= 3));
-}
-
-//! sidereal_time - Return the Greenwich sidereal time, in hours, at unix time <utc>. This is the RA at the zenith
-//! in Greenwich.
-//! \param [in] utc - Unix time
-//! \return - Sidereal time (hours)
-
-double sidereal_time(double utc) {
-    const double u = utc;
-    const double j = 40587.5 + u / 86400.0;  // Julian date - 2400000
-    const double t = (j - 51545.0) / 36525.0; // Julian century (no centuries since 2000.0)
-
-    // See pages 87-88 of Astronomical Algorithms, by Jean Meeus
-    const double st = fmod((
-                                   280.46061837 +
-                                   360.98564736629 * (j - 51545.0) +
-                                   0.000387933 * t * t +
-                                   t * t * t / 38710000.0
-                           ), 360) * 12 / 180;
-
-    // Sidereal time, in hours. RA at zenith in Greenwich.
-    return st;
 }
 
 //! unix_from_jd - Convert a Julian date into a unix time.
 //! \param [in] jd - Input Julian date
 //! \return - Float unix time
 
-double unix_from_jd(double jd) {
+double unix_from_jd(const double jd) {
     return 86400.0 * (jd - 2440587.5);
 }
 
@@ -276,93 +249,86 @@ double unix_from_jd(double jd) {
 //! \param [in] utc - Input unix time
 //! \return - Float Julian date
 
-double jd_from_unix(double utc) {
+double jd_from_unix(const double utc) {
     return (utc / 86400.0) + 2440587.5;
 }
 
-//! ra_dec_from_j2000 - Convert celestial coordinates from J2000 into a new epoch. See Green's Spherical Astronomy, pp 222-225
-//! \param [in] ra_j2000_in - Input right ascension, in radians, J2000
-//! \param [in] dec_j2000_in - Input declination, in radians, J2000
-//! \param [in] jd_new - Julian date of the epoch we are to transform celestial coordinates into
-//! \param [out] ra_epoch_out - Output right ascension, in radians, reference frame at epoch
-//! \param [out] dec_epoch_out - Output declination, in radians, reference frame at epoch
+//! sidereal_time - Return the Greenwich sidereal time, in hours, at UTC unix time <utc>. This is the RA at the zenith
+//! in Greenwich.
+//! \param [in] utc - Unix time (in UTC; not TT; by definition of sidereal_time)
+//! \return - Sidereal time (hours)
 
-void ra_dec_from_j2000(double ra_j2000_in, double dec_j2000_in, double jd_new,
-                       double *ra_epoch_out, double *dec_epoch_out) {
-    const double j = jd_new - 2400000; // Julian date - 2400000
-    const double t = (j - 51545.0) / 36525.0; // Julian century (no centuries since 2000.0)
+double sidereal_time(const double utc) {
+    const double u = utc;
+    const double mjd_utc = 40587.5 + u / 86400.0; // Julian date - 2400000
+    const double t = (mjd_utc - 51545.0) / 36525.0; // Julian century (no centuries since 2000.0)
 
-    const double deg = M_PI / 180;
-    const double m = (1.281232 * t + 0.000388 * t * t) * deg;
-    const double n = (0.556753 * t + 0.000119 * t * t) * deg;
+    // See pages 87-88 of Astronomical Algorithms, by Jean Meeus
+    const double st = fmod((
+                               280.46061837 +
+                               360.98564736629 * (mjd_utc - 51545.0) +
+                               0.000387933 * t * t +
+                               t * t * t / 38710000.0
+                           ), 360) * 12 / 180;
 
-    const double ra_m = ra_j2000_in + 0.5 * (m + n * sin(ra_j2000_in) * tan(dec_j2000_in));
-    const double dec_m = dec_j2000_in + 0.5 * n * cos(ra_m);
-
-    *ra_epoch_out = ra_j2000_in + m + n * sin(ra_m) * tan(dec_m);
-    *dec_epoch_out = dec_j2000_in + n * cos(ra_m);
+    // Sidereal time, in hours. RA at zenith in Greenwich.
+    return st;
 }
 
-//! ra_dec_to_j2000 - Convert celestial coordinates to J2000 from another epoch. See Green's Spherical Astronomy, pp 222-225
-//! \param [in] ra_epoch_in - Input right ascension, in radians, reference frame at epoch
-//! \param [in] dec_epoch_in - Input declination, in radians, reference frame at epoch
-//! \param [in] jd_old - Julian date of the epoch we are to transform celestial coordinates from
-//! \param [out] ra_j2000_out - Output right ascension, in radians, J2000
-//! \param [out] dec_j2000_out - Output declination, in radians, J2000
+//! sidereal_time_jd - Turns a Julian date into a sidereal time (in hours, at Greenwich)
+//! @param [in] dt_calc - Initialised DeltaTCalculator struct instance.
+//! @param [in] jd_tt - Julian date (TT)
+//! @return - Sidereal time in radians
 
-void ra_dec_to_j2000(double ra_epoch_in, double dec_epoch_in, double jd_old,
-                     double *ra_j2000_out, double *dec_j2000_out) {
-    const double j = jd_old - 2400000; // Julian date - 2400000
-    const double t = (j - 51545.0) / 36525.0; // Julian century (no centuries since 2000.0)
-
-    const double deg = M_PI / 180;
-    const double m = (1.281232 * t + 0.000388 * t * t) * deg;
-    const double n = (0.556753 * t + 0.000119 * t * t) * deg;
-
-    const double ra_m = ra_epoch_in - 0.5 * (m + n * sin(ra_epoch_in) * tan(dec_epoch_in));
-    const double dec_m = dec_epoch_in - 0.5 * n * cos(ra_m);
-
-    *ra_j2000_out = ra_epoch_in - m - n * sin(ra_m) * tan(dec_m);
-    *dec_j2000_out = dec_epoch_in - n * cos(ra_m);
+double sidereal_time_jd(const DeltaTCalculator *dt_calc, const double jd_tt) {
+    const double jd_utc = utc_from_tt(dt_calc, jd_tt, 0, 0);
+    const double unix_time = unix_from_jd(jd_utc);
+    const double st_hours = sidereal_time(unix_time);
+    const double st_radians = M_PI / 12. * st_hours;
+    return st_radians;
 }
 
-//! ra_dec_switch_epoch - Convert celestial coordinates from one epoch into a new epoch. See Green's Spherical Astronomy, pp 222-225
-//! \param [in] ra_epoch_in - Input right ascension, in radians, reference frame at epoch
-//! \param [in] dec_epoch_in - Input declination, in radians, reference frame at epoch
-//! \param [in] jd_epoch_in - Julian date of the epoch we are to transform celestial coordinates from
-//! \param [in] jd_epoch_out - Julian date of the epoch we are to transform celestial coordinates into
-//! \param [out] ra_epoch_out - Output right ascension, in radians, reference frame at epoch
-//! \param [out] dec_epoch_out - Output declination, in radians, reference frame at epoch
-void ra_dec_switch_epoch(double ra_epoch_in, double dec_epoch_in, double jd_epoch_in,
-                         double jd_epoch_out, double *ra_epoch_out, double *dec_epoch_out) {
-    double ra_j2000, dec_j2000;
-    ra_dec_to_j2000(ra_epoch_in, dec_epoch_in, jd_epoch_in, &ra_j2000, &dec_j2000);
-    ra_dec_from_j2000(ra_j2000, dec_j2000, jd_epoch_out, ra_epoch_out, dec_epoch_out);
-}
+//! inclination_ecliptic - Calculate the inclination of the ecliptic at epoch JD.
+//!    Method based on Laskar, J., A&A, 157, 68 (1986)
+//!    See Astronomical Algorithms, Jean Meeus, chapter 22, page 147.
+//! @param [in] jd - The epoch at which to calculate the inclination of the ecliptic; Julian day number.
+//! @return - Inclination of the ecliptic; degrees.
+double inclination_ecliptic(const double jd) {
+    // Convert JD to U = T / 100
+    const double t = (jd - 2451545.0) / 36525.0;
+    const double u = t / 100.0;
 
-//! ra_dec_j2000_from_b1950 - Convert celestial coordinates from B1950 into J2000.
-//! \param [in] ra_b1950_in - Input right ascension, in radians, B1950
-//! \param [in] dec_b1950_in - Input declination, in radians, B1950
-//! \param [out] ra_j2000_out - Output right ascension, in radians, J2000
-//! \param [out] dec_j2000_out - Output declination, in radians, J2000
+    // Constants
+    const double degree = M_PI / 180.0;
+    const double arcsecond = degree / 3600.0;
 
-void ra_dec_j2000_from_b1950(double ra_b1950_in, double dec_b1950_in, double *ra_j2000_out, double *dec_j2000_out) {
-    ra_dec_to_j2000(ra_b1950_in, dec_b1950_in, 2433282.4, ra_j2000_out, dec_j2000_out);
-}
+    // Polynomial coefficients (radians)
+    static const double eta_coefficients[] = {
+        (23.0 * 3600.0 + 26.0 * 60.0 + 21.448) * arcsecond,
+        -4680.93 * arcsecond,
+        -1.55 * arcsecond,
+        1999.25 * arcsecond,
+        -51.38 * arcsecond,
+        -249.67 * arcsecond,
+        -39.05 * arcsecond,
+        7.12 * arcsecond,
+        27.87 * arcsecond,
+        5.79 * arcsecond,
+        2.45 * arcsecond
+    };
 
-//! ra_dec_b1950_from_j2000 - Convert celestial coordinates from J2000 into B1950.
-//! \param [in] ra_j2000_in - Input right ascension, in radians, J2000
-//! \param [in] dec_j2000_in - Input declination, in radians, J2000
-//! \param [out] ra_b1950_out - Output right ascension, in radians, B1950
-//! \param [out] dec_b1950_out - Output declination, in radians, B1950
-void ra_dec_b1950_from_j2000(double ra_j2000_in, double dec_j2000_in, double *ra_b1950_out, double *dec_b1950_out) {
-    ra_dec_from_j2000(ra_j2000_in, dec_j2000_in, 2433282.4, ra_b1950_out, dec_b1950_out);
+    // Inclination of the ecliptic (degrees)
+    const double eta = polynomial_horner(u, eta_coefficients,
+                                         sizeof(eta_coefficients) / sizeof(eta_coefficients[0])
+                       ) / degree;
+
+    return eta;
 }
 
 //! get_zenith_position - Calculate the right ascension and declination of the zenith
 //! \param [in] latitude - The latitude of the observer, degrees
 //! \param [in] longitude - The longitude of the observer, degrees
-//! \param [in] julian_date - The Julian date of the observation
+//! \param [in] julian_date - The Julian date of the observation (UTC)
 //! \param [out] ra_at_epoch_out - Output right ascension, in radians, at epoch
 //! \param [out] dec_at_epoch_out - Output declination, in radians, at epoch
 void get_zenith_position(double latitude, double longitude, double julian_date,
@@ -389,12 +355,12 @@ void get_zenith_position(double latitude, double longitude, double julian_date,
     *dec_at_epoch_out = dec;
 }
 
-//! sun_pos - Calculate an estimate of the J2000.0 RA and Decl of the Sun at a particular Unix time.
+//! sun_pos_approx - Calculate an estimate of the J2000.0 RA and Decl of the Sun at a particular Unix time.
 //! See Jean Meeus, Astronomical Algorithms, pp 163-4
 //! \param [in] julian_date - Julian date of query
 //! \param [out] ra_j2000_out - Right ascension, J2000.0, hours
 //! \param [out] dec_j2000_out - Declination, J2000.0, degrees
-void sun_pos(double julian_date, double *ra_j2000_out, double *dec_j2000_out) {
+void sun_pos_approx(const double julian_date, double *ra_j2000_out, double *dec_j2000_out) {
     const double deg = M_PI / 180;
 
     const double jd = julian_date;
@@ -411,11 +377,10 @@ void sun_pos(double julian_date, double *ra_j2000_out, double *dec_j2000_out) {
     const double tl = l0 + c; // true longitude
     // const double v = m + c;  // true anomaly
 
-    const double epsilon =
-            23 + 26. / 60 + 21.448 / 3600 + 46.8150 / 3600 * t + 0.00059 / 3600 * t * t + 0.001813 / 3600 * t * t * t;
+    const double epsilon = inclination_ecliptic(jd);
 
     // Calculate RA and Dec at the epoch of the observation
-    const double ra_epoch = atan2(cos(epsilon * deg) * sin(tl * deg), cos(tl * deg));  // radians
+    const double ra_epoch = atan2(cos(epsilon * deg) * sin(tl * deg), cos(tl * deg)); // radians
     const double dec_epoch = asin(sin(epsilon * deg) * sin(tl * deg)); // radians
 
     // Convert to J2000.0 coordinates

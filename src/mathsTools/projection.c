@@ -27,6 +27,7 @@
 #include "settings/chart_config.h"
 
 #include "mathsTools/julianDate.h"
+#include "mathsTools/precession.h"
 #include "mathsTools/sphericalTrig.h"
 #include "mathsTools/projection.h"
 
@@ -82,8 +83,8 @@ void inv_galactic_project(double *ra_out, double *dec_out, double l, double b) {
 
 //! alt_az - Converts [RA, Dec] into local [altitude, azimuth]
 //! \param [in] ra - The right ascension of the object, radians, epoch of observation.
-//! \param [in] dec - The declination of the object, degrees, epoch of observation.
-//! \param [in] julian_date - The Julian date of the observation
+//! \param [in] dec - The declination of the object, radians, epoch of observation.
+//! \param [in] julian_date - The Julian date of the observation (UTC)
 //! \param [in] latitude - The longitude of the observer, degrees
 //! \param [in] longitude - The longitude of the observer, degrees
 //! \param [out] alt - The output altitude of the object, radians
@@ -120,11 +121,11 @@ void alt_az(double ra, double dec, double julian_date, double latitude, double l
 //! inv_alt_az - Converts local [altitude, azimuth] into [RA, Dec] at epoch
 //! \param [in] alt - The input altitude of the object, radians
 //! \param [in] az - The input azimuth of the object, radians
-//! \param [in] julian_date - The Julian date of the observation
+//! \param [in] julian_date - The Julian date of the observation (UTC)
 //! \param [in] latitude - The latitude of the observer, degrees
 //! \param [in] longitude - The longitude of the observer, degrees
 //! \param [out] ra_out - The output right ascension of the object, radians, epoch of observation.
-//! \param [out] dec_out - The output declination of the object, degrees, epoch of observation.
+//! \param [out] dec_out - The output declination of the object, radians, epoch of observation.
 
 void inv_alt_az(double alt, double az, double julian_date, double latitude, double longitude,
                 double *ra_out, double *dec_out) {

@@ -29,6 +29,7 @@
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
 #include "mathsTools/julianDate.h"
+#include "mathsTools/precession.h"
 #include "mathsTools/projection.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/cairo_page.h"
@@ -40,8 +41,8 @@
 
 void plot_zenith(chart_config *s, cairo_page *page) {
     // Find the coordinates of the zenith
-    double ra_zenith_at_epoch, dec_zenith_at_epoch;
-    double ra_zenith_j2000, dec_zenith_j2000;
+    double ra_zenith_at_epoch, dec_zenith_at_epoch; // radians
+    double ra_zenith_j2000, dec_zenith_j2000; // radians
     get_zenith_position(s->horizon_latitude, s->horizon_longitude, s->julian_date,
                         &ra_zenith_at_epoch, &dec_zenith_at_epoch);
     ra_dec_to_j2000(ra_zenith_at_epoch, dec_zenith_at_epoch, s->julian_date,

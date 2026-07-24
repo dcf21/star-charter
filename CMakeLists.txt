@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.6)
 project(starcharter)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wall -fopenmp -std=c99 -I${CMAKE_SOURCE_DIR}/src -D SRCDIR='\"${CMAKE_SOURCE_DIR}/src\"' -D DCFVERSION='\"10.0\"' -D DEBUG=1 -D MEMDEBUG1=0 -D MEMDEBUG2=0")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wall -fopenmp -std=c99 -I${CMAKE_SOURCE_DIR}/src -D SRCDIR='\"${CMAKE_SOURCE_DIR}/src\"' -D DCFVERSION='\"11.0\"' -D DEBUG=1 -D MEMDEBUG1=0 -D MEMDEBUG2=0")
 
 set(SOURCE_FILES
         src/argparse/argparse.c
@@ -34,6 +34,8 @@ set(SOURCE_FILES
         src/astroGraphics/scaleBars.h
         src/astroGraphics/stars.c
         src/astroGraphics/stars.h
+        src/astroGraphics/stars_ancient.h
+        src/astroGraphics/stars_ancient.c
         src/astroGraphics/textAnnotations.c
         src/astroGraphics/textAnnotations.h
         src/astroGraphics/zenith.c
@@ -62,8 +64,12 @@ set(SOURCE_FILES
         src/listTools/ltMemory.h
         src/listTools/ltStringProc.c
         src/listTools/ltStringProc.h
+        src/mathsTools/deltaT.c
+        src/mathsTools/deltaT.h
         src/mathsTools/julianDate.c
         src/mathsTools/julianDate.h
+        src/mathsTools/precession.c
+        src/mathsTools/precession.h
         src/mathsTools/projection.c
         src/mathsTools/projection.h
         src/mathsTools/sphericalTrig.c

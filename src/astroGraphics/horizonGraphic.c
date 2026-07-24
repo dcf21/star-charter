@@ -29,7 +29,7 @@
 
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
-#include "mathsTools/julianDate.h"
+#include "mathsTools/precession.h"
 #include "mathsTools/projection.h"
 #include "png/image.h"
 #include "settings/chart_config.h"
@@ -140,8 +140,8 @@ void plot_horizon_graphic(chart_config *s, cairo_page *page) {
                 inv_plane_project(&ra, &dec, s, x, y);
 
                 // Convert (RA, Dec) to local (Alt, Az)
-                double alt, az;
-                double ra_at_epoch, dec_at_epoch;
+                double alt, az; // radians
+                double ra_at_epoch, dec_at_epoch; // radians
                 ra_dec_from_j2000(ra, dec, s->julian_date, &ra_at_epoch, &dec_at_epoch);
                 alt_az(ra_at_epoch, dec_at_epoch, s->julian_date, s->horizon_latitude, s->horizon_longitude, &alt, &az);
                 const double alt_degrees = alt * 180 / M_PI;

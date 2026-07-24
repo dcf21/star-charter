@@ -135,7 +135,7 @@ docker compose run star-charter
 To make other star charts, open a shell within the Docker container as follows:
 
 ```
-docker run -it star-charter:v10 /bin/bash
+docker run -it star-charter:v11 /bin/bash
 ```
 
 ## Generating your own star charts
@@ -324,6 +324,7 @@ The following settings can be included in a `StarCharter` configuration file:
 * `position_angle` - The position angle of the plot - i.e. the tilt of north in degrees, counter-clockwise from up, at the centre of the plot
 * `projection` - Select projection to use. Set to `stereographic` (default; maximum width 360 degrees), `flat` (a rectangular map of RA/Dec), `peters` (a rectangular map in a Peters projection), `gnomonic` (maximum width 180 degrees), `sphere` (a celestial globe viewed from the outside), `multilatitude`, or `alt_az` (a hemisphere of a sky above a location, viewed from the output).
 * `ra_central` - The right ascension of the centre of the plot; hours, J2000.0.  This setting is only used if `coords=ra_dec`.
+* `ra_dec_epoch` - The epoch of the equatorial (RA, Dec) coordinate grid to draw; Julian day number. Default: 2451545 (J2000.0)
 * `scale_bar` - List of scale bars we should super-impose over the star chart. Each should be specified as: `<x_pos>,<y_pos>,<position_angle>,<degrees>` where <x_pos> and <y_pos> are 0-1, the position angle is a clockwise rotation in degrees, and degrees is the length of the scale bar on the sky. To draw multiple scale bars, specify this setting multiple times within your configuration file.
 * `scale_bar_col` - Colour to use for scale bars. Default: `0,0,0`.
 * `shade_twilight` - Boolean (0 or 1) indicating whether to shade the sky according to the altitude in the local sky at `julian_date`. Default: 0.
@@ -356,8 +357,10 @@ The following settings can be included in a `StarCharter` configuration file:
 * `star_label_mag_min` - Do not label stars fainter than this magnitude limit. Default: unlimited.
 * `star_mag_labels` - Switch indicating how the magnitudes of stars are labelled. Options are `off` (no labels), `on` (display magnitudes), `aavso` (magnitude labels in the format used by the AAVSO: in 1/10th mag increments with no decimal points; only shown for stars with -0.2 < B-V < +0.7). Default: `off`.
 * `star_names` - Boolean (0 or 1) indicating whether we label the English names of stars. Default: 1.
+* `star_style` - The style to use when drawing stars. Options are: `normal` (default) or `ancient` (ornate stars inspired by Johann Bayer's 1603 star atlas, Uranometria).
 * `star_variable_labels` - Boolean (0 or 1) indicating whether we label the variable-star designations of stars, e.g. V337_Car. Default: 0.
-* `text` - Overlay a custom text label on the star chart. Each label should be specified in the format `<coordinates>,<xpos>,<ypos>,<xalign>,<yalign>,<font_size>,<font_bold>,<font_italic>,<colour r>,<colour g>,<colour b>,<label string>`, where `coordinates` should be `page` or `ra_dec`. If `page` is selected, then `xpos` and `ypos` are in the range 0-1; if `ra_dec` is selected then `xpos` is RA/hours and `ypos` is Dec/degs. `xalign` and `yalign` are in the range -1 (left) to 1 (right), and colour components are in the range 0-1. To overlay multiple text labels, specify this setting multiple times within your configuration file. 
+* `text` - Overlay a custom text label on the star chart. Each label should be specified in the format `<coordinates>,<xpos>,<ypos>,<xalign>,<yalign>,<font_size>,<font_bold>,<font_italic>,<colour r>,<colour g>,<colour b>,<label string>`, where `coordinates` should be `page` or `ra_dec`. If `page` is selected, then `xpos` and `ypos` are in the range 0-1; if `ra_dec` is selected then `xpos` is RA/hours and `ypos` is Dec/degs. `xalign` and `yalign` are in the range -1 (left) to 1 (right), and colour components are in the range 0-1. To overlay multiple text labels, specify this setting multiple times within your configuration file.
+* `time_standard` - The time standard to use when interpreting Julian day number inputs. Options are: `utc` (Coordinated Universal Time; default) or `tt` (Terrestrial Time).
 * `title` - The heading to write at the top of the star chart
 * `twilight_horizon_col` - The colour to use to shade twilight at the horizon. Default: `0.506,0.765,0.929`.
 * `twilight_zenith_col` - The colour to use to shade twilight at the zenith. Default: `0.337,0.547,0.820`.
@@ -463,6 +466,8 @@ Only the filename is compulsory. The fields have the following meanings:
 * `angular_height` - The number of degrees of altitude spanned by the horizon graphic (vertically). By default, this is calculated from the aspect ratio and angular width of the image, assuming the pixels at the centre of the image to be square. So, if the image is twice as wide as it is high, and the angular width is 360 degrees, its angular height will be 180 degrees.
 
 ## Change history
+
+**Version 11.0** (1 September 2026) - Added renderer for drawing stars in the style of an ancient star atlas.
 
 **Version 10.0** (6 June 2026) - Switched default ephemeris from DE430 to DE440. Add support for horizon graphics.
 

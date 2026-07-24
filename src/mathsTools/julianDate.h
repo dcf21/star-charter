@@ -1,5 +1,5 @@
 // julianDate.h
-//
+// 
 // -------------------------------------------------
 // Copyright 2015-2026 Dominic Ford
 //
@@ -22,7 +22,9 @@
 #ifndef JULIANDATE_H
 #define JULIANDATE_H 1
 
-void switch_over_calendar_date(double *lastJulian, double *firstGregorian);
+#include "mathsTools/deltaT.h"
+
+void switch_over_calendar_date(double *last_julian, double *first_gregorian);
 
 double switch_over_jd();
 
@@ -32,31 +34,20 @@ char *get_week_day_name(int i);
 
 double julian_day(int year, int month, int day, int hour, int min, int sec, int *status, char *err_text);
 
-void inv_julian_day(double jd, int *year, int *month, int *day, int *hour, int *min, double *sec, int *status,
+void inv_julian_day(double JD, int *year, int *month, int *day, int *hour, int *min, double *sec, int *status,
                     char *err_text);
-
-double sidereal_time(double utc);
 
 double unix_from_jd(double jd);
 
 double jd_from_unix(double utc);
 
-void ra_dec_from_j2000(double ra_j2000_in, double dec_j2000_in, double jd_new,
-                       double *ra_epoch_out, double *dec_epoch_out);
+double sidereal_time(double utc);
 
-void ra_dec_to_j2000(double ra_epoch_in, double dec_epoch_in, double jd_old,
-                     double *ra_j2000_out, double *dec_j2000_out);
-
-void ra_dec_switch_epoch(double ra_epoch_in, double dec_epoch_in, double jd_epoch_in,
-                         double jd_epoch_out, double *ra_epoch_out, double *dec_epoch_out);
-
-void ra_dec_j2000_from_b1950(double ra_b1950_in, double dec_b1950_in, double *ra_j2000_out, double *dec_j2000_out);
-
-void ra_dec_b1950_from_j2000(double ra_j2000_in, double dec_j2000_in, double *ra_b1950_out, double *dec_b1950_out);
+double sidereal_time_jd(const DeltaTCalculator *calc, double jd_tt);
 
 void get_zenith_position(double latitude, double longitude, double julian_date,
                          double *ra_at_epoch_out, double *dec_at_epoch_out);
 
-void sun_pos(double julian_date, double *ra_j2000_out, double *dec_j2000_out);
+void sun_pos_approx(double julian_date, double *ra_j2000_out, double *dec_j2000_out);
 
 #endif

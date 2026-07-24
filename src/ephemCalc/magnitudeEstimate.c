@@ -29,6 +29,7 @@
 
 #include "coreUtils/errorReport.h"
 #include "mathsTools/julianDate.h"
+#include "mathsTools/precession.h"
 #include "mathsTools/sphericalTrig.h"
 
 #include "alias.h"
@@ -116,17 +117,17 @@ void magnitudeEstimate_shutdown() {
 //! magnitudeEstimate
 //! \param [in] body_id - Id number of body to have ephemeris computed. 0=Mercury. 2=Earth/Moon barycentre. 9=Pluto.
 //! 10=Sun. 19=Geocentre. 1e7+n=Asteroid n. 2e7+n=Comet n.
-//! \param [in] xo - x,y,z position of body, in AU relative to solar system barycentre.
+//! \param [in] xo - x,y,z position of body, in ICRF v2, in AU, relative to solar system barycentre.
 //! \param [in] yo - negative x points to vernal equinox.
-//! \param [in] zo - z points to celestial north pole (i.e. J2000.0).
-//! \param [in] xe - x,y,z position of Earth, in AU relative to solar system barycentre.
+//! \param [in] zo - z points to celestial north pole (of J2000.0).
+//! \param [in] xe - x,y,z position of Earth, in ICRF v2, in AU, relative to solar system barycentre.
 //! \param [in] ye
 //! \param [in] ze
-//! \param [in] xs - x,y,z position of Sun, in AU relative to solar system barycentre.
+//! \param [in] xs - x,y,z position of Sun, in ICRF v2, in AU, relative to solar system barycentre.
 //! \param [in] ys
 //! \param [in] zs
-//! \param [out] ra - Right ascension of the object (radians)
-//! \param [out] dec - Declination of the object (radians)
+//! \param [out] ra - Right ascension of the object (requested epoch; radians; geocentric or topocentric)
+//! \param [out] dec - Declination of the object (requested epoch; radians; geocentric or topocentric)
 //! \param [out] mag - Estimated V-band magnitude of the object
 //! \param [out] phase - Phase of the object (0-1)
 //! \param [out] angSize - Angular size of the object (diameter; arcseconds)

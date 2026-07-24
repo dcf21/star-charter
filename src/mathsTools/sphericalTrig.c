@@ -19,8 +19,6 @@
 // along with StarCharter.  If not, see <http://www.gnu.org/licenses/>.
 // -------------------------------------------------
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
 #include <string.h>
 
@@ -40,12 +38,15 @@
 //! \param [in] zc - Cartesian coordinates of point C
 //! \return Angle ABC (radians)
 
-double angDist_ABC(double xa, double ya, double za, double xb, double yb, double zb, double xc, double yc, double zc) {
-    double AB2 = gsl_pow_2(xa - xb) + gsl_pow_2(ya - yb) + gsl_pow_2(za - zb);
-    double BC2 = gsl_pow_2(xb - xc) + gsl_pow_2(yb - yc) + gsl_pow_2(zb - zc);
-    double CA2 = gsl_pow_2(xc - xa) + gsl_pow_2(yc - ya) + gsl_pow_2(zc - za);
+double angDist_ABC(const double xa, const double ya, const double za,
+                   const double xb, const double yb, const double zb,
+                   const double xc, const double yc, const double zc) {
+    const double AB2 = gsl_pow_2(xa - xb) + gsl_pow_2(ya - yb) + gsl_pow_2(za - zb);
+    const double BC2 = gsl_pow_2(xb - xc) + gsl_pow_2(yb - yc) + gsl_pow_2(zb - zc);
+    const double CA2 = gsl_pow_2(xc - xa) + gsl_pow_2(yc - ya) + gsl_pow_2(zc - za);
 
-    double cosine = (AB2 + BC2 - CA2) / (2 * sqrt(AB2) * sqrt(BC2));
+    // Use the cosine rule
+    const double cosine = (AB2 + BC2 - CA2) / (2 * sqrt(AB2) * sqrt(BC2));
     if (cosine >= 1) return 0;
 
     return acos(cosine);
@@ -58,19 +59,19 @@ double angDist_ABC(double xa, double ya, double za, double xb, double yb, double
 //! \param [in] dec1 - Declination of the second point (radians)
 //! \return Angular distance between two points (radians)
 
-double angDist_RADec(double ra0, double dec0, double ra1, double dec1) {
-    double p0x = sin(ra0) * cos(dec0);
-    double p0y = cos(ra0) * cos(dec0);
-    double p0z = sin(dec0);
+double angDist_RADec(const double ra0, const double dec0, const double ra1, const double dec1) {
+    const double p0x = sin(ra0) * cos(dec0);
+    const double p0y = cos(ra0) * cos(dec0);
+    const double p0z = sin(dec0);
 
-    double p1x = sin(ra1) * cos(dec1);
-    double p1y = cos(ra1) * cos(dec1);
-    double p1z = sin(dec1);
+    const double p1x = sin(ra1) * cos(dec1);
+    const double p1y = cos(ra1) * cos(dec1);
+    const double p1z = sin(dec1);
 
-    double sep2 = gsl_pow_2(p0x - p1x) + gsl_pow_2(p0y - p1y) + gsl_pow_2(p0z - p1z);
+    const double sep2 = gsl_pow_2(p0x - p1x) + gsl_pow_2(p0y - p1y) + gsl_pow_2(p0z - p1z);
     if (sep2 <= 0) return 0;
 
-    double sep = sqrt(sep2);
+    const double sep = sqrt(sep2);
     return 2 * asin(sep / 2);
 }
 
@@ -84,9 +85,9 @@ double angDist_RADec(double ra0, double dec0, double ra1, double dec1) {
 
 double position_angle(double ra1, double dec1, double ra2, double dec2) {
     const double a[3] = {
-            cos(ra2) * cos(dec2),
-            sin(ra2) * cos(dec2),
-            sin(dec2)
+        cos(ra2) * cos(dec2),
+        sin(ra2) * cos(dec2),
+        sin(dec2)
     };
 
     double a2[3], a3[3];
@@ -109,9 +110,9 @@ double position_angle(double ra1, double dec1, double ra2, double dec2) {
 void inv_position_angle(const double ra1, const double dec1, const double pa, const double ang_dist,
                         double *ra2_out, double *dec2_out) {
     const double a3[3] = {
-            -cos(pa) * sin(ang_dist),
-            sin(pa) * sin(ang_dist),
-            cos(ang_dist)
+        -cos(pa) * sin(ang_dist),
+        sin(pa) * sin(ang_dist),
+        cos(ang_dist)
     };
 
     double a2[3], a[3];

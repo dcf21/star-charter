@@ -20,7 +20,6 @@
 // -------------------------------------------------
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <math.h>
 
@@ -30,6 +29,7 @@
 #include "coreUtils/asciiDouble.h"
 #include "coreUtils/errorReport.h"
 #include "mathsTools/julianDate.h"
+#include "mathsTools/precession.h"
 #include "mathsTools/projection.h"
 #include "settings/chart_config.h"
 #include "vectorGraphics/lineDraw.h"
@@ -82,8 +82,8 @@ void plot_horizon(chart_config *s, line_drawer *ld, cairo_page *page) {
     s->show_horizon = 0;
 
     // Find the coordinates of the zenith
-    double ra_zenith_at_epoch, dec_zenith_at_epoch;
-    double ra_zenith_j2000, dec_zenith_j2000;
+    double ra_zenith_at_epoch, dec_zenith_at_epoch; // radians
+    double ra_zenith_j2000, dec_zenith_j2000; // radians
     get_zenith_position(s->horizon_latitude, s->horizon_longitude, s->julian_date,
                         &ra_zenith_at_epoch, &dec_zenith_at_epoch);
     ra_dec_to_j2000(ra_zenith_at_epoch, dec_zenith_at_epoch, s->julian_date,
